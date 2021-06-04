@@ -1,24 +1,27 @@
 #include <Arduino.h>
 
-#include "internet.h"
+#include "network.h"
+#include "httpsRequests.h"
 #include "timing.h"
 
-Timer syncUnixWithServerTimer = Timer(600000);
+MasterClock masterClock = MasterClock();
+
+Timer syncMasterClockWithServerTimer = Timer(300000);
 
 void setup() {
   Serial.begin(115200);
   Serial.println("\n");
   
   connectToWifi();
-  syncUnixWithServer();
+  masterClock.syncWithServer();
 }
 
 void loop() {
-  if (syncUnixWithServerTimer.hasElapsed()) {
-    Serial.println("syncUnixWithServerTimer elapsed.");
-    syncUnixWithServer();
+  if (syncMasterClockWithServerTimer.hasElapsed()) {
+    Serial.println("\nsyncMasterClockWithServerTimer elapsed.");
+    masterClock.syncWithServer();
   } else {
-    Serial.println("syncUnixWithServerTimer not elapsed.");
+    Serial.printf("Current time: %d\n", masterClock.getDisplayTime());
   }
   delay(5000);
 }

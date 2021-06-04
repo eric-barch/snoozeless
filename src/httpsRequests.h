@@ -1,12 +1,9 @@
-#include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-const char* ssid = "ORBI39";
-const char* password = "Percy693#";
-
 const char* timeApi = "https://us-central1-runtimealarm-f8654.cloudfunctions.net/user/OL8UIxPo8dPG1OoGGIK5280SW4H2/time";
 
+// Get rid of this following tutorial in ArduinoJson 6 book.
 const char* root_ca = \
 "-----BEGIN CERTIFICATE-----\n" \
 "MIIDujCCAqKgAwIBAgILBAAAAAABD4Ym5g0wDQYJKoZIhvcNAQEFBQAwTDEgMB4G\n" \
@@ -31,19 +28,11 @@ const char* root_ca = \
 "TBj0/VLZjmmx6BEP3ojY+x1J96relc8geMJgEtslQIxq/H5COEBkEveegeGTLg==\n" \
 "-----END CERTIFICATE-----\n";
 
-void connectToWifi() {
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to the WiFi network...");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(".");
-  }
-  Serial.print("\nConnected to the WiFi network.\n");
-}
-
-//HTTPS Requests
-void syncUnixWithServer() {
+// Return server unix time.
+unsigned long getServerUnix() {
   
+  unsigned long serverUnix;
+
   if ((WiFi.status() == WL_CONNECTED)) {
 
     HTTPClient http;
@@ -68,22 +57,31 @@ void syncUnixWithServer() {
         if (err) {
           Serial.print(F("deserializeJson() failed with code "));
           Serial.println(err.c_str());
+          serverUnix = -1;
         } else {
-          unsigned long unixTime = doc["unixTime"];
-          Serial.println(unixTime);
+          serverUnix = doc["unixTime"];
+          Serial.println("HTTPS request successful.");
         }
 
       } else {
         Serial.print(F("HTTPS request failed with code "));
         Serial.println(httpCode);
+        serverUnix = -1;
       }
 
     } else {
       Serial.println("HTTPS request failed internally with code ");
       Serial.println(httpCode);
+      serverUnix = -1;
     }
 
     http.end();
 
+  } else {
+    Serial.println("Could not retrieve server unix. Not connected to internet.");
+    serverUnix = -1;
   }
+
+  return serverUnix;
+
 }
