@@ -56,6 +56,10 @@ unsigned long getServerUnix() {
 
   } else {
     Serial.println("HTTPS request failed due to lack of internet connection.");
+    /* TODO: Have the below line call the Network static function instead.
+     * Also consider moving it to around line 12 so it can still make the
+     * HTTPS request if it is able to reconnect. */
+    Serial.printf("Reconnected to WiFi: %d\n", WiFi.reconnect());
     serverUnix = -1;
   }
 

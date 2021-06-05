@@ -1,17 +1,28 @@
 #include <WiFi.h>
 
-const char* ssid = "ORBI39";
-const char* password = "Percy693#";
+class Network {
 
-void connectToWifi() {
-  
-  WiFi.begin(ssid, password);
-  
-  Serial.print("Connecting to the WiFi network...");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(".");
-  }
-  Serial.print("\nConnected to the WiFi network.\n");
+  static const char* ssid;
+  static const char* password;
 
-}
+  public:
+    // TODO: Add timeout.
+    static void connect() {
+      WiFi.begin(ssid, password);
+      
+      Serial.print("Connecting to the WiFi network...");
+      while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+      }
+      Serial.print("\nConnected to the WiFi network.\n");
+    }
+
+    // TODO: Add function with timeout for reconnecting to WiFi.
+    static void reconnect() {
+
+    }
+};
+
+const char* Network::ssid = "ORBI39";
+const char* Network::password = "Percy693#";

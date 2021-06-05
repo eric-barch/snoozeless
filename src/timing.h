@@ -1,3 +1,4 @@
+// TODO: Consider making this a static function.
 class MasterClock {
   
   const int SECONDS_PER_DAY = 86400;

@@ -3,25 +3,32 @@
 #include "network.h"
 #include "httpsRequests.h"
 #include "timing.h"
+#include "display.h"
 
 MasterClock masterClock = MasterClock();
+Display display = Display();
 
 Timer syncMasterClockWithServerTimer = Timer(300000);
+Timer renderDisplayTimer = Timer(5000);
 
 void setup() {
   Serial.begin(115200);
   Serial.println("\n");
   
-  connectToWifi();
+  Network::connect();
   masterClock.syncWithServer();
+  display.render(masterClock.getDisplayTime());
 }
 
 void loop() {
   if (syncMasterClockWithServerTimer.hasElapsed()) {
-    Serial.println("\nsyncMasterClockWithServerTimer elapsed.");
+    Serial.printf("\nsyncMasterClockWithServerTimer elapsed.\n");
     masterClock.syncWithServer();
-  } else {
-    Serial.printf("Current time: %d\n", masterClock.getDisplayTime());
+  } 
+  
+  if (renderDisplayTimer.hasElapsed()) {
+    display.render(masterClock.getDisplayTime());
   }
-  delay(5000);
+
+  delay(500);
 }
