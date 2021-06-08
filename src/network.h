@@ -6,7 +6,6 @@ class Network {
   static const char* password;
 
   public:
-    // TODO: Add timeout.
     static void connect() {
       WiFi.begin(ssid, password);
       
@@ -18,7 +17,6 @@ class Network {
       Serial.print("\nConnected to the WiFi network.\n");
     }
 
-    // TODO: Add function with timeout for reconnecting to WiFi.
     static void reconnect() {
       Serial.print("Reconnecting to the WiFi network...\n");
       bool reconnectionSuccessful = WiFi.reconnect();
@@ -26,5 +24,6 @@ class Network {
     }
 };
 
+// TODO: Add support for multiple WiFi network memory.
 const char* Network::ssid = "ORBI39";
 const char* Network::password = "Percy693#";

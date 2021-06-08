@@ -1,16 +1,15 @@
-// TODO: Consider making this a static function.
 class MasterClock {
   
-  const int SECONDS_PER_DAY = 86400;
-  const int SECONDS_PER_HOUR = 3600;
-  const int SECONDS_PER_MINUTE = 60;
+  static const int SECONDS_PER_DAY = 86400;
+  static const int SECONDS_PER_HOUR = 3600;
+  static const int SECONDS_PER_MINUTE = 60;
 
-  unsigned long serverUnixAtLastSync;
-  unsigned long localSecondsAtLastSync;
+  static unsigned long serverUnixAtLastSync;
+  static unsigned long localSecondsAtLastSync;
 
   public:
     // Sync MasterClock unix time with server.
-    void syncWithServer() {
+    static void syncWithServer() {
       unsigned long serverUnix = getServerUnix();
       if (serverUnix != -1) {
         serverUnixAtLastSync = serverUnix;
@@ -21,39 +20,42 @@ class MasterClock {
     }
 
     // Get current unix time.
-    unsigned long getUnixTime() {
+    static unsigned long getUnixTime() {
       int currentLocalSeconds = millis() / 1000;
       int secondsSinceLastSync = currentLocalSeconds - localSecondsAtLastSync;
       return serverUnixAtLastSync + secondsSinceLastSync;
     }
 
     // Get current time in display format (HHMM or MMSS depending on mode).
-    int getDisplayTime() {
+    static int getDisplayTime() {
       return (hours() * 100) + minutes();
     }
   
   private:
     // Get seconds elapsed since midnight today.
-    int secondsElapsedToday() {
+    static int secondsElapsedToday() {
       return getUnixTime() % SECONDS_PER_DAY;
     }
 
     // Get hours place of current time.
-    int hours() {
+    static int hours() {
       return secondsElapsedToday() / SECONDS_PER_HOUR;
     }
 
     // Get minutes place of current time.
-    int minutes() {
+    static int minutes() {
       return (secondsElapsedToday() % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     }
 
     // Get seconds place of current time.
-    int seconds() {
+    static int seconds() {
       return secondsElapsedToday() % SECONDS_PER_MINUTE;
     }
 
 };
+
+unsigned long MasterClock::serverUnixAtLastSync = 0;
+unsigned long MasterClock::localSecondsAtLastSync = 0;
 
 class Timer {
 

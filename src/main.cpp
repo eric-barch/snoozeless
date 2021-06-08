@@ -5,9 +5,6 @@
 #include "timing.h"
 #include "display.h"
 
-MasterClock masterClock = MasterClock();
-Display display = Display();
-
 Timer syncMasterClockWithServerTimer = Timer(300000);
 Timer renderDisplayTimer = Timer(5000);
 
@@ -16,18 +13,20 @@ void setup() {
   Serial.println("\n");
   
   Network::connect();
-  masterClock.syncWithServer();
-  display.render(masterClock.getDisplayTime());
+  Display::begin();
+
+  MasterClock::syncWithServer();
+  Display::render(MasterClock::getDisplayTime());
 }
 
 void loop() {
   if (syncMasterClockWithServerTimer.hasElapsed()) {
     Serial.printf("\nsyncMasterClockWithServerTimer elapsed.\n");
-    masterClock.syncWithServer();
+    MasterClock::syncWithServer();
   } 
   
   if (renderDisplayTimer.hasElapsed()) {
-    display.render(masterClock.getDisplayTime());
+    Display::render(MasterClock::getDisplayTime());
   }
 
   delay(500);

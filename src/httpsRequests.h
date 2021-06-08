@@ -3,6 +3,8 @@
 
 const char* timeApi = "https://us-central1-runtimealarm-f8654.cloudfunctions.net/user/OL8UIxPo8dPG1OoGGIK5280SW4H2/time";
 
+// TODO: Make generalized HTTPS request function and feed various APIs into it.
+
 // Return server unix time.
 unsigned long getServerUnix() {
   

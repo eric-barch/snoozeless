@@ -5,18 +5,18 @@
 
 #include "Adafruit_LEDBackpack.h"
 
-// TODO: Consider making this a static function.
 class Display {
 
-    Adafruit_7segment matrix;
+    static Adafruit_7segment matrix;
 
     public:
-        Display() {
-            matrix = Adafruit_7segment();
+        // Initialize display.
+        static void begin() {
             matrix.begin(0x70);
         }
 
-        void render(int displayValue) {
+        // Print argument to seven segment display.
+        static void render(int displayValue) {
             Serial.printf("displayValue: %d\n", displayValue);
 
             matrix.print(displayValue);
@@ -26,3 +26,5 @@ class Display {
         }
 
 };
+
+Adafruit_7segment Display::matrix = Adafruit_7segment();
