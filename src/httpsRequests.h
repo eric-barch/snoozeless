@@ -7,8 +7,12 @@ const char* timeApi = "https://us-central1-runtimealarm-f8654.cloudfunctions.net
 unsigned long getServerUnix() {
   
   unsigned long serverUnix;
+  if (WiFi.status()!= WL_CONNECTED) {
+    Serial.print("Not connected to WiFi. Attempting to reconnect.\n");
+    Network::reconnect();
+  }
 
-  if ((WiFi.status() == WL_CONNECTED)) {
+  if (WiFi.status() == WL_CONNECTED) {
 
     HTTPClient http;
     /* Passing nullptr as second argument to http.begin() disables SSL 
@@ -56,10 +60,6 @@ unsigned long getServerUnix() {
 
   } else {
     Serial.println("HTTPS request failed due to lack of internet connection.");
-    /* TODO: Have the below line call the Network static function instead.
-     * Also consider moving it to around line 12 so it can still make the
-     * HTTPS request if it is able to reconnect. */
-    Serial.printf("Reconnected to WiFi: %d\n", WiFi.reconnect());
     serverUnix = -1;
   }
 

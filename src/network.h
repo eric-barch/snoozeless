@@ -20,7 +20,9 @@ class Network {
 
     // TODO: Add function with timeout for reconnecting to WiFi.
     static void reconnect() {
-
+      Serial.print("Reconnecting to the WiFi network...\n");
+      bool reconnectionSuccessful = WiFi.reconnect();
+      Serial.print(reconnectionSuccessful ? "Reconnected.\n" : "Reconnection failed.\n");
     }
 };
 
