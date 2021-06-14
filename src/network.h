@@ -2,11 +2,12 @@
 
 class Network {
 
-  static const char* ssid;
-  static const char* password;
+  const char* ssid = "ORBI92";
+  const char* password = "deepbug350";
 
   public:
-    static void connect() {
+    // Connect to WiFi network for the first time.
+    void connect() {
       WiFi.begin(ssid, password);
       
       Serial.print("Connecting to the WiFi network...");
@@ -17,13 +18,12 @@ class Network {
       Serial.print("\nConnected to the WiFi network.\n");
     }
 
-    static void reconnect() {
+    // Reconnect to the WiFi network after connection is lost.
+    void reconnect() {
       Serial.print("Reconnecting to the WiFi network...\n");
       bool reconnectionSuccessful = WiFi.reconnect();
       Serial.print(reconnectionSuccessful ? "Reconnected.\n" : "Reconnection failed.\n");
     }
 };
 
-// TODO: Add support for multiple WiFi network memory.
-const char* Network::ssid = "ORBI39";
-const char* Network::password = "Percy693#";
+Network network;

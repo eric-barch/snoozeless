@@ -1,15 +1,16 @@
 class MasterClock {
   
-  static const int SECONDS_PER_DAY = 86400;
-  static const int SECONDS_PER_HOUR = 3600;
-  static const int SECONDS_PER_MINUTE = 60;
+  const int SECONDS_PER_DAY = 86400;
+  const int SECONDS_PER_HOUR = 3600;
+  const int SECONDS_PER_MINUTE = 60;
 
-  static unsigned long serverUnixAtLastSync;
-  static unsigned long localSecondsAtLastSync;
+  unsigned long serverUnixAtLastSync;
+  unsigned long localSecondsAtLastSync;
 
   public:
     // Sync MasterClock unix time with server.
-    static void syncWithServer() {
+    void syncWithServer() {
+      // TODO: Should function getServerUnix() be the member of a class?
       unsigned long serverUnix = getServerUnix();
       if (serverUnix != -1) {
         serverUnixAtLastSync = serverUnix;
@@ -20,42 +21,50 @@ class MasterClock {
     }
 
     // Get current unix time.
-    static unsigned long getUnixTime() {
+    unsigned long getUnixTime() {
       int currentLocalSeconds = millis() / 1000;
       int secondsSinceLastSync = currentLocalSeconds - localSecondsAtLastSync;
       return serverUnixAtLastSync + secondsSinceLastSync;
     }
 
     // Get current time in display format (HHMM or MMSS depending on mode).
-    static int getDisplayTime() {
-      return (hours() * 100) + minutes();
+    int getDisplayTime() {
+      int time = (hours() * 100) + minutes();
+      if (!userSettings.displayMilitaryTime) {
+        if (time < 60) {
+          time += 1200;
+        } else if (time > 1259) {
+          time -= 1200;
+        }
+      }
+      return time;
     }
   
   private:
     // Get seconds elapsed since midnight today.
-    static int secondsElapsedToday() {
-      return getUnixTime() % SECONDS_PER_DAY;
+    int secondsElapsedToday() {
+      int localUnixTime = getUnixTime() + userSettings.timeZoneDifference;
+      return localUnixTime % SECONDS_PER_DAY;
     }
 
     // Get hours place of current time.
-    static int hours() {
+    int hours() {
       return secondsElapsedToday() / SECONDS_PER_HOUR;
     }
 
     // Get minutes place of current time.
-    static int minutes() {
+    int minutes() {
       return (secondsElapsedToday() % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     }
 
     // Get seconds place of current time.
-    static int seconds() {
+    int seconds() {
       return secondsElapsedToday() % SECONDS_PER_MINUTE;
     }
 
 };
 
-unsigned long MasterClock::serverUnixAtLastSync = 0;
-unsigned long MasterClock::localSecondsAtLastSync = 0;
+MasterClock masterClock;
 
 class Timer {
 

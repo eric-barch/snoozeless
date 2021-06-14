@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include "appState.h"
 #include "network.h"
 #include "httpsRequests.h"
 #include "timing.h"
@@ -10,23 +11,27 @@ Timer renderDisplayTimer = Timer(5000);
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n");
+  Serial.print("\n\n");
   
-  Network::connect();
-  Display::begin();
+  network.connect();
+  display.begin();
+  
+  userSettings.timeZoneDifference = -14400;
+  userSettings.displayBrightness = 1;
+  userSettings.displayMilitaryTime = false;
 
-  MasterClock::syncWithServer();
-  Display::render(MasterClock::getDisplayTime());
+  masterClock.syncWithServer();
+  display.render(masterClock.getDisplayTime());
 }
 
 void loop() {
   if (syncMasterClockWithServerTimer.hasElapsed()) {
     Serial.printf("\nsyncMasterClockWithServerTimer elapsed.\n");
-    MasterClock::syncWithServer();
+    masterClock.syncWithServer();
   } 
   
   if (renderDisplayTimer.hasElapsed()) {
-    Display::render(MasterClock::getDisplayTime());
+    display.render(masterClock.getDisplayTime());
   }
 
   delay(500);
