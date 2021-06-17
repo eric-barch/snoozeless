@@ -7,6 +7,7 @@
 #include "display.h"
 
 Timer syncMasterClockWithServerTimer = Timer(300000);
+Timer syncAppStateWithServerTimer = Timer(10000);
 Timer renderDisplayTimer = Timer(5000);
 
 void setup() {
@@ -16,19 +17,24 @@ void setup() {
   network.connect();
   display.begin();
   
-  userSettings.timeZoneDifference = -14400;
-  userSettings.displayBrightness = 1;
-  userSettings.displayMilitaryTime = false;
+  appState.userSettings.timeZoneDifference = -14400;
+  appState.userSettings.display.brightness = 1;
+  appState.userSettings.display.militaryTime = false;
 
   masterClock.syncWithServer();
+  appState.downloadFromServer();
   display.render(masterClock.getDisplayTime());
 }
 
 void loop() {
   if (syncMasterClockWithServerTimer.hasElapsed()) {
-    Serial.printf("\nsyncMasterClockWithServerTimer elapsed.\n");
+    Serial.print("\nsyncMasterClockWithServerTimer elapsed.\n");
     masterClock.syncWithServer();
-  } 
+  }
+
+  if (syncAppStateWithServerTimer.hasElapsed()) {
+    appState.downloadFromServer();
+  }
   
   if (renderDisplayTimer.hasElapsed()) {
     display.render(masterClock.getDisplayTime());

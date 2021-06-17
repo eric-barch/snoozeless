@@ -30,7 +30,7 @@ class MasterClock {
     // Get current time in display format (HHMM or MMSS depending on mode).
     int getDisplayTime() {
       int time = (hours() * 100) + minutes();
-      if (!userSettings.displayMilitaryTime) {
+      if (!appState.userSettings.display.militaryTime) {
         if (time < 60) {
           time += 1200;
         } else if (time > 1259) {
@@ -43,7 +43,7 @@ class MasterClock {
   private:
     // Get seconds elapsed since midnight today.
     int secondsElapsedToday() {
-      int localUnixTime = getUnixTime() + userSettings.timeZoneDifference;
+      int localUnixTime = getUnixTime() + appState.userSettings.timeZoneDifference;
       return localUnixTime % SECONDS_PER_DAY;
     }
 
@@ -63,7 +63,6 @@ class MasterClock {
     }
 
 };
-
 MasterClock masterClock;
 
 class Timer {

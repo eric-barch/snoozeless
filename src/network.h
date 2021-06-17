@@ -25,5 +25,4 @@ class Network {
       Serial.print(reconnectionSuccessful ? "Reconnected.\n" : "Reconnection failed.\n");
     }
 };
-
 Network network;

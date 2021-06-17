@@ -14,16 +14,15 @@ class Display {
             matrix.begin(0x70);
         }
 
-        // Print argument to display.
+        // Print integer argument to display.
         void render(int displayValue) {
             Serial.printf("displayValue: %d\n", displayValue);
 
             matrix.print(displayValue);
             matrix.drawColon(true);
-            matrix.setBrightness(userSettings.displayBrightness);
+            matrix.setBrightness(appState.userSettings.display.brightness);
             matrix.writeDisplay();
         }
 
 };
-
 Display display;
