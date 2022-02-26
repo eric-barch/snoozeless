@@ -57,7 +57,17 @@ class FirestoreService {
       'timeZoneAdjustment': localDevice.timeZoneAdjustment,
     };
 
-    return ref.update(data /*, SetOptions(merge: true)*/);
+    return ref.update(data);
+  }
+
+  Future<void> deleteDevice(String deviceId) async {
+    var user = AuthService().user!;
+    var ref = _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('devices')
+        .doc(deviceId);
+    return ref.delete();
   }
 
   Stream<Iterable<Alarm>> streamAlarmsList(String deviceId) {

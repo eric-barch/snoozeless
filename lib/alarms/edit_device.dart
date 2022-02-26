@@ -139,63 +139,37 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
                       onChanged: (value) {},
                     ),
                   ),
-                  // TODO: Write form of this type of button?
                   Row(
                     children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Container(
-                          padding: const EdgeInsets.only(right: 5),
-                          height: 50,
-                          // TODO: Change this to an Outlined Button at this level.
-                          child: ElevatedButton.icon(
-                            icon: const Icon(FontAwesomeIcons.check),
-                            label: const Text('Save'),
-                            style: OutlinedButton.styleFrom(
-                              primary: Colors.green,
-                              backgroundColor: appTheme.canvasColor,
-                              elevation: 0,
-                              side: const BorderSide(
-                                  width: 2.0, color: Colors.green),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5.0),
-                              ),
-                            ),
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                FirestoreService().updateDevice(
-                                  serverDevice,
-                                  localDevice,
-                                );
-                                Navigator.of(context).pop();
-                              }
-                            },
-                          ),
-                        ),
+                      DeviceEditButton(
+                        color: Colors.green,
+                        icon: FontAwesomeIcons.check,
+                        text: 'Save',
+                        method: () {
+                          if (_formKey.currentState!.validate()) {
+                            FirestoreService().updateDevice(
+                              serverDevice,
+                              localDevice,
+                            );
+                            Navigator.of(context).pop();
+                          }
+                        },
                       ),
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Container(
-                          padding: const EdgeInsets.only(left: 5),
-                          height: 50,
-                          // TODO: Change this to an Outlined Button at this level.
-                          child: ElevatedButton.icon(
-                            icon: const Icon(FontAwesomeIcons.trash),
-                            label: const Text('Delete'),
-                            style: OutlinedButton.styleFrom(
-                              primary: Colors.red,
-                              backgroundColor: appTheme.canvasColor,
-                              elevation: 0,
-                              side: const BorderSide(
-                                  width: 2.0, color: Colors.red),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5.0),
-                              ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      DeviceEditButton(
+                        color: Colors.red,
+                        icon: FontAwesomeIcons.trash,
+                        text: 'Delete',
+                        method: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => DeleteDeviceDialog(
+                              serverDevice: serverDevice,
                             ),
-                            // TODO: Add method to delete device.
-                            onPressed: () {},
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -208,5 +182,98 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
         }
       },
     );
+  }
+}
+
+class DeviceEditButton extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String text;
+  final Function method;
+
+  const DeviceEditButton({
+    Key? key,
+    required this.color,
+    required this.icon,
+    required this.text,
+    required this.method,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Flexible(
+      fit: FlexFit.tight,
+      child: SizedBox(
+        height: 50,
+        child: OutlinedButton.icon(
+          icon: Icon(icon),
+          label: Text(text),
+          style: OutlinedButton.styleFrom(
+            primary: color,
+            backgroundColor: appTheme.canvasColor,
+            side: BorderSide(
+              width: 2.0,
+              color: color,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5.0),
+            ),
+          ),
+          onPressed: () => method(),
+        ),
+      ),
+    );
+  }
+}
+
+class DeleteDeviceDialog extends StatelessWidget {
+  final Device serverDevice;
+  const DeleteDeviceDialog({
+    Key? key,
+    required this.serverDevice,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+        title: Text('Delete ' + serverDevice.deviceName + '?'),
+        // TODO: Improve this sentence.
+        content: const Text(
+            'This device and its alarms will be permanently deleted. You will need to redo initial setup to use this device again.'),
+        actions: [
+          TextButton(
+            child: const Text('Delete'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.only(
+                right: 30,
+              ),
+              textStyle: const TextStyle(
+                fontSize: 18,
+              ),
+            ),
+            onPressed: () async {
+              await FirestoreService().deleteDevice(serverDevice.deviceId);
+              // TODO: Replace this method with one that uses .popUntil('namedRoute')
+              int count = 0;
+              Navigator.of(context).popUntil(
+                (_) => count++ >= 3,
+              );
+            },
+          ),
+          TextButton(
+            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.only(
+                right: 25,
+              ),
+              textStyle: const TextStyle(
+                fontSize: 18,
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ]);
   }
 }
