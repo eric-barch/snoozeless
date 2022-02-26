@@ -7,6 +7,18 @@ import 'package:snoozeless/services/models.dart';
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  Stream<Iterable<Device>> streamDevicesList() {
+    return AuthService().userStream.switchMap((user) {
+      if (user != null) {
+        var ref = _db.collection('users').doc(user.uid).collection('devices');
+        return ref.snapshots().map(
+            (event) => event.docs.map((doc) => Device.fromJson(doc.data())));
+      } else {
+        return Stream.fromIterable([]);
+      }
+    });
+  }
+
   Stream<Device> streamDevice(String deviceId) {
     return AuthService().userStream.switchMap((user) {
       if (user != null) {
@@ -22,16 +34,30 @@ class FirestoreService {
     });
   }
 
-  Stream<Iterable<Device>> streamDevicesList() {
-    return AuthService().userStream.switchMap((user) {
-      if (user != null) {
-        var ref = _db.collection('users').doc(user.uid).collection('devices');
-        return ref.snapshots().map(
-            (event) => event.docs.map((doc) => Device.fromJson(doc.data())));
-      } else {
-        return Stream.fromIterable([]);
-      }
-    });
+  Future<Device> getDevice(String deviceId) async {
+    var user = AuthService().user;
+    var uid = user != null ? user.uid : '';
+    var ref =
+        _db.collection('users').doc(uid).collection('devices').doc(deviceId);
+    var snapshot = await ref.get();
+    var device = Device.fromJson(snapshot.data()!);
+    return device;
+  }
+
+  Future<void> updateDevice(Device serverDevice, Device localDevice) {
+    var user = AuthService().user!;
+    var ref = _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('devices')
+        .doc(serverDevice.deviceId);
+
+    var data = {
+      'deviceName': localDevice.deviceName,
+      'timeZoneAdjustment': localDevice.timeZoneAdjustment,
+    };
+
+    return ref.update(data /*, SetOptions(merge: true)*/);
   }
 
   Stream<Iterable<Alarm>> streamAlarmsList(String deviceId) {
@@ -49,26 +75,5 @@ class FirestoreService {
         return Stream.fromIterable([]);
       }
     });
-  }
-
-  // Future<void> newDevice(Device device) {
-  //   var user = AuthService().user!;
-  //   var ref = _db.collection('')
-  // }
-
-  Future<void> updateDevice(Device device) {
-    var user = AuthService().user!;
-    var ref = _db
-        .collection('users')
-        .doc(user.uid)
-        .collection('devices')
-        .doc(device.deviceId);
-
-    var data = {
-      'deviceName': device.deviceName,
-      'timeZoneAdjustment': device.timeZoneAdjustment,
-    };
-
-    return ref.update(data /*, SetOptions(merge: true)*/);
   }
 }

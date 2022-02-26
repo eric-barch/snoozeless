@@ -1,3 +1,5 @@
+// TODO: Which of these variables should be final?
+
 import 'package:json_annotation/json_annotation.dart';
 part 'models.g.dart';
 
@@ -23,10 +25,10 @@ class Alarm {
 
 @JsonSerializable()
 class Device {
-  final String deviceId;
+  String deviceId;
   String deviceName;
   int timeZoneAdjustment;
-  final List<Alarm> alarms;
+  List<Alarm> alarms;
 
   Device({
     this.deviceId = '',
