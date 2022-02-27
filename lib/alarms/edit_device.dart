@@ -239,7 +239,7 @@ class DeleteDeviceDialog extends StatelessWidget {
         title: Text('Delete ' + serverDevice.deviceName + '?'),
         // TODO: Improve this sentence.
         content: const Text(
-            'This device and its alarms will be permanently deleted. You will need to redo initial setup to use this device again.'),
+            'This device and its alarms will be permanently deleted. You will need to set up the device again to use it in the future.'),
         actions: [
           TextButton(
             child: const Text('Delete'),

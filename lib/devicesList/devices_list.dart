@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:snoozeless/alarms/edit_device.dart';
+import 'package:snoozeless/alarms/new_device.dart';
 import 'package:snoozeless/devicesList/devices_list_item.dart';
 import 'package:snoozeless/services/firestore.dart';
 import 'package:snoozeless/services/models.dart';
@@ -42,7 +43,7 @@ class DevicesList extends StatelessWidget {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (BuildContext context) =>
-                            const DeviceEditScreen(deviceId: ''),
+                            const NewDeviceScreen(),
                       ),
                     );
                   },

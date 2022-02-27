@@ -70,6 +70,26 @@ class FirestoreService {
     return ref.delete();
   }
 
+  Future<void> addDevice(Device localDevice) async {
+    // TODO: Can these database writes be done in one step?
+    var user = AuthService().user!;
+    var collectionRef =
+        _db.collection('users').doc(user.uid).collection('devices');
+
+    var data = {
+      'deviceName': localDevice.deviceName,
+      'timeZoneAdjustment': localDevice.timeZoneAdjustment,
+    };
+
+    DocumentReference docRef = await collectionRef.add(data);
+
+    data = {
+      'deviceId': docRef.id,
+    };
+
+    return collectionRef.doc(docRef.id).update(data);
+  }
+
   Stream<Iterable<Alarm>> streamAlarmsList(String deviceId) {
     return AuthService().userStream.switchMap((user) {
       if (user != null) {
