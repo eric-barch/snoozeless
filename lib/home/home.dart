@@ -1,6 +1,9 @@
+// Flutter packages
 import 'package:flutter/material.dart';
-import 'package:snoozeless/devicesList/devices_list.dart';
+
+// Custom packages
 import 'package:snoozeless/services/auth.dart';
+import 'package:snoozeless/devices_screen/devices_screen.dart';
 import 'package:snoozeless/login/login.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -9,6 +12,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
+      // TODO: Beautify loading and error states.
       stream: AuthService().userStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -20,7 +24,7 @@ class HomeScreen extends StatelessWidget {
             child: Text('Error in home.dart'),
           );
         } else if (snapshot.hasData) {
-          return const DevicesList();
+          return const DevicesScreen();
         } else {
           return const LoginScreen();
         }

@@ -27,6 +27,7 @@ class Alarm {
 class Device {
   String deviceId;
   String deviceName;
+  // TODO: Change to double and rebuild models.g.dart
   int timeZoneAdjustment;
   List<Alarm> alarms;
 

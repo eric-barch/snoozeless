@@ -1,7 +1,12 @@
+// Flutter packages
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
+
+// Custom packages
 import 'package:snoozeless/routes.dart';
 import 'package:snoozeless/theme.dart';
+
+// Third party packages
+import 'package:firebase_core/firebase_core.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

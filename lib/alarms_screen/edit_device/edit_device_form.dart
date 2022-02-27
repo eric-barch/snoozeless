@@ -1,83 +1,29 @@
 // Flutter packages
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:snoozeless/theme.dart';
 
 // Custom packages
 import 'package:snoozeless/services/firestore.dart';
 import 'package:snoozeless/services/models.dart';
+import 'package:snoozeless/shared/time_zones_map.dart';
+import 'package:snoozeless/shared/edit_device_bottom_button.dart';
 
-class DeviceEditScreen extends StatelessWidget {
+// Third party packages
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+class EditDeviceForm extends StatefulWidget {
   final String deviceId;
 
-  const DeviceEditScreen({Key? key, required this.deviceId}) : super(key: key);
+  const EditDeviceForm({Key? key, required this.deviceId}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Device'),
-      ),
-      body: DeviceEditForm(deviceId: deviceId),
-    );
-  }
+  _EditDeviceFormState createState() => _EditDeviceFormState();
 }
 
-class DeviceEditForm extends StatefulWidget {
-  final String deviceId;
-
-  const DeviceEditForm({Key? key, required this.deviceId}) : super(key: key);
-
-  @override
-  _DeviceEditFormState createState() => _DeviceEditFormState();
-}
-
-class _DeviceEditFormState extends State<DeviceEditForm> {
+class _EditDeviceFormState extends State<EditDeviceForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
-    const Map timeZonesMap = {
-      'UTC-12:00 (U.S. Minor Outlying Islands)': -12,
-      'UTC-11:00 (Niue)': -11,
-      'UTC-10:00 (Honolulu)': -10,
-      'UTC-09:30 (French Polynesia)': -9.5,
-      'UTC-09:00 (Anchorage)': -9,
-      'UTC-08:00 (Los Angeles)': -8,
-      'UTC-07:00 (Denver)': -7,
-      'UTC-06:00 (Mexico City)': -6,
-      'UTC-05:00 (New York)': -5,
-      'UTC-04:00 (Santiago)': -4,
-      'UTC-03:30 (St. John\'s)': -3.5,
-      'UTC-03:00 (Buenos Aires)': -3,
-      'UTC-02:00 (Fernando de Noronha)': -2,
-      'UTC-01:00 (Cape Verde)': -1,
-      'UTC+00:00 (London)': 0,
-      'UTC+01:00 (Berlin)': 1,
-      'UTC+02:00 (Cairo)': 2,
-      'UTC+03:00 (Moscow)': 3,
-      'UTC+03:30 (Tehran)': 3.5,
-      'UTC+04:00 (Dubai)': 4,
-      'UTC+04:30 (Kabul)': 4.5,
-      'UTC+05:00 (Karachi)': 5,
-      'UTC+05:30 (Mumbai)': 5.5,
-      'UTC+05:45 (Kathmandu)': 5.75,
-      'UTC+06:00 (Dhaka)': 6,
-      'UTC+06:30 (Yangon)': 6.5,
-      'UTC+07:00 (Jakarta)': 7,
-      'UTC+08:00 (Shanghai)': 8,
-      'UTC+08:45 (Eucla)': 8.75,
-      'UTC+09:00 (Tokyo)': 9,
-      'UTC+09:30 (Adelaide)': 9.5,
-      'UTC+10:00 (Sydney)': 10,
-      'UTC+10:30 (Lord Howe Island)': 10.5,
-      'UTC+11:00 (Nouméa)': 11,
-      'UTC+12:00 (Auckland)': 12,
-      'UTC+12:34 (Chatham Islands)': 12.75,
-      'UTC+13:00 (Phoenix Islands)': 13,
-      'UTC+14:00 (Line Islands)': 14,
-    };
-
     return FutureBuilder(
       future: FirestoreService().getDevice(widget.deviceId),
       builder: (context, snapshot) {
@@ -86,17 +32,17 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
         } else if (snapshot.hasError) {
           return const Text('Error in edit_device.dart');
         } else if (snapshot.hasData) {
-          var serverDevice = snapshot.data! as Device;
-          var localDevice = Device();
+          var initialDevice = snapshot.data! as Device;
+          var modifiedDevice = Device();
 
-          return Form(
-            key: _formKey,
-            child: Container(
-              padding: const EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 25,
-              ),
+          return Padding(
+            padding: const EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 25,
+            ),
+            child: Form(
+              key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -104,12 +50,12 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
                   Container(
                     padding: const EdgeInsets.only(bottom: 45),
                     child: TextFormField(
-                      initialValue: serverDevice.deviceName,
+                      initialValue: initialDevice.deviceName,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Device Name cannot be blank.';
                         } else {
-                          localDevice.deviceName = value;
+                          modifiedDevice.deviceName = value;
                           return null;
                         }
                       },
@@ -122,7 +68,7 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
                       value: timeZonesMap.keys.firstWhere(
                           (key) =>
                               timeZonesMap[key] ==
-                              serverDevice.timeZoneAdjustment,
+                              initialDevice.timeZoneAdjustment,
                           orElse: () => null),
                       items: timeZonesMap.keys
                           .map((key) => key.toString())
@@ -134,22 +80,22 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
                         );
                       }).toList(),
                       validator: (value) {
-                        localDevice.timeZoneAdjustment = timeZonesMap[value];
+                        modifiedDevice.timeZoneAdjustment = timeZonesMap[value];
                       },
                       onChanged: (value) {},
                     ),
                   ),
                   Row(
                     children: [
-                      DeviceEditButton(
+                      EditDeviceBottomButton(
                         color: Colors.green,
                         icon: FontAwesomeIcons.check,
                         text: 'Save',
                         method: () {
                           if (_formKey.currentState!.validate()) {
                             FirestoreService().updateDevice(
-                              serverDevice,
-                              localDevice,
+                              initialDevice,
+                              modifiedDevice,
                             );
                             Navigator.of(context).pop();
                           }
@@ -158,7 +104,7 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
                       const SizedBox(
                         width: 10,
                       ),
-                      DeviceEditButton(
+                      EditDeviceBottomButton(
                         color: Colors.red,
                         icon: FontAwesomeIcons.trash,
                         text: 'Delete',
@@ -166,7 +112,7 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
                           showDialog(
                             context: context,
                             builder: (_) => DeleteDeviceDialog(
-                              serverDevice: serverDevice,
+                              serverDevice: initialDevice,
                             ),
                           );
                         },
@@ -181,47 +127,6 @@ class _DeviceEditFormState extends State<DeviceEditForm> {
           return const Text('No data found in database.');
         }
       },
-    );
-  }
-}
-
-class DeviceEditButton extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String text;
-  final Function method;
-
-  const DeviceEditButton({
-    Key? key,
-    required this.color,
-    required this.icon,
-    required this.text,
-    required this.method,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Flexible(
-      fit: FlexFit.tight,
-      child: SizedBox(
-        height: 50,
-        child: OutlinedButton.icon(
-          icon: Icon(icon),
-          label: Text(text),
-          style: OutlinedButton.styleFrom(
-            primary: color,
-            backgroundColor: appTheme.canvasColor,
-            side: BorderSide(
-              width: 2.0,
-              color: color,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5.0),
-            ),
-          ),
-          onPressed: () => method(),
-        ),
-      ),
     );
   }
 }
@@ -252,6 +157,7 @@ class DeleteDeviceDialog extends StatelessWidget {
               ),
             ),
             onPressed: () async {
+              // TODO: Something in this function is throwing an error
               await FirestoreService().deleteDevice(serverDevice.deviceId);
               // TODO: Replace this method with one that uses .popUntil('namedRoute')
               int count = 0;

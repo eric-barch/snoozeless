@@ -24,7 +24,7 @@ class LoginScreen extends StatelessWidget {
                 LoginButton(
                   icon: FontAwesomeIcons.google,
                   text: 'Sign in with Google',
-                  loginMethod: AuthService().googleLogin,
+                  method: AuthService().googleLogin,
                   color: Colors.blue,
                 ),
                 // Apple login
@@ -66,14 +66,14 @@ class LoginButton extends StatelessWidget {
   final Color color;
   final IconData icon;
   final String text;
-  final Function loginMethod;
+  final Function method;
 
   const LoginButton(
       {Key? key,
       required this.text,
       required this.icon,
       required this.color,
-      required this.loginMethod})
+      required this.method})
       : super(key: key);
 
   @override
@@ -90,7 +90,7 @@ class LoginButton extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           backgroundColor: color,
         ),
-        onPressed: () => loginMethod(),
+        onPressed: () => method(),
         label: Text(text),
       ),
     );
