@@ -10,7 +10,11 @@ class FirestoreService {
   Stream<Iterable<Device>> streamDevicesList() {
     return AuthService().userStream.switchMap((user) {
       if (user != null) {
-        var ref = _db.collection('users').doc(user.uid).collection('devices');
+        var ref = _db
+            .collection('users')
+            .doc(user.uid)
+            .collection('devices')
+            .orderBy('createdAt');
         return ref.snapshots().map(
             (event) => event.docs.map((doc) => Device.fromJson(doc.data())));
       } else {
@@ -79,6 +83,7 @@ class FirestoreService {
     var data = {
       'deviceName': localDevice.deviceName,
       'timeZoneAdjustment': localDevice.timeZoneAdjustment,
+      'createdAt': Timestamp.now(),
     };
 
     DocumentReference docRef = await collectionRef.add(data);
@@ -98,7 +103,8 @@ class FirestoreService {
             .doc(user.uid)
             .collection('devices')
             .doc(deviceId)
-            .collection('alarms');
+            .collection('alarms')
+            .orderBy('createdAt');
         return ref.snapshots().map(
             (event) => event.docs.map((doc) => Alarm.fromJson(doc.data())));
       } else {

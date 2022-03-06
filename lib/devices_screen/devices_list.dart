@@ -22,7 +22,7 @@ class DevicesList extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Text('Loading');
           } else if (snapshot.hasError) {
-            return const Text('Error in devices.dart');
+            return const Text('Error in devices_list.dart');
           } else if (snapshot.hasData) {
             var devices = snapshot.data!;
             return ListView(
