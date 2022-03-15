@@ -8,24 +8,27 @@ part of 'models.dart';
 
 Alarm _$AlarmFromJson(Map<String, dynamic> json) => Alarm(
       alarmId: json['alarmId'] as String? ?? '',
+      deviceId: json['deviceId'] as String? ?? '',
       alarmName: json['alarmName'] as String? ?? '',
       countdownDuration: json['countdownDuration'] as int? ?? 0,
       destination: json['destination'] as String? ?? '',
-      startTime: json['startTime'] as int? ?? 0,
+      wakeupTime: json['wakeupTime'] as int? ?? 0,
     );
 
 Map<String, dynamic> _$AlarmToJson(Alarm instance) => <String, dynamic>{
       'alarmId': instance.alarmId,
+      'deviceId': instance.deviceId,
       'alarmName': instance.alarmName,
       'countdownDuration': instance.countdownDuration,
       'destination': instance.destination,
-      'startTime': instance.startTime,
+      'wakeupTime': instance.wakeupTime,
     };
 
 Device _$DeviceFromJson(Map<String, dynamic> json) => Device(
       deviceId: json['deviceId'] as String? ?? '',
-      deviceName: json['deviceName'] as String? ?? '',
-      timeZoneAdjustment: json['timeZoneAdjustment'] as int? ?? 0,
+      deviceName: json['deviceName'] as String? ?? 'Device Name',
+      timeZoneAdjustment:
+          (json['timeZoneAdjustment'] as num?)?.toDouble() ?? 0.0,
       alarms: (json['alarms'] as List<dynamic>?)
               ?.map((e) => Alarm.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -51,9 +54,9 @@ User _$UserFromJson(Map<String, dynamic> json) => User(
     );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
+      'userId': instance.userId,
       'email': instance.email,
       'firstName': instance.firstName,
       'lastName': instance.lastName,
-      'userId': instance.userId,
       'devices': instance.devices,
     };

@@ -30,7 +30,7 @@ class _NewDeviceFormState extends State<NewDeviceForm> {
         padding: const EdgeInsets.only(
           left: 20,
           right: 20,
-          top: 25,
+          top: 15,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

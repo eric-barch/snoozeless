@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 
 // Custom packages
-import 'package:snoozeless/alarms_screen/alarms_list.dart';
-import 'package:snoozeless/alarms_screen/edit_device/edit_device_screen.dart';
+import 'package:snoozeless/alarms/alarms_list_screen/alarms_list.dart';
+import 'package:snoozeless/alarms/edit_device/edit_device_screen.dart';
 import 'package:snoozeless/services/firestore.dart';
 import 'package:snoozeless/services/models.dart';
 import 'package:snoozeless/shared/app_bar_button.dart';
@@ -11,26 +11,23 @@ import 'package:snoozeless/shared/app_bar_button.dart';
 // Third party packages
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class AlarmsScreen extends StatelessWidget {
-  final String deviceId;
-  final String deviceName;
+class AlarmsListScreen extends StatelessWidget {
+  final Device device;
 
-  const AlarmsScreen(
-      {Key? key, required this.deviceId, required this.deviceName})
-      : super(key: key);
+  const AlarmsListScreen({Key? key, required this.device}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: StreamBuilder(
-          stream: FirestoreService().streamDevice(deviceId),
+          stream: FirestoreService().streamDevice(device.deviceId),
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               Device device = snapshot.data! as Device;
               return Text(device.deviceName);
             } else {
-              return Text(deviceName);
+              return Text(device.deviceName);
             }
           },
         ),
@@ -41,7 +38,7 @@ class AlarmsScreen extends StatelessWidget {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (BuildContext context) =>
-                      EditDeviceScreen(deviceId: deviceId),
+                      EditDeviceScreen(deviceId: device.deviceId),
                 ),
               );
             },
@@ -49,7 +46,7 @@ class AlarmsScreen extends StatelessWidget {
         ],
       ),
       body: AlarmsList(
-        deviceId: deviceId,
+        deviceId: device.deviceId,
       ),
     );
   }

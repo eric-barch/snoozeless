@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 // Custom packages
-import 'package:snoozeless/alarms_screen/edit_device/edit_device_form.dart';
+import 'package:snoozeless/alarms/edit_device/edit_device_form.dart';
 
 class EditDeviceScreen extends StatelessWidget {
   final String deviceId;

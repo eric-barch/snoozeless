@@ -30,7 +30,7 @@ class _EditDeviceFormState extends State<EditDeviceForm> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Text('Loading');
         } else if (snapshot.hasError) {
-          return const Text('Error in edit_device.dart');
+          return const Text('Error in edit_device_form.dart');
         } else if (snapshot.hasData) {
           var initialDevice = snapshot.data! as Device;
           var modifiedDevice = Device();

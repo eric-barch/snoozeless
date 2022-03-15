@@ -112,4 +112,37 @@ class FirestoreService {
       }
     });
   }
+
+  Future<Alarm> getAlarm(Alarm localAlarm) async {
+    var user = AuthService().user;
+    var uid = user != null ? user.uid : '';
+    var ref = _db
+        .collection('users')
+        .doc(uid)
+        .collection('devices')
+        .doc(localAlarm.deviceId)
+        .collection('alarms')
+        .doc(localAlarm.alarmId);
+    var snapshot = await ref.get();
+    var serverAlarm = Alarm.fromJson(snapshot.data()!);
+    return serverAlarm;
+  }
+
+  Future<void> updateAlarm(Alarm initialAlarm, Alarm modifiedAlarm) {
+    var user = AuthService().user!;
+    var ref = _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('devices')
+        .doc(initialAlarm.deviceId)
+        .collection('alarms')
+        .doc(initialAlarm.alarmId);
+
+    var data = {
+      'alarmName': modifiedAlarm.alarmName,
+      'wakeupTime': modifiedAlarm.wakeupTime,
+    };
+
+    return ref.update(data);
+  }
 }

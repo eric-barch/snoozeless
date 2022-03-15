@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 // Custom packages
 import 'package:snoozeless/services/auth.dart';
-import 'package:snoozeless/devices_screen/devices_screen.dart';
+import 'package:snoozeless/devices/devices_list_screen/devices_list_screen.dart';
 import 'package:snoozeless/login/login.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -24,7 +24,7 @@ class HomeScreen extends StatelessWidget {
             child: Text('Error in home.dart'),
           );
         } else if (snapshot.hasData) {
-          return const DevicesScreen();
+          return const DevicesListScreen();
         } else {
           return const LoginScreen();
         }

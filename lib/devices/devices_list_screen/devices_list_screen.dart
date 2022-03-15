@@ -2,15 +2,15 @@
 import 'package:flutter/material.dart';
 
 // Custom packages
-import 'package:snoozeless/devices_screen/new_device/new_device_screen.dart';
-import 'package:snoozeless/devices_screen/devices_list.dart';
+import 'package:snoozeless/devices/new_device/new_device_screen.dart';
+import 'package:snoozeless/devices/devices_list_screen/devices_list.dart';
 import 'package:snoozeless/shared/app_bar_button.dart';
 
 // Third party packages
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class DevicesScreen extends StatelessWidget {
-  const DevicesScreen({Key? key}) : super(key: key);
+class DevicesListScreen extends StatelessWidget {
+  const DevicesListScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

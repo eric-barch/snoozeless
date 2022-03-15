@@ -16,7 +16,7 @@ class ListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(top: 15),
       decoration: BoxDecoration(
         border: Border.all(
           width: 3,

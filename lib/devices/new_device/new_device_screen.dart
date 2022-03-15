@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 // Custom packages
-import 'package:snoozeless/devices_screen/new_device/new_device_form.dart';
+import 'package:snoozeless/devices/new_device/new_device_form.dart';
 
 class NewDeviceScreen extends StatelessWidget {
   const NewDeviceScreen({Key? key}) : super(key: key);
