@@ -1,6 +1,6 @@
 # Snoozeless
 
-An alarm clock that actually gets you out of bed!
+The alarm clock that forces you out of bed in the morning.
 
 ## Use Case
 
