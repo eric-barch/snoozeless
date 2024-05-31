@@ -1,6 +1,9 @@
 # Dependencies.
 node_modules/
 
+# Compiled JavaScript.
+out/
+
 # Environment variables.
 .env
 .env.production
