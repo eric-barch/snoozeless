@@ -2,7 +2,36 @@ import { createAuthenticatedClient } from "@/utils/supabase";
 
 type DeviceStateChangeCallback = (deviceStateChange: any) => void;
 
-export const subscribeToDeviceState = async (
+export const registerDeviceService = async (
+  accessToken: string,
+  refreshToken: string,
+  deviceState: any,
+) => {
+  const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
+
+  const { data: userData, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  if (userError) {
+    return { data: userData, error: userError };
+  }
+
+  const userId = userData.user.id;
+
+  const { data: deviceData, error: deviceError } = await supabaseClient
+    .from("devices")
+    .insert({ user_id: userId, ...deviceState })
+    .select();
+
+  if (deviceError) {
+    console.log("user", userData);
+    console.log("error", deviceError);
+  }
+
+  return { data: deviceData, error: deviceError };
+};
+
+export const getDeviceStateService = async (
   accessToken: string,
   refreshToken: string,
   callback: DeviceStateChangeCallback,
