@@ -1,12 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_KEY!;
-const supabaseClient = createClient(supabaseUrl, supabaseKey);
+import { createAuthenticatedClient } from "@/utils/supabase";
 
 type DeviceStateChangeCallback = (deviceStateChange: any) => void;
 
-export const subscribeToDeviceState = (callback: DeviceStateChangeCallback) => {
+export const subscribeToDeviceState = async (
+  accessToken: string,
+  refreshToken: string,
+  callback: DeviceStateChangeCallback,
+) => {
+  const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
+
   const deviceStateChannel = supabaseClient
     .channel("device-state-changes")
     .on(
@@ -16,8 +18,8 @@ export const subscribeToDeviceState = (callback: DeviceStateChangeCallback) => {
         schema: "public",
         table: "devices",
       },
-      (payload) => {
-        callback(payload);
+      (deviceStateChange) => {
+        callback(deviceStateChange);
       },
     )
     .subscribe((status, error) => {
