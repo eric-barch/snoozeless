@@ -2,24 +2,26 @@ import { Context } from "hono";
 import { subscribeToDeviceState } from "@/services/device";
 import { streamSSE } from "hono/streaming";
 import { RealtimePostgresUpdatePayload } from "@supabase/supabase-js";
+import { HTTPException } from "hono/http-exception";
 
 export const getDeviceState = async (c: Context) => {
-  const authorizationHeader = c.req.header("Authorization");
+  const accessHeader = c.req.header("Authorization");
   const refreshToken = c.req.header("Refresh-Token");
 
-  if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
-    return c.json(
-      { error: "Unauthorized - Authorization Header Missing" },
-      401,
-    );
+  if (!accessHeader) {
+    throw new HTTPException(401, {
+      message: "Unauthorized - Authorization Header Missing",
+    });
   }
 
   if (!refreshToken) {
-    return c.json({ error: "Unauthorized - Refresh Token Missing" }, 401);
+    throw new HTTPException(401, {
+      message: "Unauthorized - Refresh Header Missing",
+    });
   }
 
-  /** Remove "Bearer " prefix. */
-  const accessToken = authorizationHeader.substring(7);
+  /**Remove "Bearer " prefix. */
+  const accessToken = accessHeader.substring(7);
 
   return streamSSE(c, async (stream) => {
     const callback = async (
