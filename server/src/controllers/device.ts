@@ -1,22 +1,22 @@
 import { Context } from "hono";
+import { streamSSE } from "hono/streaming";
+import { RealtimePostgresUpdatePayload } from "@supabase/supabase-js";
 import {
   registerDeviceService,
   unregisterDeviceService,
   getDeviceStateService,
 } from "@/services/device";
-import { streamSSE } from "hono/streaming";
-import { RealtimePostgresUpdatePayload } from "@supabase/supabase-js";
 import { extractAuthTokens } from "@/utils/auth";
 
 export const registerDeviceController = async (c: Context) => {
   const { accessToken, refreshToken } = extractAuthTokens(c);
 
-  const deviceState = await c.req.json();
+  const initialState = await c.req.json();
 
   const { data, error } = await registerDeviceService(
     accessToken,
     refreshToken,
-    deviceState,
+    initialState,
   );
 
   if (error) {

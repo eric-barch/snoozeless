@@ -11,7 +11,7 @@ type DeviceStateChangeCallback = (deviceStateChange: any) => void;
 export const registerDeviceService = async (
   accessToken: string,
   refreshToken: string,
-  deviceState: any,
+  initialState: any,
 ) => {
   const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
 
@@ -22,7 +22,7 @@ export const registerDeviceService = async (
 
   const { data, error } = await supabaseClient
     .from("devices")
-    .insert({ user_id: userId, session_id: sessionId, ...deviceState })
+    .insert({ user_id: userId, session_id: sessionId, ...initialState })
     .select();
 
   return { data, error };
