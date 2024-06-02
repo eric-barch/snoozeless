@@ -47,6 +47,8 @@ export const unregisterDeviceController = async (c: Context) => {
 export const getDeviceStateController = async (c: Context) => {
   const { accessToken, refreshToken } = extractAuthTokens(c);
 
+  const { deviceId } = await c.req.json();
+
   return streamSSE(c, async (stream) => {
     const callback = async (
       deviceStateChange: RealtimePostgresUpdatePayload<{ [key: string]: any }>,
@@ -59,6 +61,7 @@ export const getDeviceStateController = async (c: Context) => {
     const unsubscribeFromDeviceState = await getDeviceStateService(
       accessToken,
       refreshToken,
+      deviceId,
       callback,
     );
 

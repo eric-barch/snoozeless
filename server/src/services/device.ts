@@ -53,6 +53,7 @@ export const unregisterDeviceService = async (
 export const getDeviceStateService = async (
   accessToken: string,
   refreshToken: string,
+  deviceId: string,
   callback: DeviceStateChangeCallback,
 ) => {
   const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
@@ -65,6 +66,7 @@ export const getDeviceStateService = async (
         event: "UPDATE",
         schema: "public",
         table: "devices",
+        filter: `id=eq.${deviceId}`,
       },
       (deviceStateChange) => {
         callback(deviceStateChange);
