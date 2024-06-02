@@ -5,6 +5,7 @@ import {
   registerDeviceService,
   unregisterDeviceService,
   getDeviceStateService,
+  updateDeviceStateService,
 } from "@/services/device";
 import { extractAuthTokens } from "@/utils/auth";
 
@@ -75,4 +76,23 @@ export const getDeviceStateController = async (c: Context) => {
       await stream.sleep(30000);
     }
   });
+};
+
+export const updateDeviceStateController = async (c: Context) => {
+  const { accessToken, refreshToken } = extractAuthTokens(c);
+
+  const { deviceId, stateUpdate } = await c.req.json();
+
+  const { data, error } = await updateDeviceStateService(
+    accessToken,
+    refreshToken,
+    deviceId,
+    stateUpdate,
+  );
+
+  if (error) {
+    return c.json(error, 400);
+  }
+
+  return c.json(data, 204);
 };

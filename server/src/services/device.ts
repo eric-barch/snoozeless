@@ -86,3 +86,20 @@ export const getDeviceStateService = async (
     supabaseClient.removeChannel(deviceStateChannel);
   };
 };
+
+export const updateDeviceStateService = async (
+  accessToken: string,
+  refreshToken: string,
+  deviceId: string,
+  stateUpdate: any,
+) => {
+  const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
+
+  const { data, error } = await supabaseClient
+    .from("devices")
+    .update(stateUpdate)
+    .eq("id", deviceId)
+    .select();
+
+  return { data, error };
+};

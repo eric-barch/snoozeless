@@ -3,6 +3,7 @@ import {
   registerDeviceController,
   unregisterDeviceController,
   getDeviceStateController,
+  updateDeviceStateController,
 } from "@/controllers/device";
 import { auth } from "@/middleware/auth";
 
@@ -13,5 +14,6 @@ deviceRoutes.use(auth);
 deviceRoutes.post("/register", registerDeviceController);
 deviceRoutes.delete("/unregister", unregisterDeviceController);
 deviceRoutes.get("/state", getDeviceStateController);
+deviceRoutes.patch("/state", updateDeviceStateController);
 
 export { deviceRoutes };
