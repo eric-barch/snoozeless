@@ -1,6 +1,7 @@
 import { Context } from "hono";
 import {
   registerDeviceService,
+  unregisterDeviceService,
   getDeviceStateService,
 } from "@/services/device";
 import { streamSSE } from "hono/streaming";
@@ -23,6 +24,24 @@ export const registerDeviceController = async (c: Context) => {
   }
 
   return c.json(data, 201);
+};
+
+export const unregisterDeviceController = async (c: Context) => {
+  const { accessToken, refreshToken } = extractAuthTokens(c);
+
+  const { deviceId } = await c.req.json();
+
+  const { data, error } = await unregisterDeviceService(
+    accessToken,
+    refreshToken,
+    deviceId,
+  );
+
+  if (error) {
+    return c.json(error, 400);
+  }
+
+  return c.json(data, 204);
 };
 
 export const getDeviceStateController = async (c: Context) => {

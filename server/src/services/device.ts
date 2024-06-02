@@ -28,16 +28,26 @@ export const registerDeviceService = async (
   return { data, error };
 };
 
+export const unregisterDeviceService = async (
+  accessToken: string,
+  refreshToken: string,
+  deviceId: string,
+) => {
+  const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
+
+  const { data: deleteData, error: deleteError } = await supabaseClient
     .from("devices")
-    .insert({ user_id: userId, ...deviceState })
+    .delete()
+    .eq("id", deviceId)
     .select();
 
-  if (deviceError) {
-    console.log("user", userData);
-    console.log("error", deviceError);
+  if (deleteError || deleteData.length <= 0) {
+    return { data: deleteData, error: deleteError };
   }
 
-  return { data: deviceData, error: deviceError };
+  const { error: signOutError } = await supabaseClient.auth.signOut();
+
+  return { data: deleteData, error: signOutError };
 };
 
 export const getDeviceStateService = async (
