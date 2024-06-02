@@ -1,4 +1,10 @@
+import { jwtDecode } from "jwt-decode";
 import { createAuthenticatedClient } from "@/utils/supabase";
+
+type DecodedJwt = {
+  sub: string;
+  session_id: string;
+};
 
 type DeviceStateChangeCallback = (deviceStateChange: any) => void;
 
@@ -9,16 +15,19 @@ export const registerDeviceService = async (
 ) => {
   const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
 
-  const { data: userData, error: userError } =
-    await supabaseClient.auth.getUser();
+  const decodedJwt = jwtDecode<DecodedJwt>(accessToken);
 
-  if (userError) {
-    return { data: userData, error: userError };
-  }
+  const userId = decodedJwt.sub;
+  const sessionId = decodedJwt.session_id;
 
-  const userId = userData.user.id;
+  const { data, error } = await supabaseClient
+    .from("devices")
+    .insert({ user_id: userId, session_id: sessionId, ...deviceState })
+    .select();
 
-  const { data: deviceData, error: deviceError } = await supabaseClient
+  return { data, error };
+};
+
     .from("devices")
     .insert({ user_id: userId, ...deviceState })
     .select();
