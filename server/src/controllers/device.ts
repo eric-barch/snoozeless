@@ -48,7 +48,11 @@ export const unregisterDeviceController = async (c: Context) => {
 export const getDeviceStateController = async (c: Context) => {
   const { accessToken, refreshToken } = extractAuthTokens(c);
 
-  const { deviceId } = await c.req.json();
+  const deviceId = c.req.query("deviceId");
+
+  if (!deviceId) {
+    return c.json(400);
+  }
 
   return streamSSE(c, async (stream) => {
     const callback = async (
