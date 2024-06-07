@@ -2,13 +2,11 @@
 node_modules/
 
 # Compiled JavaScript.
-out/
+out
 
 # Environment variables.
 .env
 .env.production
 
-# Logs.
-logs/
-*.log
-npm-debug.log*
+# Certs.
+certs

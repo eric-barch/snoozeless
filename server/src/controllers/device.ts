@@ -54,7 +54,9 @@ export const getDeviceStateController = async (c: Context) => {
     return c.json(400);
   }
 
-  return streamSSE(c, async (stream) => {
+  const response = streamSSE(c, async (stream) => {
+    let isStreaming = true;
+
     const callback = async (
       deviceStateChange: RealtimePostgresUpdatePayload<{ [key: string]: any }>,
     ) => {
@@ -71,15 +73,23 @@ export const getDeviceStateController = async (c: Context) => {
     );
 
     stream.onAbort(() => {
-      console.log("Device state stream aborted.");
+      isStreaming = false;
       unsubscribeFromDeviceState();
+      console.log("Device state stream aborted.");
     });
 
-    while (true) {
-      /**NOTE: Duration argument does not seem to affect delivery time? */
+    while (isStreaming) {
       await stream.sleep(30000);
     }
   });
+
+  /**Hono SSE helper uses HTTP1 headers, which Node HTTP2 secure server
+   * doesn't like. Remove all headers here.*/
+  Array.from(response.headers.keys()).forEach((header) =>
+    response.headers.delete(header),
+  );
+
+  return response;
 };
 
 export const updateDeviceStateController = async (c: Context) => {
