@@ -46,13 +46,13 @@ export const unregisterDeviceController = async (c: Context) => {
 };
 
 export const getDeviceStateController = async (c: Context) => {
-  const { accessToken, refreshToken } = extractAuthTokens(c);
-
-  const deviceId = c.req.query("deviceId");
-
-  if (!deviceId) {
-    return c.json(400);
-  }
+  // const { accessToken, refreshToken } = extractAuthTokens(c);
+  //
+  // const deviceId = c.req.query("deviceId");
+  //
+  // if (!deviceId) {
+  //   return c.json(400);
+  // }
 
   const response = streamSSE(c, async (stream) => {
     let isStreaming = true;
@@ -65,21 +65,22 @@ export const getDeviceStateController = async (c: Context) => {
       });
     };
 
-    const unsubscribeFromDeviceState = await getDeviceStateService(
-      accessToken,
-      refreshToken,
-      deviceId,
-      callback,
-    );
+    // const unsubscribeFromDeviceState = await getDeviceStateService(
+    //   accessToken,
+    //   refreshToken,
+    //   deviceId,
+    //   callback,
+    // );
 
     stream.onAbort(() => {
       isStreaming = false;
-      unsubscribeFromDeviceState();
+      // unsubscribeFromDeviceState();
       console.log("Device state stream aborted.");
     });
 
     while (isStreaming) {
-      await stream.sleep(30000);
+      await stream.writeSSE({ event: "dummy event", data: "dummy data" });
+      await stream.sleep(1000);
     }
   });
 

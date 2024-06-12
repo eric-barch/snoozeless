@@ -9,7 +9,7 @@ import { auth } from "@/middleware/auth";
 
 const deviceRoutes = new Hono();
 
-deviceRoutes.use(auth);
+// deviceRoutes.use(auth);
 
 deviceRoutes.post("/register", registerDeviceController);
 deviceRoutes.delete("/unregister", unregisterDeviceController);
