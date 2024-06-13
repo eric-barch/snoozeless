@@ -1,19 +1,22 @@
 import { jwtDecode } from "jwt-decode";
 import { createAuthenticatedClient } from "@/utils/supabase";
+import { SSEStreamingApi } from "hono/streaming";
+import { HTTPException } from "hono/http-exception";
 
 type DecodedJwt = {
   sub: string;
   session_id: string;
 };
 
-type DeviceStateChangeCallback = (deviceStateChange: any) => void;
-
 export const registerDeviceService = async (
   accessToken: string,
   refreshToken: string,
   initialState: any,
 ) => {
-  const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
+  const supabaseClient = await createAuthenticatedClient(
+    accessToken,
+    refreshToken,
+  );
 
   const decodedJwt = jwtDecode<DecodedJwt>(accessToken);
 
@@ -25,7 +28,11 @@ export const registerDeviceService = async (
     .insert({ user_id: userId, session_id: sessionId, ...initialState })
     .select();
 
-  return { data, error };
+  if (error) {
+    throw new HTTPException(400, { message: error.message });
+  }
+
+  return data;
 };
 
 export const unregisterDeviceService = async (
@@ -33,33 +40,43 @@ export const unregisterDeviceService = async (
   refreshToken: string,
   deviceId: string,
 ) => {
-  const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
+  const supabaseClient = await createAuthenticatedClient(
+    accessToken,
+    refreshToken,
+  );
 
-  const { data: deleteData, error: deleteError } = await supabaseClient
+  const { data, error: deleteError } = await supabaseClient
     .from("devices")
     .delete()
     .eq("id", deviceId)
     .select();
 
-  if (deleteError || deleteData.length <= 0) {
-    return { data: deleteData, error: deleteError };
+  if (deleteError || data.length <= 0) {
+    throw new HTTPException(400, { message: deleteError?.message });
   }
 
   const { error: signOutError } = await supabaseClient.auth.signOut();
 
-  return { data: deleteData, error: signOutError };
+  if (signOutError) {
+    throw new HTTPException(400, { message: signOutError.message });
+  }
+
+  return data;
 };
 
 export const getDeviceStateService = async (
+  stream: SSEStreamingApi,
   accessToken: string,
   refreshToken: string,
   deviceId: string,
-  callback: DeviceStateChangeCallback,
 ) => {
-  const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
+  const supabaseClient = await createAuthenticatedClient(
+    accessToken,
+    refreshToken,
+  );
 
   const deviceStateChannel = supabaseClient
-    .channel("device-state-changes")
+    .channel("device-state-updates")
     .on(
       "postgres_changes",
       {
@@ -68,13 +85,16 @@ export const getDeviceStateService = async (
         table: "devices",
         filter: `id=eq.${deviceId}`,
       },
-      (deviceStateChange) => {
-        callback(deviceStateChange);
+      async (deviceStateChange) => {
+        await stream.writeSSE({
+          event: "device-statet-update",
+          data: JSON.stringify(deviceStateChange),
+        });
       },
     )
     .subscribe((status, error) => {
       if (status === "SUBSCRIBED") {
-        console.log("Successfully subscribed to device state changes.");
+        console.log("Successfully subscribed to device state updates.");
       } else if (status === "CHANNEL_ERROR") {
         console.error("Channel error:", error);
       } else {
@@ -93,7 +113,10 @@ export const updateDeviceStateService = async (
   deviceId: string,
   stateUpdate: any,
 ) => {
-  const supabaseClient = createAuthenticatedClient(accessToken, refreshToken);
+  const supabaseClient = await createAuthenticatedClient(
+    accessToken,
+    refreshToken,
+  );
 
   const { data, error } = await supabaseClient
     .from("devices")
@@ -101,5 +124,9 @@ export const updateDeviceStateService = async (
     .eq("id", deviceId)
     .select();
 
-  return { data, error };
+  if (error) {
+    throw new HTTPException(400, { message: error.message });
+  }
+
+  return data;
 };

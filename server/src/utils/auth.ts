@@ -7,13 +7,13 @@ export const extractAuthTokens = (c: Context) => {
 
   if (!accessHeader) {
     throw new HTTPException(401, {
-      message: "Unauthorized - Authorization Header Missing",
+      message: "Unauthorized - Missing Authorization Header",
     });
   }
 
   if (!refreshToken) {
     throw new HTTPException(401, {
-      message: "Unauthorized - Refresh Header Missing",
+      message: "Unauthorized - Missing Refresh-Token Header",
     });
   }
 
