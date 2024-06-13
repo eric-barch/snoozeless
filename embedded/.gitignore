@@ -7,6 +7,3 @@ build/
 
 # ESP-IDF config files.
 sdkconfig*
-
-# Development examples.
-examples/
