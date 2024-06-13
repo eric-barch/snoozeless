@@ -9,12 +9,14 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include "protocol_examples_common.h"
+#include "sdkconfig.h"
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
 
-#define MAX_HTTP_RECV_BUFFER 512
-#define MAX_HTTP_OUTPUT_BUFFER 2048
+#define MAX_HTTP_RECV_BUFFER 1024
+#define MAX_HTTP_OUTPUT_BUFFER 1024
+
 static const char *TAG = "snoozeless_embedded";
 
 esp_err_t _http_event_handler(esp_http_client_event_t *event) {
@@ -54,7 +56,11 @@ esp_err_t _http_event_handler(esp_http_client_event_t *event) {
 
     if (output_len >= 2 &&
         strcmp(&output_buffer[output_len - 2], "\n\n") == 0) {
-      ESP_LOGI(TAG, "End of SSE event received.");
+      output_len -= 2;
+      output_buffer[output_len] = (char){0};
+    }
+
+    if (output_len > 0) {
       ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_len);
       memset(output_buffer, 0, MAX_HTTP_OUTPUT_BUFFER);
       output_len = 0;
@@ -94,15 +100,52 @@ esp_err_t _http_event_handler(esp_http_client_event_t *event) {
 }
 
 static void read_device_state_stream(void *pvParameters) {
+  char *query_prefix = "deviceId=";
+  size_t query_len = strlen(query_prefix) + strlen(CONFIG_DEVICE_ID) + 1;
+  char *query = malloc(query_len);
+  if (query == NULL) {
+    ESP_LOGE(TAG, "Failed to allocate memory for query.");
+    vTaskDelete(NULL);
+    return;
+  }
+  snprintf(query, query_len, "%s%s", query_prefix, CONFIG_DEVICE_ID);
+
+  int port = atoi(CONFIG_PORT);
+
   esp_http_client_config_t config = {
-      .url = "https://192.168.1.6:3000/device/state",
+      .transport_type = HTTP_TRANSPORT_OVER_SSL,
+      .host = CONFIG_HOST,
+      .port = port,
+      .path = "/device/state",
+      .query = query,
       .event_handler = _http_event_handler,
       .crt_bundle_attach = esp_crt_bundle_attach,
+      .buffer_size = MAX_HTTP_RECV_BUFFER,
+      .buffer_size_tx = MAX_HTTP_OUTPUT_BUFFER,
       .is_async = true,
-      .timeout_ms = 60000,
+      .timeout_ms = 300000,
   };
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
+  free(query);
+
+  char *auth_header_prefix = "Bearer ";
+  size_t auth_header_len =
+      strlen(auth_header_prefix) + strlen(CONFIG_AUTH_TOKEN) + 1;
+  char *auth_header = malloc(auth_header_len);
+  if (auth_header == NULL) {
+    ESP_LOGE(TAG, "Failed to allocate memory for auth header.");
+    vTaskDelete(NULL);
+    return;
+  }
+  snprintf(auth_header, auth_header_len, "%s%s", auth_header_prefix,
+           CONFIG_AUTH_TOKEN);
+
+  esp_http_client_set_header(client, "Authorization", auth_header);
+  free(auth_header);
+
+  esp_http_client_set_header(client, "Refresh-Token", CONFIG_REFRESH_TOKEN);
+
   esp_err_t err;
 
   while (1) {
@@ -123,6 +166,7 @@ static void read_device_state_stream(void *pvParameters) {
 
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
+
   vTaskDelete(NULL);
 }
 
@@ -143,6 +187,6 @@ void app_main(void) {
   ESP_ERROR_CHECK(example_connect());
   ESP_LOGI(TAG, "Connected to Access Point.");
 
-  xTaskCreate(&read_device_state_stream, "read_device_state_stream", 8192, NULL,
+  xTaskCreate(&read_device_state_stream, "read_device_state_stream", 4096, NULL,
               5, NULL);
 }

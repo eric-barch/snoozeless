@@ -1,0 +1,30 @@
+menu "Snoozeless Embedded Configuration"
+    config HOST
+        string "Host"
+        default "snoozeless.com"
+        help
+            Server host name or URL.
+
+    config PORT
+        string "Port"
+        default 443
+        help
+            Server port.
+
+    config DEVICE_ID
+        string "Device ID"
+        default ""
+        help
+            Device ID if already registered with Snoozeless server.
+
+    config AUTH_TOKEN
+        string "Authorization Bearer Token"
+        default ""
+        help
+            Authorization Bearer JWT that client uses to sign in as a specific user.
+    config REFRESH_TOKEN
+        string "Refresh Token"
+        default ""
+        help
+            Refresh token that client uses to refresh an expired JWT session.
+endmenu
