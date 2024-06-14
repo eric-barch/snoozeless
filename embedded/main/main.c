@@ -1,3 +1,5 @@
+#include "driver/uart.h"
+#include "esp_console.h"
 #include "esp_crt_bundle.h"
 #include "esp_err.h"
 #include "esp_event.h"
@@ -5,15 +7,20 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_tls.h"
+#include "esp_vfs_dev.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
+#include "linenoise/linenoise.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "protocol_examples_common.h"
 #include "sdkconfig.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
+
+#define MAX_PROMPT_LENGTH 64
 
 #define MAX_WIFI_SSID_LENGTH 32
 #define MAX_WIFI_PASSWORD_LENGTH 64
@@ -33,9 +40,55 @@ static void initialize_nvs(void) {
   ESP_ERROR_CHECK(err);
 }
 
+static void initialize_console(void) {
+  /* Drain stdout before reconfiguring. */
+  fflush(stdout);
+  fsync(fileno(stdout));
+
+  /* Disable buffering on stdin. */
+  setvbuf(stdin, NULL, _IONBF, 0);
+
+  /* Minicom, screen, idf_monitor send CR when ENTER key is pressed. */
+  esp_vfs_dev_uart_port_set_rx_line_endings(CONFIG_ESP_CONSOLE_UART_NUM,
+                                            ESP_LINE_ENDINGS_CR);
+  /* Move caret to beginning of next line on '\n'. */
+  esp_vfs_dev_uart_port_set_tx_line_endings(CONFIG_ESP_CONSOLE_UART_NUM,
+                                            ESP_LINE_ENDINGS_CRLF);
+
+  /* Configure UART. Note REF_TICK is used so the baud rate remains correct
+   * while APB frequency is changing in light sleep mode. */
+  const uart_config_t uart_config = {
+      .baud_rate = CONFIG_ESP_CONSOLE_UART_BAUDRATE,
+      .data_bits = UART_DATA_8_BITS,
+      .parity = UART_PARITY_DISABLE,
+      .stop_bits = UART_STOP_BITS_1,
+      .source_clk = UART_SCLK_REF_TICK,
+  };
+
+  /* Install UART driver for interrupt-driven reads and writes. */
+  ESP_ERROR_CHECK(
+      uart_driver_install(CONFIG_ESP_CONSOLE_UART_NUM, 256, 0, 0, NULL, 0));
+  ESP_ERROR_CHECK(uart_param_config(CONFIG_ESP_CONSOLE_UART_NUM, &uart_config));
+
+  /* Tell VFS to use UART driver. */
+  esp_vfs_dev_uart_use_driver(CONFIG_ESP_CONSOLE_UART_NUM);
+
+  /* Initialize console. */
+  esp_console_config_t console_config = {
+      .max_cmdline_length = 256,
+  };
+
+  ESP_ERROR_CHECK(esp_console_init(&console_config));
+
+  /* Set command maximum length. */
+  linenoiseSetMaxLineLen(console_config.max_cmdline_length);
+
+  /* Don't return empty lines. */
+  linenoiseAllowEmpty(false);
+}
+
 esp_err_t initialize_nvs_str(nvs_handle_t nvs_handle, const char *key,
-                             char *out_value, size_t max_length,
-                             const char *default_value) {
+                             char *out_value, size_t max_length) {
   size_t length = max_length;
   esp_err_t err = nvs_get_str(nvs_handle, key, out_value, &length);
 
@@ -46,25 +99,32 @@ esp_err_t initialize_nvs_str(nvs_handle_t nvs_handle, const char *key,
   case ESP_ERR_NVS_NOT_FOUND:
     printf("%s not initialized in NVS.\n", key);
 
-    if (default_value != NULL) {
-      err = nvs_set_str(nvs_handle, key, default_value);
+    char prompt[MAX_PROMPT_LENGTH];
+    snprintf(prompt, sizeof(prompt), "Enter %s: ", key);
+
+    char *input = linenoise(prompt);
+    if (input != NULL) {
+      err = nvs_set_str(nvs_handle, key, input);
       if (err != ESP_OK) {
         printf("Error initializing %s in NVS: %s\n", key, esp_err_to_name(err));
+        linenoiseFree(input);
         return err;
       } else {
         err = nvs_get_str(nvs_handle, key, out_value, &length);
         if (err == ESP_OK) {
           printf("Initialized %s in NVS: %s\n", key, out_value);
+          linenoiseFree(input);
           return ESP_OK;
         } else {
           printf("Error reading initialized %s from NVS: %s\n", key,
                  esp_err_to_name(err));
+          linenoiseFree(input);
           return err;
         }
       }
+    } else {
+      return ESP_ERR_NVS_NOT_FOUND;
     }
-
-    return ESP_ERR_NVS_NOT_FOUND;
   default:
     printf("Error reading %s from NVS: %s\n", key, esp_err_to_name(err));
     return err;
@@ -224,6 +284,7 @@ static void read_device_state_stream(void *pvParameters) {
 
 void app_main(void) {
   initialize_nvs();
+  initialize_console();
 
   esp_err_t err;
 
@@ -237,8 +298,7 @@ void app_main(void) {
   }
 
   char wifi_ssid[MAX_WIFI_SSID_LENGTH];
-  err = initialize_nvs_str(nvs_handle, "ssid", wifi_ssid, sizeof(wifi_ssid),
-                           CONFIG_EXAMPLE_WIFI_SSID);
+  err = initialize_nvs_str(nvs_handle, "ssid", wifi_ssid, MAX_WIFI_SSID_LENGTH);
   if (err != ESP_OK) {
     printf("Failed to read or initialize NVS WiFi SSID: %s\n",
            esp_err_to_name(err));
@@ -246,7 +306,7 @@ void app_main(void) {
 
   char wifi_password[MAX_WIFI_PASSWORD_LENGTH];
   err = initialize_nvs_str(nvs_handle, "password", wifi_password,
-                           sizeof(wifi_password), CONFIG_EXAMPLE_WIFI_PASSWORD);
+                           MAX_WIFI_PASSWORD_LENGTH);
   if (err != ESP_OK) {
     printf("Failed to read or initialize NVS WiFi password: %s\n",
            esp_err_to_name(err));
