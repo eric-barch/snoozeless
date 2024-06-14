@@ -7,6 +7,7 @@
 #include "esp_tls.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
+#include "nvs.h"
 #include "nvs_flash.h"
 #include "protocol_examples_common.h"
 #include "sdkconfig.h"
@@ -14,10 +15,60 @@
 #include <string.h>
 #include <sys/param.h>
 
+#define MAX_WIFI_SSID_LENGTH 32
+#define MAX_WIFI_PASSWORD_LENGTH 64
 #define MAX_HTTP_RECV_BUFFER 1024
 #define MAX_HTTP_OUTPUT_BUFFER 1024
 
 static const char *TAG = "snoozeless_embedded";
+
+static void initialize_nvs(void) {
+  esp_err_t err = nvs_flash_init();
+  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    err = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(err);
+}
+
+esp_err_t initialize_nvs_str(nvs_handle_t nvs_handle, const char *key,
+                             char *out_value, size_t max_length,
+                             const char *default_value) {
+  size_t length = max_length;
+  esp_err_t err = nvs_get_str(nvs_handle, key, out_value, &length);
+
+  switch (err) {
+  case ESP_OK:
+    printf("%s read from NVS: %s\n", key, out_value);
+    return ESP_OK;
+  case ESP_ERR_NVS_NOT_FOUND:
+    printf("%s not initialized in NVS.\n", key);
+
+    if (default_value != NULL) {
+      err = nvs_set_str(nvs_handle, key, default_value);
+      if (err != ESP_OK) {
+        printf("Error initializing %s in NVS: %s\n", key, esp_err_to_name(err));
+        return err;
+      } else {
+        err = nvs_get_str(nvs_handle, key, out_value, &length);
+        if (err == ESP_OK) {
+          printf("Initialized %s in NVS: %s\n", key, out_value);
+          return ESP_OK;
+        } else {
+          printf("Error reading initialized %s from NVS: %s\n", key,
+                 esp_err_to_name(err));
+          return err;
+        }
+      }
+    }
+
+    return ESP_ERR_NVS_NOT_FOUND;
+  default:
+    printf("Error reading %s from NVS: %s\n", key, esp_err_to_name(err));
+    return err;
+  }
+}
 
 esp_err_t _http_event_handler(esp_http_client_event_t *event) {
   static char *output_buffer;
@@ -171,15 +222,36 @@ static void read_device_state_stream(void *pvParameters) {
 }
 
 void app_main(void) {
-  esp_err_t err = nvs_flash_init();
+  initialize_nvs();
 
-  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
-      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    err = nvs_flash_init();
+  esp_err_t err;
+
+  nvs_handle_t nvs_handle;
+  err = nvs_open("wifi_cred", NVS_READWRITE, &nvs_handle);
+  if (err != ESP_OK) {
+    printf("Error opening NVS handle: %s\n", esp_err_to_name(err));
+    return;
+  } else {
+    printf("Opened NVS handle.\n");
   }
 
-  ESP_ERROR_CHECK(err);
+  char wifi_ssid[MAX_WIFI_SSID_LENGTH];
+  err = initialize_nvs_str(nvs_handle, "ssid", wifi_ssid, sizeof(wifi_ssid),
+                           CONFIG_EXAMPLE_WIFI_SSID);
+  if (err != ESP_OK) {
+    printf("Failed to read or initialize NVS WiFi SSID: %s\n",
+           esp_err_to_name(err));
+  }
+
+  char wifi_password[MAX_WIFI_PASSWORD_LENGTH];
+  err = initialize_nvs_str(nvs_handle, "password", wifi_password,
+                           sizeof(wifi_password), CONFIG_EXAMPLE_WIFI_PASSWORD);
+  if (err != ESP_OK) {
+    printf("Failed to read or initialize NVS WiFi password: %s\n",
+           esp_err_to_name(err));
+  }
+
+  nvs_close(nvs_handle);
 
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());
