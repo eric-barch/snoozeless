@@ -1,10 +1,9 @@
+#include "console_utils.h"
 #include "esp_err.h"
 #include "linenoise/linenoise.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include <stdio.h>
-
-#define MAX_PROMPT_LENGTH 64
 
 void initialize_nvs(void) {
   esp_err_t err = nvs_flash_init();
