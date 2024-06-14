@@ -37,10 +37,13 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
+#define MAX_USER_EMAIL_LENGTH 256
+#define MAX_USER_PASSWORD_LENGTH 256
+
 #define MAX_HTTP_RX_BUFFER 1024
 #define MAX_HTTP_TX_BUFFER 1024
 
-static const char *TAG = "snoozeless_embedded";
+static const char *TAG = "embedded";
 
 static void initialize_nvs(void) {
   esp_err_t err = nvs_flash_init();
@@ -391,10 +394,10 @@ void app_main(void) {
   nvs_handle_t nvs_handle;
   err = nvs_open("wifi_cred", NVS_READWRITE, &nvs_handle);
   if (err != ESP_OK) {
-    printf("Error opening NVS handle: %s\n", esp_err_to_name(err));
+    printf("Error opening wifi_cred: %s\n", esp_err_to_name(err));
     return;
   } else {
-    printf("Opened NVS handle.\n");
+    printf("Opened wifi_cred.\n");
   }
 
   char wifi_ssid[MAX_WIFI_SSID_LENGTH];
@@ -412,9 +415,33 @@ void app_main(void) {
            esp_err_to_name(err));
   }
 
-  nvs_close(nvs_handle);
-
   initialize_wifi(wifi_ssid, wifi_password);
+
+  err = nvs_open("user_cred", NVS_READWRITE, &nvs_handle);
+  if (err != ESP_OK) {
+    printf("Error opening user_cred: %s\n", esp_err_to_name(err));
+    return;
+  } else {
+    printf("Opened user_cred.\n");
+  }
+
+  char user_email[MAX_USER_EMAIL_LENGTH];
+  err = initialize_nvs_str(nvs_handle, "email", user_email,
+                           MAX_USER_EMAIL_LENGTH);
+  if (err != ESP_OK) {
+    printf("Failed to read or initialize NVS user email: %s\n",
+           esp_err_to_name(err));
+  }
+
+  char user_password[MAX_USER_PASSWORD_LENGTH];
+  err = initialize_nvs_str(nvs_handle, "password", user_password,
+                           MAX_USER_PASSWORD_LENGTH);
+  if (err != ESP_OK) {
+    printf("Failed to read or initialize NVS user password: %s\n",
+           esp_err_to_name(err));
+  }
+
+  nvs_close(nvs_handle);
 
   xTaskCreate(&read_device_state_stream, "read_device_state_stream", 4096, NULL,
               5, NULL);
