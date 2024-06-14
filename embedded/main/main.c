@@ -22,6 +22,7 @@
 #include <sys/param.h>
 
 #define MAX_PROMPT_LENGTH 64
+#define MAX_INPUT_LENGTH 256
 
 #define MAX_WIFI_SSID_LENGTH 32
 #define MAX_WIFI_PASSWORD_LENGTH 64
@@ -52,7 +53,7 @@ static void initialize_nvs(void) {
 }
 
 static void initialize_console(void) {
-  /* Drain stdout before reconfiguring. */
+  /* Flush stdout before reconfiguring. */
   fflush(stdout);
   fsync(fileno(stdout));
 
@@ -86,7 +87,7 @@ static void initialize_console(void) {
 
   /* Initialize console. */
   esp_console_config_t console_config = {
-      .max_cmdline_length = 256,
+      .max_cmdline_length = MAX_INPUT_LENGTH,
   };
 
   ESP_ERROR_CHECK(esp_console_init(&console_config));
