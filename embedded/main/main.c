@@ -37,6 +37,8 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
+#define MAX_APP_API_KEY_LENGTH 256
+
 #define MAX_USER_EMAIL_LENGTH 256
 #define MAX_USER_PASSWORD_LENGTH 256
 
@@ -416,6 +418,22 @@ void app_main(void) {
   }
 
   initialize_wifi(wifi_ssid, wifi_password);
+
+  err = nvs_open("app_cred", NVS_READWRITE, &nvs_handle);
+  if (err != ESP_OK) {
+    printf("Error opening app_cred: %s\n", esp_err_to_name(err));
+    return;
+  } else {
+    printf("Opened app_cred.\n");
+  }
+
+  char api_key[MAX_APP_API_KEY_LENGTH];
+  err = initialize_nvs_str(nvs_handle, "api_key", api_key,
+                           MAX_APP_API_KEY_LENGTH);
+  if (err != ESP_OK) {
+    printf("Failed to read or initialize NVS app API key: %s\n",
+           esp_err_to_name(err));
+  }
 
   err = nvs_open("user_cred", NVS_READWRITE, &nvs_handle);
   if (err != ESP_OK) {
