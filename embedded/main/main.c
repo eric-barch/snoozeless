@@ -17,8 +17,9 @@
 
 #define MAX_WIFI_SSID_LENGTH 32
 #define MAX_WIFI_PASSWORD_LENGTH 64
-#define MAX_HTTP_RECV_BUFFER 1024
-#define MAX_HTTP_OUTPUT_BUFFER 1024
+
+#define MAX_HTTP_RX_BUFFER 1024
+#define MAX_HTTP_TX_BUFFER 1024
 
 static const char *TAG = "snoozeless_embedded";
 
@@ -70,7 +71,7 @@ esp_err_t initialize_nvs_str(nvs_handle_t nvs_handle, const char *key,
   }
 }
 
-esp_err_t _http_event_handler(esp_http_client_event_t *event) {
+esp_err_t http_event_handler(esp_http_client_event_t *event) {
   static char *output_buffer;
   static int output_len;
 
@@ -91,14 +92,14 @@ esp_err_t _http_event_handler(esp_http_client_event_t *event) {
   case HTTP_EVENT_ON_DATA:
     ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", event->data_len);
     if (output_buffer == NULL) {
-      output_buffer = (char *)calloc(MAX_HTTP_OUTPUT_BUFFER + 1, sizeof(char));
+      output_buffer = (char *)calloc(MAX_HTTP_TX_BUFFER + 1, sizeof(char));
       if (output_buffer == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory for output buffer.");
         return ESP_FAIL;
       }
     }
 
-    int copy_len = MIN(event->data_len, (MAX_HTTP_OUTPUT_BUFFER - output_len));
+    int copy_len = MIN(event->data_len, (MAX_HTTP_TX_BUFFER - output_len));
     if (copy_len) {
       memcpy(output_buffer + output_len, event->data, copy_len);
       output_len += copy_len;
@@ -113,7 +114,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *event) {
 
     if (output_len > 0) {
       ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_len);
-      memset(output_buffer, 0, MAX_HTTP_OUTPUT_BUFFER);
+      memset(output_buffer, 0, MAX_HTTP_TX_BUFFER);
       output_len = 0;
       output_buffer[output_len] = (char){0};
     }
@@ -169,10 +170,10 @@ static void read_device_state_stream(void *pvParameters) {
       .port = port,
       .path = "/device/state",
       .query = query,
-      .event_handler = _http_event_handler,
+      .event_handler = http_event_handler,
       .crt_bundle_attach = esp_crt_bundle_attach,
-      .buffer_size = MAX_HTTP_RECV_BUFFER,
-      .buffer_size_tx = MAX_HTTP_OUTPUT_BUFFER,
+      .buffer_size = MAX_HTTP_RX_BUFFER,
+      .buffer_size_tx = MAX_HTTP_TX_BUFFER,
       .is_async = true,
       .timeout_ms = 300000,
   };
