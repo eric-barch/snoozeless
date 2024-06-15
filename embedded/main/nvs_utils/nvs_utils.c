@@ -58,3 +58,9 @@ esp_err_t initialize_nvs_str(nvs_handle_t nvs_handle, const char *key,
     return err;
   }
 }
+
+void open_nvs_namespace(char *namespace, nvs_handle_t *nvs_handle) {
+  esp_err_t err = nvs_open(namespace, NVS_READWRITE, nvs_handle);
+  ESP_ERROR_CHECK(err);
+  printf("Opened NVS namespace: %s\n", namespace);
+}

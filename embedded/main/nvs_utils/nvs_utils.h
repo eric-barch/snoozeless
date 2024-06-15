@@ -9,4 +9,6 @@ void initialize_nvs(void);
 esp_err_t initialize_nvs_str(nvs_handle_t nvs_handle, const char *key,
                              char *out_value, size_t max_length);
 
+void open_nvs_namespace(char *namespace, nvs_handle_t *nvs_handle);
+
 #endif
