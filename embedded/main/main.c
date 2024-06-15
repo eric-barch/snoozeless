@@ -1,18 +1,9 @@
 #include "console_utils.h"
 #include "esp_crt_bundle.h"
-#include "esp_err.h"
 #include "esp_log.h"
-#include "freertos/event_groups.h"
-#include "freertos/projdefs.h"
-#include "freertos/task.h"
 #include "http_utils.h"
 #include "nvs_utils.h"
-#include "sdkconfig.h"
 #include "wifi_utils.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/param.h>
 
 #define MAX_APP_API_KEY_LENGTH 256
 
