@@ -1,11 +1,12 @@
 #include "freertos/idf_additions.h"
 #include "http_requests.h"
 #include "nvs_utils.h"
+#include "wifi_utils.h"
 
 void app_main(void) {
   initialize_nvs();
 
-  /**TODO: Utility initializations go here. */
+  initialize_wifi();
 
   close_nvs();
 
