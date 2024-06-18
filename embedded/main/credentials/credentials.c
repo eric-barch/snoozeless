@@ -67,3 +67,9 @@ esp_err_t initialize_credentials(void) {
 
   return err;
 }
+
+const char *get_api_key(void) { return credentials.api_key; }
+
+const char *get_auth_token(void) { return credentials.auth_token; }
+
+const char *get_refresh_token(void) { return credentials.refresh_token; }

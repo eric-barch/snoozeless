@@ -6,8 +6,8 @@
 #include "linenoise/linenoise.h"
 #include <stdio.h>
 
-#define MAX_PROMPT_LENGTH 256
-#define MAX_INPUT_LENGTH 256
+#define MAX_PROMPT_LENGTH 300
+#define MAX_INPUT_LENGTH 1000
 
 esp_err_t initialize_console(void) {
   fflush(stdout);

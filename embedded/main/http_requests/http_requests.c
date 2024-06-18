@@ -1,3 +1,4 @@
+#include "credentials.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -9,15 +10,14 @@
 static const char *TAG = "http_requests";
 
 void get_device_state(void *pvParameters) {
-  char *query_prefix = "deviceId=";
-  size_t query_len = strlen(query_prefix) + strlen(CONFIG_DEVICE_ID) + 1;
+  size_t query_len = strlen("deviceId=") + strlen(CONFIG_DEVICE_ID) + 1;
   char *query = malloc(query_len);
   if (query == NULL) {
     ESP_LOGE(TAG, "Failed to allocate memory for query.");
     vTaskDelete(NULL);
     return;
   }
-  snprintf(query, query_len, "%s%s", query_prefix, CONFIG_DEVICE_ID);
+  snprintf(query, query_len, "deviceId=%s", CONFIG_DEVICE_ID);
 
   int port = atoi(CONFIG_PORT);
 
@@ -38,22 +38,18 @@ void get_device_state(void *pvParameters) {
   esp_http_client_handle_t client = esp_http_client_init(&config);
   free(query);
 
-  char *auth_header_prefix = "Bearer ";
-  size_t auth_header_len =
-      strlen(auth_header_prefix) + strlen(CONFIG_AUTH_TOKEN) + 1;
-  char *auth_header = malloc(auth_header_len);
+  size_t auth_header_length = strlen("Bearer ") + strlen(get_auth_token()) + 1;
+  char *auth_header = malloc(auth_header_length);
   if (auth_header == NULL) {
     ESP_LOGE(TAG, "Failed to allocate memory for auth header.");
     vTaskDelete(NULL);
     return;
   }
-  snprintf(auth_header, auth_header_len, "%s%s", auth_header_prefix,
-           CONFIG_AUTH_TOKEN);
+  snprintf(auth_header, auth_header_length, "Bearer %s", get_auth_token());
 
   esp_http_client_set_header(client, "Authorization", auth_header);
-  free(auth_header);
 
-  esp_http_client_set_header(client, "Refresh-Token", CONFIG_REFRESH_TOKEN);
+  esp_http_client_set_header(client, "Refresh-Token", get_refresh_token());
 
   esp_err_t err;
 
