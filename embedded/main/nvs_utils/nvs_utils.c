@@ -56,7 +56,7 @@ esp_err_t get_nvs_str(const char *key, char *out_value, size_t max_length) {
 
   switch (err) {
   case ESP_OK:
-    printf("Got string from NVS\n%s: %s\n", key, out_value);
+    printf("Got string %s from NVS: %s\n", key, out_value);
     break;
   case ESP_ERR_NVS_NOT_FOUND:
     printf("Key not found in NVS: %s\n", key);
@@ -78,7 +78,7 @@ esp_err_t set_nvs_str(const char *key, const char *in_value) {
 
   switch (err) {
   case ESP_OK:
-    printf("Set string in NVS\n%s: %s\n", key, in_value);
+    printf("Set string %s in NVS: %s\n", key, in_value);
     break;
   default:
     printf("Error setting string in NVS: %s\n", esp_err_to_name(err));
@@ -90,5 +90,5 @@ esp_err_t set_nvs_str(const char *key, const char *in_value) {
 
 void close_nvs(void) {
   nvs_close(handle);
-  printf("Closed NVS handle.\n");
+  printf("Closed NVS.\n");
 }
