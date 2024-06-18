@@ -13,23 +13,21 @@
 #define WIFI_MAX_SSID_LENGTH 32
 #define WIFI_MAX_PASSWORD_LENGTH 64
 #define WIFI_MAX_RETRY 5
-
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
+
+static char *TAG = "wifi_utils";
 
 typedef struct {
   char ssid[WIFI_MAX_SSID_LENGTH];
   char password[WIFI_MAX_PASSWORD_LENGTH];
 } wifi_credentials_t;
 
-static char *TAG = "wifi_utils";
 static EventGroupHandle_t s_wifi_event_group;
 static wifi_credentials_t wifi_credentials;
 
 esp_err_t get_wifi_credentials(void) {
-  esp_err_t err;
-
-  err = open_nvs_namespace("wifi_cred");
+  esp_err_t err = open_nvs_namespace("wifi_cred");
   if (err != ESP_OK) {
     return err;
   }
