@@ -93,35 +93,41 @@ void wifi_event_handler(void *arg, esp_event_base_t event_base,
 esp_err_t connect_to_wifi(void) {
   s_wifi_event_group = xEventGroupCreate();
 
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+  esp_err_t err = esp_netif_init();
+  if (err != ESP_OK) {
+    return err;
+  }
 
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+  err = esp_event_loop_create_default();
+  if (err != ESP_OK) {
+    return err;
+  }
 
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL,
-        &instance_any_id));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL,
-        &instance_got_ip));
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
-
-    if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "Connected to SSID %s with password %s", wifi_credentials.ssid, wifi_credentials.password);
-    } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(TAG, "Failed to connect to SSID %s with password %s", wifi_credentials.ssid, wifi_credentials.password);
-    } else {
-        ESP_LOGE(TAG, "Unexpected event connecting to SSID %s with password %s", wifi_credentials.ssid, wifi_credentials.password);
-    }
   esp_netif_create_default_wifi_sta();
 
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 
+  err = esp_wifi_init(&cfg);
+  if (err != ESP_OK) {
+    return err;
+  }
+
   esp_event_handler_instance_t instance_any_id;
   esp_event_handler_instance_t instance_got_ip;
+
+  err = esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                                            &wifi_event_handler, NULL,
+                                            &instance_any_id);
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
+                                            &wifi_event_handler, NULL,
+                                            &instance_got_ip);
+  if (err != ESP_OK) {
+    return err;
+  }
 
   wifi_config_t wifi_config = {
       .sta =
@@ -138,13 +144,46 @@ esp_err_t connect_to_wifi(void) {
   strncpy((char *)wifi_config.sta.password, wifi_credentials.password,
           sizeof(wifi_config.sta.password) - 1);
 
+  err = esp_wifi_set_mode(WIFI_MODE_STA);
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = esp_wifi_start();
+  if (err != ESP_OK) {
+    return err;
+  }
+
   EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
                                          WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                          pdFALSE, pdFALSE, portMAX_DELAY);
 
+  if (bits & WIFI_CONNECTED_BIT) {
+    ESP_LOGI(TAG, "Connected to SSID %s with password %s",
+             wifi_credentials.ssid, wifi_credentials.password);
+    return ESP_OK;
+  } else if (bits & WIFI_FAIL_BIT) {
+    ESP_LOGI(TAG, "Failed to connect to SSID %s with password %s",
+             wifi_credentials.ssid, wifi_credentials.password);
+    return ESP_FAIL;
+  } else {
+    ESP_LOGE(TAG, "Unexpected event connecting to SSID %s with password %s",
+             wifi_credentials.ssid, wifi_credentials.password);
+    return ESP_FAIL;
+  }
 }
 
-void initialize_wifi(void) {
-    get_wifi_credentials();
-    connect_to_wifi();
+esp_err_t initialize_wifi(void) {
+  esp_err_t err = get_wifi_credentials();
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = connect_to_wifi();
+  return err;
 }
