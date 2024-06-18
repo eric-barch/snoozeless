@@ -162,11 +162,11 @@ esp_err_t connect_to_wifi(void) {
                                          pdFALSE, pdFALSE, portMAX_DELAY);
 
   if (bits & WIFI_CONNECTED_BIT) {
-    ESP_LOGI(TAG, "Connected to SSID %s with password %s",
-             wifi_credentials.ssid, wifi_credentials.password);
+    printf("Connected to SSID %s with password %s\n", wifi_credentials.ssid,
+           wifi_credentials.password);
     return ESP_OK;
   } else if (bits & WIFI_FAIL_BIT) {
-    ESP_LOGI(TAG, "Failed to connect to SSID %s with password %s",
+    ESP_LOGE(TAG, "Failed to connect to SSID %s with password %s",
              wifi_credentials.ssid, wifi_credentials.password);
     return ESP_FAIL;
   } else {
