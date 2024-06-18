@@ -1,3 +1,4 @@
+#include "nvs_utils.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 
@@ -6,12 +7,33 @@ static nvs_handle_t handle;
 esp_err_t initialize_nvs(void) {
   esp_err_t err = nvs_flash_init();
 
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        err = nvs_flash_init();
+  switch (err) {
+  case ESP_OK:
+    printf("Initialized NVS.\n");
+    break;
+  case ESP_ERR_NVS_NO_FREE_PAGES:
+    /**Fall through. */
+  case ESP_ERR_NVS_NEW_VERSION_FOUND:
+    err = nvs_flash_erase();
+    if (err != ESP_OK) {
+      printf("Error erasing NVS: %s\n", esp_err_to_name(err));
+      break;
     }
 
-    return err;
+    err = nvs_flash_init();
+    if (err != ESP_OK) {
+      printf("Error reinitializing NVS: %s\n", esp_err_to_name(err));
+      break;
+    }
+
+    printf("Erased and reinitialized NVS.\n");
+    break;
+  default:
+    printf("Error initializing NVS: %s\n", esp_err_to_name(err));
+    break;
+  }
+
+  return err;
 }
 
 esp_err_t open_nvs_namespace(const char *namespace) {
