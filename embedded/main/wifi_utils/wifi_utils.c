@@ -28,10 +28,44 @@ static char *TAG = "wifi_utils";
 static EventGroupHandle_t s_wifi_event_group;
 static wifi_credentials_t wifi_credentials;
 
-void get_wifi_credentials(void) {
-    ESP_ERROR_CHECK(open_nvs_namespace("wifi_cred"));
-    ESP_ERROR_CHECK(get_nvs_str("ssid", wifi_credentials.ssid, WIFI_MAX_SSID_LENGTH));
-    ESP_ERROR_CHECK(get_nvs_str("password", wifi_credentials.password, WIFI_MAX_PASSWORD_LENGTH));
+esp_err_t get_wifi_credentials(void) {
+  esp_err_t err;
+
+  err = open_nvs_namespace("wifi_cred");
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = get_nvs_str("ssid", wifi_credentials.ssid, WIFI_MAX_SSID_LENGTH);
+  if (err != ESP_OK) {
+    err = get_console_str("Enter WiFi SSID: ", wifi_credentials.ssid,
+                          WIFI_MAX_SSID_LENGTH);
+    if (err != ESP_OK) {
+      return err;
+    }
+
+    err = set_nvs_str("ssid", wifi_credentials.ssid);
+    if (err != ESP_OK) {
+      return err;
+    }
+  }
+
+  err = get_nvs_str("password", wifi_credentials.password,
+                    WIFI_MAX_PASSWORD_LENGTH);
+  if (err != ESP_OK) {
+    err = get_console_str("Enter WiFi password: ", wifi_credentials.password,
+                          WIFI_MAX_PASSWORD_LENGTH);
+    if (err != ESP_OK) {
+      return err;
+    }
+
+    err = set_nvs_str("password", wifi_credentials.password);
+    if (err != ESP_OK) {
+      return err;
+    }
+  }
+
+  return err;
 }
 
 void wifi_event_handler(void *arg, esp_event_base_t event_base,
