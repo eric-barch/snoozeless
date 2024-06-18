@@ -10,10 +10,4 @@ menu "Snoozeless Embedded Configuration"
         default 443
         help
             Server port.
-
-    config DEVICE_ID
-        string "Device ID"
-        default ""
-        help
-            Device ID if already registered with Snoozeless server.
 endmenu

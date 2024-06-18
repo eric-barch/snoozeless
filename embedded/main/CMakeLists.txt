@@ -13,6 +13,7 @@ file(GLOB WIFI_UTILS_SRCS "wifi_utils/*.c")
 file(GLOB HTTP_UTILS_SRCS "http_utils/*.c")
 file(GLOB HTTP_REQUESTS_SRCS "http_requests/*.c")
 file(GLOB CREDENTIALS_SRCS "credentials/*.c")
+file(GLOB DEVICE_UTILS_SRCS "device_utils/*.c")
 
 # Combine source files.
 list(
@@ -23,6 +24,7 @@ list(
         ${HTTP_UTILS_SRCS} 
         ${HTTP_REQUESTS_SRCS}
         ${CREDENTIALS_SRCS}
+        ${DEVICE_UTILS_SRCS}
 )
 
 idf_component_register(
@@ -34,6 +36,7 @@ idf_component_register(
                  "http_utils"
                  "http_requests"
                  "credentials"
+                 "device_utils"
     REQUIRES ${requires}
     EMBED_TXTFILES server_cert.pem
 )

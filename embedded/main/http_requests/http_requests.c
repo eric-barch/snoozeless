@@ -1,4 +1,5 @@
 #include "credentials.h"
+#include "device_utils.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -10,14 +11,14 @@
 static const char *TAG = "http_requests";
 
 void get_device_state(void *pvParameters) {
-  size_t query_len = strlen("deviceId=") + strlen(CONFIG_DEVICE_ID) + 1;
+  size_t query_len = strlen("deviceId=") + strlen(get_device_id()) + 1;
   char *query = malloc(query_len);
   if (query == NULL) {
     ESP_LOGE(TAG, "Failed to allocate memory for query.");
     vTaskDelete(NULL);
     return;
   }
-  snprintf(query, query_len, "deviceId=%s", CONFIG_DEVICE_ID);
+  snprintf(query, query_len, "deviceId=%s", get_device_id());
 
   int port = atoi(CONFIG_PORT);
 
