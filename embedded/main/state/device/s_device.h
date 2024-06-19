@@ -1,5 +1,5 @@
-#ifndef DEVICE_UTILS_H
-#define DEVICE_UTILS_H
+#ifndef S_DEVICE_H
+#define S_DEVICE_H
 
 #include "esp_err.h"
 

@@ -1,5 +1,5 @@
-#ifndef CONSOLE_UTILS_H
-#define CONSOLE_UTILS_H
+#ifndef H_CONSOLE_H
+#define H_CONSOLE_H
 
 #include "esp_err.h"
 

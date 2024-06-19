@@ -1,7 +1,7 @@
-#include "device_utils.h"
-#include "console_utils.h"
+#include "s_device.h"
 #include "esp_err.h"
-#include "nvs_utils.h"
+#include "h_console.h"
+#include "h_nvs.h"
 
 #define MAX_ID_LENGTH 50
 #define MAX_TIME_FORMAT_LENGTH 10

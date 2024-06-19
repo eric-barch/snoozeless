@@ -1,11 +1,11 @@
-#include "http_utils.h"
+#include "h_http.h"
 #include "esp_err.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "esp_tls.h"
 #include <sys/param.h>
 
-static const char *TAG = "http_utils";
+static const char *TAG = "http_helpers";
 
 esp_err_t http_event_handler(esp_http_client_event_t *event) {
   static char *output_buffer;

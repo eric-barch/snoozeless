@@ -1,68 +1,20 @@
-#include "wifi_utils.h"
-#include "console_utils.h"
-#include "esp_err.h"
 #include "esp_event_base.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
+#include "esp_wifi_types.h"
 #include "freertos/idf_additions.h"
-#include "nvs_utils.h"
+#include "s_wifi_credentials.h"
 #include <string.h>
 
 #define WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_PSK
 #define WIFI_SAE_MODE WPA3_SAE_PWE_BOTH
-#define WIFI_MAX_SSID_LENGTH 32
-#define WIFI_MAX_PASSWORD_LENGTH 64
 #define WIFI_MAX_RETRY 5
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
-static char *TAG = "wifi_utils";
-
-typedef struct {
-  char ssid[WIFI_MAX_SSID_LENGTH];
-  char password[WIFI_MAX_PASSWORD_LENGTH];
-} wifi_credentials_t;
+static char *TAG = "wifi_helpers";
 
 static EventGroupHandle_t s_wifi_event_group;
-static wifi_credentials_t wifi_credentials;
-
-esp_err_t get_wifi_credentials(void) {
-  esp_err_t err = open_nvs_namespace("wifi_cred");
-  if (err != ESP_OK) {
-    return err;
-  }
-
-  err = get_nvs_str("ssid", wifi_credentials.ssid, WIFI_MAX_SSID_LENGTH);
-  if (err != ESP_OK) {
-    err = get_console_str("Enter WiFi SSID: ", wifi_credentials.ssid,
-                          WIFI_MAX_SSID_LENGTH);
-    if (err != ESP_OK) {
-      return err;
-    }
-
-    err = set_nvs_str("ssid", wifi_credentials.ssid);
-    if (err != ESP_OK) {
-      return err;
-    }
-  }
-
-  err = get_nvs_str("password", wifi_credentials.password,
-                    WIFI_MAX_PASSWORD_LENGTH);
-  if (err != ESP_OK) {
-    err = get_console_str("Enter WiFi password: ", wifi_credentials.password,
-                          WIFI_MAX_PASSWORD_LENGTH);
-    if (err != ESP_OK) {
-      return err;
-    }
-
-    err = set_nvs_str("password", wifi_credentials.password);
-    if (err != ESP_OK) {
-      return err;
-    }
-  }
-
-  return err;
-}
 
 void wifi_event_handler(void *arg, esp_event_base_t event_base,
                         int32_t event_id, void *event_data) {
@@ -137,9 +89,9 @@ esp_err_t connect_to_wifi(void) {
           },
   };
 
-  strncpy((char *)wifi_config.sta.ssid, wifi_credentials.ssid,
+  strncpy((char *)wifi_config.sta.ssid, get_wifi_ssid(),
           sizeof(wifi_config.sta.ssid) - 1);
-  strncpy((char *)wifi_config.sta.password, wifi_credentials.password,
+  strncpy((char *)wifi_config.sta.password, get_wifi_password(),
           sizeof(wifi_config.sta.password) - 1);
 
   err = esp_wifi_set_mode(WIFI_MODE_STA);
@@ -162,26 +114,16 @@ esp_err_t connect_to_wifi(void) {
                                          pdFALSE, pdFALSE, portMAX_DELAY);
 
   if (bits & WIFI_CONNECTED_BIT) {
-    printf("Connected to SSID %s with password %s\n", wifi_credentials.ssid,
-           wifi_credentials.password);
+    printf("Connected to SSID %s with password %s\n", get_wifi_ssid(),
+           get_wifi_password());
     return ESP_OK;
   } else if (bits & WIFI_FAIL_BIT) {
     ESP_LOGE(TAG, "Failed to connect to SSID %s with password %s",
-             wifi_credentials.ssid, wifi_credentials.password);
+             get_wifi_ssid(), get_wifi_password());
     return ESP_FAIL;
   } else {
     ESP_LOGE(TAG, "Unexpected event connecting to SSID %s with password %s",
-             wifi_credentials.ssid, wifi_credentials.password);
+             get_wifi_ssid(), get_wifi_password());
     return ESP_FAIL;
   }
-}
-
-esp_err_t initialize_wifi(void) {
-  esp_err_t err = get_wifi_credentials();
-  if (err != ESP_OK) {
-    return err;
-  }
-
-  err = connect_to_wifi();
-  return err;
 }

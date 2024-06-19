@@ -1,4 +1,4 @@
-#include "nvs_utils.h"
+#include "h_nvs.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 
@@ -79,6 +79,9 @@ esp_err_t set_nvs_str(const char *key, const char *in_value) {
   switch (err) {
   case ESP_OK:
     printf("Set string %s in NVS: %s\n", key, in_value);
+    break;
+  case ESP_ERR_NVS_NOT_FOUND:
+    printf("Key not found in NVS: %s\n", key);
     break;
   default:
     printf("Error setting string in NVS: %s\n", esp_err_to_name(err));

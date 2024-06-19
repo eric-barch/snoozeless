@@ -1,5 +1,5 @@
-#ifndef NVS_UTILS_H
-#define NVS_UTILS_H
+#ifndef H_NVS_H
+#define H_NVS_H
 
 #include "esp_err.h"
 

@@ -1,5 +1,5 @@
-#ifndef HTTP_UTILS_H
-#define HTTP_UTILS_H
+#ifndef H_HTTP_H
+#define H_HTTP_H
 
 #include "esp_err.h"
 #include "esp_http_client.h"

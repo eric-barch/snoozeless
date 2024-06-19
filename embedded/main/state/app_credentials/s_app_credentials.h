@@ -1,9 +1,9 @@
-#ifndef CREDENTIALS_H
-#define CREDENTIALS_H
+#ifndef S_APP_CREDENTIALS_H
+#define S_APP_CREDENTIALS_H
 
 #include "esp_err.h"
 
-esp_err_t initialize_credentials(void);
+esp_err_t initialize_app_credentials(void);
 
 const char *get_api_key(void);
 

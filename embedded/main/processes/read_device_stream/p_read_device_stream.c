@@ -1,16 +1,16 @@
-#include "credentials.h"
-#include "device_utils.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
-#include "http_utils.h"
+#include "h_http.h"
+#include "s_app_credentials.h"
+#include "s_device.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 static const char *TAG = "http_requests";
 
-void get_device_state(void *pvParameters) {
+void read_device_stream(void *pvParameters) {
   size_t query_len = strlen("deviceId=") + strlen(get_device_id()) + 1;
   char *query = malloc(query_len);
   if (query == NULL) {
