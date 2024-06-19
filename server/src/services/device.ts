@@ -2,6 +2,7 @@ import { jwtDecode } from "jwt-decode";
 import { createAuthenticatedClient } from "@/utils/supabase";
 import { SSEStreamingApi } from "hono/streaming";
 import { HTTPException } from "hono/http-exception";
+import { Context } from "hono";
 
 type DecodedJwt = {
   sub: string;
@@ -65,15 +66,11 @@ export const unregisterDeviceService = async (
 };
 
 export const getDeviceStateService = async (
+  c: Context,
   stream: SSEStreamingApi,
-  accessToken: string,
-  refreshToken: string,
   deviceId: string,
 ) => {
-  const supabaseClient = await createAuthenticatedClient(
-    accessToken,
-    refreshToken,
-  );
+  const supabaseClient = c.get("supabaseClient");
 
   const deviceStateChannel = supabaseClient
     .channel("device-state-updates")

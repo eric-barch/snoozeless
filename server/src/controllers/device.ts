@@ -44,8 +44,6 @@ export const unregisterDeviceController = async (
 export const getDeviceStateController = async (
   c: Context,
 ): Promise<Response> => {
-  const { accessToken, refreshToken } = extractAuthTokens(c);
-
   const deviceId = c.req.query("deviceId");
 
   if (!deviceId) {
@@ -58,16 +56,15 @@ export const getDeviceStateController = async (
     let isStreaming = true;
 
     const unsubscribeFromDeviceState = await getDeviceStateService(
+      c,
       stream,
-      accessToken,
-      refreshToken,
       deviceId,
     );
 
     stream.onAbort(() => {
       isStreaming = false;
       unsubscribeFromDeviceState();
-      console.log("Device state stream aborted.", new Date().toLocaleString());
+      console.log("Device state stream aborted.");
     });
 
     while (isStreaming) {

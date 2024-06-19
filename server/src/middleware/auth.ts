@@ -1,27 +1,31 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
+import { createAuthenticatedClient } from "@/utils/supabase";
 
 const auth = createMiddleware(async (c, next) => {
   const authorizationHeader = c.req.header("Authorization");
   const refreshToken = c.req.header("Refresh-Token");
 
-  if (!authorizationHeader) {
+  if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
     throw new HTTPException(401, {
-      message: "Unauthorized - Authorization Header Missing",
+      message: "Unauthorized - Missing or Incorrect Authorization Header",
     });
   }
 
-  if (!authorizationHeader.startsWith("Bearer ")) {
-    throw new HTTPException(400, {
-      message: "Bad Request - Incorrect Authorization Header",
-    });
-  }
+  const accessToken = authorizationHeader.split("Bearer ")[1];
 
   if (!refreshToken) {
     throw new HTTPException(401, {
-      message: "Unauthorized - Refresh Token Missing",
+      message: "Unauthorized - Missing Refresh Token",
     });
   }
+
+  const supabaseClient = await createAuthenticatedClient(
+    accessToken,
+    refreshToken,
+  );
+
+  c.set("supabaseClient", supabaseClient);
 
   await next();
 });
