@@ -1,7 +1,7 @@
-#include "s_app_credentials.h"
+#include "state/app_credentials.h"
 #include "esp_err.h"
-#include "h_console.h"
-#include "h_nvs.h"
+#include "utilities/console.h"
+#include "utilities/nvs.h"
 
 #define MAX_API_KEY_LENGTH 300
 #define MAX_AUTH_TOKEN_LENGTH 1000
@@ -16,7 +16,7 @@ typedef struct {
 static app_credentials_t app_credentials;
 
 esp_err_t initialize_app_credentials(void) {
-  esp_err_t err = open_nvs_namespace("credentials");
+  esp_err_t err = open_nvs_namespace("app_cred");
   if (err != ESP_OK) {
     return err;
   }

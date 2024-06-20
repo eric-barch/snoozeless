@@ -1,5 +1,5 @@
-#ifndef S_APP_CREDENTIALS_H
-#define S_APP_CREDENTIALS_H
+#ifndef APP_CREDENTIALS_STATE
+#define APP_CREDENTIALS_STATE
 
 #include "esp_err.h"
 

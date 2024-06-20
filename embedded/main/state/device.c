@@ -1,7 +1,7 @@
-#include "s_device.h"
+#include "state/device.h"
 #include "esp_err.h"
-#include "h_console.h"
-#include "h_nvs.h"
+#include "services/register_device.h"
+#include "utilities/nvs.h"
 
 #define MAX_ID_LENGTH 50
 #define MAX_TIME_FORMAT_LENGTH 10
@@ -23,7 +23,7 @@ esp_err_t initialize_device_state(void) {
 
   err = get_nvs_str("id", device.id, MAX_ID_LENGTH);
   if (err != ESP_OK) {
-    err = get_console_str("Enter device ID: ", device.id, MAX_ID_LENGTH);
+    err = register_device(device.id);
     if (err != ESP_OK) {
       return err;
     }

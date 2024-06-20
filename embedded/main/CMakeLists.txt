@@ -11,9 +11,7 @@ idf_component_register(
     INCLUDE_DIRS "."
                  "helpers/http"
                  "processes/read_device_stream"
-                 "state/app_credentials"
-                 "state/device"
-                 "state/wifi_credentials"
+                 "state"
                  "utilities"
     EMBED_TXTFILES server_cert.pem
 )

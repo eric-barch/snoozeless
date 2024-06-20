@@ -4,7 +4,7 @@
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #include "freertos/idf_additions.h"
-#include "s_wifi_credentials.h"
+#include "state/wifi_credentials.h"
 #include <string.h>
 
 #define WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_PSK

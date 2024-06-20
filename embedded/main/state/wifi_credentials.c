@@ -1,7 +1,7 @@
-#include "s_wifi_credentials.h"
+#include "state/wifi_credentials.h"
 #include "esp_err.h"
-#include "h_console.h"
-#include "h_nvs.h"
+#include "utilities/console.h"
+#include "utilities/nvs.h"
 
 #define WIFI_MAX_SSID_LENGTH 32
 #define WIFI_MAX_PASSWORD_LENGTH 64
