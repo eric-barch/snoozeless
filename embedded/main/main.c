@@ -1,5 +1,5 @@
 #include "freertos/idf_additions.h"
-#include "p_read_device_stream.h"
+#include "services/read_device_stream.h"
 #include "state/app_credentials.h"
 #include "state/device.h"
 #include "state/wifi_credentials.h"

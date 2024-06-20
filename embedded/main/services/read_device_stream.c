@@ -1,14 +1,15 @@
+#include "services/read_device_stream.h"
+#include "controllers/read_device_stream.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
-#include "h_http.h"
-#include "s_app_credentials.h"
-#include "s_device.h"
+#include "state/app_credentials.h"
+#include "state/device.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char *TAG = "http_requests";
+static const char *TAG = "services/read_device_stream";
 
 void read_device_stream(void *pvParameters) {
   size_t query_len = strlen("deviceId=") + strlen(get_device_id()) + 1;
@@ -28,7 +29,7 @@ void read_device_stream(void *pvParameters) {
       .port = port,
       .path = "/device/state",
       .query = query,
-      .event_handler = http_event_handler,
+      .event_handler = read_device_stream_event_handler,
       .crt_bundle_attach = esp_crt_bundle_attach,
       .buffer_size = MAX_HTTP_RX_BUFFER,
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
@@ -49,7 +50,6 @@ void read_device_stream(void *pvParameters) {
   snprintf(auth_header, auth_header_length, "Bearer %s", get_auth_token());
 
   esp_http_client_set_header(client, "Authorization", auth_header);
-
   esp_http_client_set_header(client, "Refresh-Token", get_refresh_token());
 
   esp_err_t err;
