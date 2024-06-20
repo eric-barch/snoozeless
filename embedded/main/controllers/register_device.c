@@ -1,13 +1,13 @@
-#include "h_http.h"
+#include "controllers/register_device.h"
 #include "esp_err.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "esp_tls.h"
 #include <sys/param.h>
 
-static const char *TAG = "http_helpers";
+static const char *TAG = "controllers/register_device";
 
-esp_err_t http_event_handler(esp_http_client_event_t *event) {
+esp_err_t register_device_event_handler(esp_http_client_event_t *event) {
   static char *output_buffer;
   static int output_len;
 

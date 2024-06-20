@@ -9,7 +9,7 @@ file(GLOB_RECURSE MAIN_SRCS "*.c")
 idf_component_register(
     SRCS ${MAIN_SRCS}
     INCLUDE_DIRS "."
-                 "helpers/http"
+                 "controllers"
                  "processes/read_device_stream"
                  "state"
                  "utilities"
