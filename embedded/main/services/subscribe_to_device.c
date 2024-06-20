@@ -1,5 +1,6 @@
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
+#include "get_device_state.h"
 #include "state/device.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,5 +14,6 @@ void subscribe_to_device(void *pvParameters) {
     vTaskDelete(NULL);
     return;
   }
+  get_device_state(deviceId);
   vTaskDelete(NULL);
 }
