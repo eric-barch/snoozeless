@@ -1,39 +1,36 @@
-import { jwtDecode } from "jwt-decode";
 import { createAuthenticatedClient } from "@/utils/supabase";
 import { SSEStreamingApi } from "hono/streaming";
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 
-type DecodedJwt = {
-  sub: string;
-  session_id: string;
-};
+export const registerDeviceService = async (c: Context) => {
+  const supabaseClient = c.get("supabaseClient");
 
-export const registerDeviceService = async (
-  accessToken: string,
-  refreshToken: string,
-  initialState: any,
-) => {
-  const supabaseClient = await createAuthenticatedClient(
-    accessToken,
-    refreshToken,
-  );
+  const { data: sessionData, error: sessionError } =
+    await supabaseClient.auth.getSession();
 
-  const decodedJwt = jwtDecode<DecodedJwt>(accessToken);
-
-  const userId = decodedJwt.sub;
-  const sessionId = decodedJwt.session_id;
-
-  const { data, error } = await supabaseClient
-    .from("devices")
-    .insert({ user_id: userId, session_id: sessionId, ...initialState })
-    .select();
-
-  if (error) {
-    throw new HTTPException(400, { message: error.message });
+  if (sessionError) {
+    throw new HTTPException(400, { message: sessionError.message });
   }
 
-  return data;
+  const session = sessionData.session;
+
+  if (!session) {
+    throw new HTTPException(400, { message: "Session not found." });
+  }
+
+  const userId = session.user.id;
+
+  const { data: insertData, error: insertError } = await supabaseClient
+    .from("devices")
+    .insert({ user_id: userId })
+    .select();
+
+  if (insertError) {
+    throw new HTTPException(400, { message: insertError.message });
+  }
+
+  return insertData;
 };
 
 export const unregisterDeviceService = async (

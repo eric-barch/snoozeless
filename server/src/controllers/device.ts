@@ -12,17 +12,8 @@ import { HTTPException } from "hono/http-exception";
 export const registerDeviceController = async (
   c: Context,
 ): Promise<Response> => {
-  const { accessToken, refreshToken } = extractAuthTokens(c);
-
-  const initialState = await c.req.json();
-
-  const data = await registerDeviceService(
-    accessToken,
-    refreshToken,
-    initialState,
-  );
-
-  return c.json(data, 201);
+  const response = await registerDeviceService(c);
+  return c.json(response, 201);
 };
 
 export const unregisterDeviceController = async (
