@@ -33,35 +33,6 @@ export const registerDeviceService = async (c: Context) => {
   return insertData;
 };
 
-export const unregisterDeviceService = async (
-  accessToken: string,
-  refreshToken: string,
-  deviceId: string,
-) => {
-  const supabaseClient = await createAuthenticatedClient(
-    accessToken,
-    refreshToken,
-  );
-
-  const { data, error: deleteError } = await supabaseClient
-    .from("devices")
-    .delete()
-    .eq("id", deviceId)
-    .select();
-
-  if (deleteError || data.length <= 0) {
-    throw new HTTPException(400, { message: deleteError?.message });
-  }
-
-  const { error: signOutError } = await supabaseClient.auth.signOut();
-
-  if (signOutError) {
-    throw new HTTPException(400, { message: signOutError.message });
-  }
-
-  return data;
-};
-
 export const getDeviceStateService = async (
   c: Context,
   stream: SSEStreamingApi,
