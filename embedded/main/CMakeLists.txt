@@ -9,13 +9,11 @@ file(GLOB_RECURSE MAIN_SRCS "*.c")
 idf_component_register(
     SRCS ${MAIN_SRCS}
     INCLUDE_DIRS "."
-                 "helpers/console"
                  "helpers/http"
-                 "helpers/nvs"
-                 "helpers/wifi"
                  "processes/read_device_stream"
                  "state/app_credentials"
                  "state/device"
                  "state/wifi_credentials"
+                 "utilities"
     EMBED_TXTFILES server_cert.pem
 )

@@ -1,4 +1,4 @@
-#include "h_nvs.h"
+#include "utilities/nvs.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 
@@ -85,6 +85,26 @@ esp_err_t set_nvs_str(const char *key, const char *in_value) {
     break;
   default:
     printf("Error setting string in NVS: %s\n", esp_err_to_name(err));
+    break;
+  }
+
+  return err;
+}
+
+esp_err_t erase_nvs_key(const char *namespace, const char *key) {
+  open_nvs_namespace(namespace);
+
+  esp_err_t err = nvs_erase_key(handle, key);
+
+  switch (err) {
+  case ESP_OK:
+    printf("Erased key from NVS: %s\n", key);
+    break;
+  case ESP_ERR_NVS_NOT_FOUND:
+    printf("Key not found in NVS: %s\n", key);
+    break;
+  default:
+    printf("Error erasing key from NVS: %s\n", esp_err_to_name(err));
     break;
   }
 

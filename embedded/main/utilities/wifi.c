@@ -1,3 +1,4 @@
+#include "utilities/wifi.h"
 #include "esp_event_base.h"
 #include "esp_log.h"
 #include "esp_wifi.h"

@@ -1,11 +1,11 @@
 #include "freertos/idf_additions.h"
-#include "h_console.h"
-#include "h_nvs.h"
-#include "h_wifi.h"
 #include "p_read_device_stream.h"
 #include "s_app_credentials.h"
 #include "s_device.h"
 #include "s_wifi_credentials.h"
+#include "utilities/console.h"
+#include "utilities/nvs.h"
+#include "utilities/wifi.h"
 
 void app_main(void) {
   initialize_nvs();
