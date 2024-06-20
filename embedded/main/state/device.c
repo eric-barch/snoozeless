@@ -37,4 +37,4 @@ esp_err_t initialize_device_state(void) {
   return err;
 };
 
-const char *get_device_id(void) { return device.id; }
+char *get_device_id(void) { return device.id; }

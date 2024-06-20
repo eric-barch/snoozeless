@@ -1,5 +1,5 @@
-#ifndef WIFI_UTILITY
-#define WIFI_UTILITY
+#ifndef WIFI_UTILITY_H
+#define WIFI_UTILITY_H
 
 #include "esp_err.h"
 
