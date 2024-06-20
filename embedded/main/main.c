@@ -12,13 +12,13 @@ void app_main(void) {
   initialize_console();
 
   initialize_wifi_credentials();
+  connect_to_wifi();
+
   initialize_app_credentials();
   initialize_device_state();
 
   close_nvs();
   close_console();
-
-  connect_to_wifi();
 
   xTaskCreate(&read_device_stream, "read_device_stream", 4096, NULL, 5, NULL);
 }
