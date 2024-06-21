@@ -33,11 +33,11 @@ esp_err_t initialize_device_state(void) {
   return err;
 };
 
-esp_err_t set_device_id(const char *device_id) {
-  strncpy(device.id, device_id, MAX_ID_LENGTH);
+esp_err_t set_device_id(const char *id) {
+  strncpy(device.id, id, MAX_ID_LENGTH);
   device.id[MAX_ID_LENGTH - 1] = '\0';
 
-  esp_err_t err = set_nvs_str("device", "id", device_id);
+  esp_err_t err = set_nvs_str("device", "id", id);
   return err;
 }
 
