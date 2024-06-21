@@ -7,13 +7,16 @@
 #include "esp_tls.h"
 #include "state/app_credentials.h"
 #include "state/device_state.h"
+#include "utilities/wifi.h"
 #include <string.h>
 #include <sys/param.h>
 
 static const char *TAG = "controllers/post_device_register";
 
-static esp_err_t parse_response(const char *json_response, device_t *device) {
-  cJSON *json = cJSON_Parse(json_response);
+#define PATH "/device/register"
+
+static esp_err_t parse_response(const char *response) {
+  cJSON *json = cJSON_Parse(response);
   if (json == NULL) {
     ESP_LOGE(TAG, "Failed to parse JSON response.");
     return ESP_FAIL;
@@ -34,8 +37,7 @@ static esp_err_t parse_response(const char *json_response, device_t *device) {
 
   cJSON *id_item = cJSON_GetObjectItem(item, "id");
   if (cJSON_IsString(id_item) && (id_item->valuestring != NULL)) {
-    strncpy(device->id, id_item->valuestring, MAX_ID_LENGTH - 1);
-    device->id[MAX_ID_LENGTH - 1] = '\0';
+    set_device_id(id_item->valuestring);
   } else {
     ESP_LOGE(TAG, "Failed to extract 'id' from JSON response.");
     cJSON_Delete(json);
@@ -45,42 +47,36 @@ static esp_err_t parse_response(const char *json_response, device_t *device) {
   cJSON *time_format_item = cJSON_GetObjectItem(item, "time_format");
   if (cJSON_IsString(time_format_item) &&
       (time_format_item->valuestring != NULL)) {
-    strncpy(device->time_format, time_format_item->valuestring,
-            MAX_TIME_FORMAT_LENGTH - 1);
-    device->time_format[MAX_TIME_FORMAT_LENGTH - 1] = '\0';
+    set_device_time_format(time_format_item->valuestring);
   } else {
     ESP_LOGE(TAG, "Failed to extract 'time_format' from JSON response.");
     cJSON_Delete(json);
     return ESP_FAIL;
   }
 
-  cJSON *utc_offset_item = cJSON_GetObjectItem(item, "utc_offset");
-  if (cJSON_IsNumber(utc_offset_item)) {
-    device->utc_offset = utc_offset_item->valueint;
-  } else {
-    ESP_LOGE(TAG, "Failed to extract 'utc_offset' from JSON response.");
-    cJSON_Delete(json);
-    return ESP_FAIL;
-  }
-
-  cJSON *brightness_item = cJSON_GetObjectItem(item, "brightness");
-  if (cJSON_IsNumber(brightness_item)) {
-    device->brightness = brightness_item->valueint;
-  } else {
-    ESP_LOGE(TAG, "Failed to extract 'brightness' from JSON response.");
-    cJSON_Delete(json);
-    return ESP_FAIL;
-  }
+  // cJSON *utc_offset_item = cJSON_GetObjectItem(item, "utc_offset");
+  // if (cJSON_IsNumber(utc_offset_item)) {
+  //   device->utc_offset = utc_offset_item->valueint;
+  // } else {
+  //   ESP_LOGE(TAG, "Failed to extract 'utc_offset' from JSON response.");
+  //   cJSON_Delete(json);
+  //   return ESP_FAIL;
+  // }
+  //
+  // cJSON *brightness_item = cJSON_GetObjectItem(item, "brightness");
+  // if (cJSON_IsNumber(brightness_item)) {
+  //   device->brightness = brightness_item->valueint;
+  // } else {
+  //   ESP_LOGE(TAG, "Failed to extract 'brightness' from JSON response.");
+  //   cJSON_Delete(json);
+  //   return ESP_FAIL;
+  // }
 
   cJSON_Delete(json);
   return ESP_OK;
 }
 
-esp_err_t post_device_register_event_handler(esp_http_client_event_t *event) {
-  static device_t *device = NULL;
-  if (event->user_data) {
-    device = (device_t *)event->user_data;
-  }
+static esp_err_t event_handler(esp_http_client_event_t *event) {
   static char *output_buffer;
   static int output_len;
 
@@ -124,7 +120,7 @@ esp_err_t post_device_register_event_handler(esp_http_client_event_t *event) {
     if (output_len > 0) {
       ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_len);
 
-      esp_err_t err = parse_response(output_buffer, device);
+      esp_err_t err = parse_response(output_buffer);
       if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to parse device info.");
       }
@@ -173,8 +169,8 @@ esp_err_t post_device_register(device_t *device) {
       .transport_type = HTTP_TRANSPORT_OVER_SSL,
       .host = CONFIG_HOST,
       .port = port,
-      .path = "/device/register",
-      .event_handler = post_device_register_event_handler,
+      .path = PATH,
+      .event_handler = event_handler,
       .crt_bundle_attach = esp_crt_bundle_attach,
       .buffer_size = MAX_HTTP_RX_BUFFER,
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
@@ -208,6 +204,8 @@ esp_err_t post_device_register(device_t *device) {
   }
 
   free(auth_header);
+
+  esp_http_client_close(client);
   esp_http_client_cleanup(client);
 
   return err;
