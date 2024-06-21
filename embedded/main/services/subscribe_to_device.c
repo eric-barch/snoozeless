@@ -1,7 +1,7 @@
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
 #include "get_device_state.h"
-#include "state/device.h"
+#include "state/device_state.h"
 #include <stdio.h>
 #include <stdlib.h>
 

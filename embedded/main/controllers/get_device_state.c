@@ -1,6 +1,5 @@
 #include "controllers/get_device_state.h"
 #include "cJSON.h"
-#include "device.h"
 #include "esp_crt_bundle.h"
 #include "esp_err.h"
 #include "esp_http_client.h"

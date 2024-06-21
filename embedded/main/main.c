@@ -1,7 +1,7 @@
 #include "freertos/idf_additions.h"
 #include "services/subscribe_to_device.h"
 #include "state/app_credentials.h"
-#include "state/device.h"
+#include "state/device_state.h"
 #include "state/wifi_credentials.h"
 #include "utilities/console.h"
 #include "utilities/nvs.h"

@@ -2,7 +2,7 @@
 #define REGISTER_DEVICE_H
 
 #include "esp_err.h"
-#include "state/device.h"
+#include "state/device_state.h"
 
 esp_err_t register_device(device_t *device);
 

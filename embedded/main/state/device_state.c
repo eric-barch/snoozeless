@@ -1,4 +1,4 @@
-#include "state/device.h"
+#include "state/device_state.h"
 #include "esp_err.h"
 #include "services/register_device.h"
 #include "utilities/nvs.h"
@@ -15,7 +15,7 @@ esp_err_t initialize_device_state(void) {
       return err;
     }
 
-    err = set_nvs_str("device", "id", device.id);
+    err = set_device_id(device.id);
     if (err != ESP_OK) {
       return err;
     }
@@ -24,10 +24,7 @@ esp_err_t initialize_device_state(void) {
   err = get_nvs_str("device", "time_format", device.time_format,
                     MAX_TIME_FORMAT_LENGTH);
   if (err != ESP_OK) {
-    err = set_nvs_str("device", "time_format", device.time_format);
-    if (err != ESP_OK) {
-      return err;
-    }
+    err = set_device_time_format(device.time_format);
   }
 
   return err;

@@ -6,7 +6,7 @@
 #include "esp_log.h"
 #include "esp_tls.h"
 #include "state/app_credentials.h"
-#include "state/device.h"
+#include "state/device_state.h"
 #include <string.h>
 #include <sys/param.h>
 
