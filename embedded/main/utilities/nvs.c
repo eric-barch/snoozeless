@@ -1,4 +1,5 @@
 #include "utilities/nvs.h"
+#include "esp_err.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 

@@ -1,4 +1,6 @@
 #include "controllers/get_device_state.h"
+#include "cJSON.h"
+#include "device.h"
 #include "esp_crt_bundle.h"
 #include "esp_err.h"
 #include "esp_http_client.h"
@@ -9,6 +11,63 @@
 #include <sys/param.h>
 
 static const char *TAG = "controllers/get_device_state";
+
+static esp_err_t parse_response(const char *response) {
+  if (strstr(response, "event: device-state-update") == NULL) {
+    ESP_LOGE(TAG, "Unexpected event type in response.");
+    return ESP_FAIL;
+  }
+
+  const char *data_field = strstr(response, "data: ");
+  if (data_field == NULL) {
+    ESP_LOGE(TAG, "No data field found in response.");
+    return ESP_FAIL;
+  }
+
+  data_field += strlen("data: ");
+
+  cJSON *json = cJSON_Parse(data_field);
+  if (json == NULL) {
+    ESP_LOGE(TAG, "Failed to parse JSON data.");
+    return ESP_FAIL;
+  }
+
+  if (!cJSON_IsObject(json)) {
+    ESP_LOGE(TAG, "JSON data is not an object.");
+    cJSON_Delete(json);
+    return ESP_FAIL;
+  }
+
+  cJSON *new_object = cJSON_GetObjectItem(json, "new");
+  if (!cJSON_IsObject(new_object)) {
+    ESP_LOGE(TAG, "Failed to find 'new' object in JSON data.");
+    cJSON_Delete(json);
+    return ESP_FAIL;
+  }
+
+  cJSON *id_item = cJSON_GetObjectItem(new_object, "id");
+  if (cJSON_IsString(id_item) && (id_item->valuestring != NULL)) {
+    set_device_id(id_item->valuestring);
+  } else {
+    ESP_LOGE(TAG, "Failed to extract 'id' from 'new' object in JSON data.");
+    cJSON_Delete(json);
+    return ESP_FAIL;
+  }
+
+  cJSON *time_format_item = cJSON_GetObjectItem(new_object, "time_format");
+  if (cJSON_IsString(time_format_item) &&
+      (time_format_item->valuestring != NULL)) {
+    set_device_time_format(time_format_item->valuestring);
+  } else {
+    ESP_LOGE(TAG,
+             "Failed to extract 'time_format' from 'new' object in JSON data.");
+    cJSON_Delete(json);
+    return ESP_FAIL;
+  }
+
+  cJSON_Delete(json);
+  return ESP_OK;
+}
 
 esp_err_t get_device_state_event_handler(esp_http_client_event_t *event) {
   static char *output_buffer;
@@ -52,8 +111,12 @@ esp_err_t get_device_state_event_handler(esp_http_client_event_t *event) {
     }
 
     if (output_len > 0) {
-      /**TODO: Replace log with call to parse JSON and save state. */
       ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_len);
+
+      if (strncmp(output_buffer, "data: keep-alive", output_len) != 0) {
+        parse_response(output_buffer);
+      }
+
       memset(output_buffer, 0, MAX_HTTP_TX_BUFFER);
       output_len = 0;
       output_buffer[output_len] = (char){0};
@@ -91,7 +154,7 @@ esp_err_t get_device_state_event_handler(esp_http_client_event_t *event) {
   return ESP_OK;
 }
 
-esp_err_t get_device_state(const char *deviceId) {
+esp_err_t get_device_state(char *deviceId) {
   size_t query_len = strlen("deviceId=") + strlen(deviceId) + 1;
   char *query = malloc(query_len);
   if (query == NULL) {
@@ -115,6 +178,7 @@ esp_err_t get_device_state(const char *deviceId) {
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
       .is_async = true,
       .timeout_ms = 300000,
+      .user_data = deviceId,
   };
 
   esp_http_client_handle_t client = esp_http_client_init(&config);

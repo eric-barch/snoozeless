@@ -49,7 +49,7 @@ static bool is_valid_time_format(const char *time_format) {
 }
 
 esp_err_t set_device_time_format(char *time_format) {
-  if (is_valid_time_format(time_format)) {
+  if (!is_valid_time_format(time_format)) {
     return ESP_FAIL;
   }
 

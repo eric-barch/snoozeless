@@ -11,6 +11,6 @@
 #define MAX_HTTP_TX_BUFFER 1024
 #endif
 
-esp_err_t get_device_state(const char *deviceId);
+esp_err_t get_device_state(char *deviceId);
 
 #endif
