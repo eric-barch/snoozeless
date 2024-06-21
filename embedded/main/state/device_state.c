@@ -1,6 +1,6 @@
 #include "state/device_state.h"
 #include "esp_err.h"
-#include "services/register_device.h"
+#include "services/device.h"
 #include "utilities/nvs.h"
 #include <stdbool.h>
 #include <string.h>

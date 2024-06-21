@@ -1,5 +1,5 @@
 #include "freertos/idf_additions.h"
-#include "services/subscribe_to_device.h"
+#include "services/device.h"
 #include "state/app_credentials.h"
 #include "state/device_state.h"
 #include "state/wifi_credentials.h"
@@ -20,5 +20,6 @@ void app_main(void) {
   close_nvs();
   close_console();
 
-  xTaskCreate(&subscribe_to_device, "subscribe_to_device", 4096, NULL, 5, NULL);
+  xTaskCreate(&subscribe_to_device_state, "subscribe_to_device", 4096, NULL, 5,
+              NULL);
 }
