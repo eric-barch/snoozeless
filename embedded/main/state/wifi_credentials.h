@@ -5,7 +5,11 @@
 
 esp_err_t initialize_wifi_credentials(void);
 
+esp_err_t set_wifi_ssid(const char *ssid);
+
 const char *get_wifi_ssid(void);
+
+esp_err_t set_wifi_password(const char *password);
 
 const char *get_wifi_password(void);
 

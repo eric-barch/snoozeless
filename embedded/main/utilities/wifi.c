@@ -13,7 +13,7 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
-static char *TAG = "wifi_helpers";
+static char *TAG = "utilities/wifi";
 
 static EventGroupHandle_t s_wifi_event_group;
 

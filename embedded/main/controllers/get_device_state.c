@@ -8,6 +8,8 @@
 #include "esp_tls.h"
 #include "sdkconfig.h"
 #include "state/app_credentials.h"
+#include "state/device_state.h"
+#include "utilities/wifi.h"
 #include <sys/param.h>
 
 static const char *TAG = "controllers/get_device_state";
