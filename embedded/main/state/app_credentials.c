@@ -16,12 +16,8 @@ typedef struct {
 static app_credentials_t app_credentials;
 
 esp_err_t initialize_app_credentials(void) {
-  esp_err_t err = open_nvs_namespace("app_cred");
-  if (err != ESP_OK) {
-    return err;
-  }
-
-  err = get_nvs_str("api_key", app_credentials.api_key, MAX_API_KEY_LENGTH);
+  esp_err_t err = get_nvs_str("app_cred", "api_key", app_credentials.api_key,
+                              MAX_API_KEY_LENGTH);
   if (err != ESP_OK) {
     err = get_console_str("Enter API key: ", app_credentials.api_key,
                           MAX_API_KEY_LENGTH);
@@ -29,13 +25,13 @@ esp_err_t initialize_app_credentials(void) {
       return err;
     }
 
-    err = set_nvs_str("api_key", app_credentials.api_key);
+    err = set_nvs_str("app_cred", "api_key", app_credentials.api_key);
     if (err != ESP_OK) {
       return err;
     }
   }
 
-  err = get_nvs_str("auth_token", app_credentials.auth_token,
+  err = get_nvs_str("app_cred", "auth_token", app_credentials.auth_token,
                     MAX_AUTH_TOKEN_LENGTH);
   if (err != ESP_OK) {
     err = get_console_str("Enter Authorization Bearer token: ",
@@ -44,13 +40,13 @@ esp_err_t initialize_app_credentials(void) {
       return err;
     }
 
-    err = set_nvs_str("auth_token", app_credentials.auth_token);
+    err = set_nvs_str("app_cred", "auth_token", app_credentials.auth_token);
     if (err != ESP_OK) {
       return err;
     }
   }
 
-  err = get_nvs_str("refresh_token", app_credentials.refresh_token,
+  err = get_nvs_str("app_cred", "refresh_token", app_credentials.refresh_token,
                     MAX_REFRESH_TOKEN_LENGTH);
   if (err != ESP_OK) {
     err =
@@ -60,7 +56,8 @@ esp_err_t initialize_app_credentials(void) {
       return err;
     }
 
-    err = set_nvs_str("refresh_token", app_credentials.refresh_token);
+    err =
+        set_nvs_str("app_cred", "refresh_token", app_credentials.refresh_token);
     if (err != ESP_OK) {
       return err;
     }

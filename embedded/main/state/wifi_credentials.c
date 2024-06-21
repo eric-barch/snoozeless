@@ -14,12 +14,8 @@ typedef struct {
 static wifi_credentials_t wifi_credentials;
 
 esp_err_t initialize_wifi_credentials(void) {
-  esp_err_t err = open_nvs_namespace("wifi_cred");
-  if (err != ESP_OK) {
-    return err;
-  }
-
-  err = get_nvs_str("ssid", wifi_credentials.ssid, WIFI_MAX_SSID_LENGTH);
+  esp_err_t err = get_nvs_str("wifi_cred", "ssid", wifi_credentials.ssid,
+                              WIFI_MAX_SSID_LENGTH);
   if (err != ESP_OK) {
     err = get_console_str("Enter WiFi SSID: ", wifi_credentials.ssid,
                           WIFI_MAX_SSID_LENGTH);
@@ -27,13 +23,13 @@ esp_err_t initialize_wifi_credentials(void) {
       return err;
     }
 
-    err = set_nvs_str("ssid", wifi_credentials.ssid);
+    err = set_nvs_str("wifi_cred", "ssid", wifi_credentials.ssid);
     if (err != ESP_OK) {
       return err;
     }
   }
 
-  err = get_nvs_str("password", wifi_credentials.password,
+  err = get_nvs_str("wifi_cred", "password", wifi_credentials.password,
                     WIFI_MAX_PASSWORD_LENGTH);
   if (err != ESP_OK) {
     err = get_console_str("Enter WiFi password: ", wifi_credentials.password,
@@ -42,7 +38,7 @@ esp_err_t initialize_wifi_credentials(void) {
       return err;
     }
 
-    err = set_nvs_str("password", wifi_credentials.password);
+    err = set_nvs_str("wifi_cred", "password", wifi_credentials.password);
     if (err != ESP_OK) {
       return err;
     }

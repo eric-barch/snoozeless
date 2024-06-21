@@ -36,23 +36,14 @@ esp_err_t initialize_nvs(void) {
   return err;
 }
 
-esp_err_t open_nvs_namespace(const char *namespace) {
+esp_err_t get_nvs_str(const char *namespace, const char *key, char *out_value,
+                      size_t max_length) {
   esp_err_t err = nvs_open(namespace, NVS_READWRITE, &handle);
-
-  switch (err) {
-  case ESP_OK:
-    printf("Opened NVS namespace: %s\n", namespace);
-    break;
-  default:
-    printf("Error opening NVS namespace: %s\n", esp_err_to_name(err));
-    break;
+  if (err != ESP_OK) {
+    return err;
   }
 
-  return err;
-}
-
-esp_err_t get_nvs_str(const char *key, char *out_value, size_t max_length) {
-  esp_err_t err = nvs_get_str(handle, key, out_value, &max_length);
+  err = nvs_get_str(handle, key, out_value, &max_length);
 
   switch (err) {
   case ESP_OK:
@@ -69,8 +60,14 @@ esp_err_t get_nvs_str(const char *key, char *out_value, size_t max_length) {
   return err;
 }
 
-esp_err_t set_nvs_str(const char *key, const char *in_value) {
-  esp_err_t err = nvs_set_str(handle, key, in_value);
+esp_err_t set_nvs_str(const char *namespace, const char *key,
+                      const char *in_value) {
+  esp_err_t err = nvs_open(namespace, NVS_READWRITE, &handle);
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = nvs_set_str(handle, key, in_value);
 
   if (err == ESP_OK) {
     err = nvs_commit(handle);
@@ -92,9 +89,12 @@ esp_err_t set_nvs_str(const char *key, const char *in_value) {
 }
 
 esp_err_t erase_nvs_key(const char *namespace, const char *key) {
-  open_nvs_namespace(namespace);
+  esp_err_t err = nvs_open(namespace, NVS_READWRITE, &handle);
+  if (err != ESP_OK) {
+    return err;
+  }
 
-  esp_err_t err = nvs_erase_key(handle, key);
+  err = nvs_erase_key(handle, key);
 
   switch (err) {
   case ESP_OK:
