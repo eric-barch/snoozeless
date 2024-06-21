@@ -125,7 +125,6 @@ esp_err_t post_device_register_event_handler(esp_http_client_event_t *event) {
       ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_len);
 
       esp_err_t err = parse_response(output_buffer, device);
-
       if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to parse device info.");
       }
