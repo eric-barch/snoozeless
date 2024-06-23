@@ -40,6 +40,15 @@ esp_err_t set_device_id(const char *id) {
 
 char *get_device_id(void) { return device.id; }
 
+esp_err_t set_device_utc_offset(int utc_offset) {
+  device.utc_offset = utc_offset;
+
+  esp_err_t err = set_nvs_int("device", "utc_offset", utc_offset);
+  return err;
+}
+
+int get_device_utc_offset(void) { return device.utc_offset; }
+
 static bool is_valid_time_format(const char *time_format) {
   return (strcmp(time_format, "HH:MM") == 0 ||
           strcmp(time_format, "HH:MM XM") == 0);
@@ -58,3 +67,12 @@ esp_err_t set_device_time_format(char *time_format) {
 }
 
 char *get_device_time_format(void) { return device.time_format; }
+
+esp_err_t set_device_brightness(int brightness) {
+  device.brightness = brightness;
+
+  esp_err_t err = set_nvs_int("device", "brightness", brightness);
+  return err;
+}
+
+int get_device_brightness(void) { return device.brightness; }

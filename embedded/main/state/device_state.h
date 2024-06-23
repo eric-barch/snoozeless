@@ -19,8 +19,16 @@ esp_err_t set_device_id(const char *device_id);
 
 char *get_device_id(void);
 
+esp_err_t set_device_utc_offset(int utc_offset);
+
+int get_device_utc_offset(void);
+
 esp_err_t set_device_time_format(char *time_format);
 
 char *get_device_time_format(void);
+
+esp_err_t set_device_brightness(int brightness);
+
+int get_device_brightness(void);
 
 #endif
