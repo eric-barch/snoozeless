@@ -21,10 +21,35 @@ esp_err_t initialize_device_state(void) {
     }
   }
 
+  err = get_nvs_int("device", "utc_offset", &device.utc_offset);
+  if (err != ESP_OK) {
+    /**If this fails, we have already called `register_device` above, so the
+     * utc_offset is stored in the volatile device struct. We still call
+     * `set_device_utc_offset` to register the utc_offset in non-volatile
+     * storage for persistence across reboots. */
+    err = set_device_utc_offset(device.utc_offset);
+    if (err != ESP_OK) {
+      return err;
+    }
+  }
+
   err = get_nvs_str("device", "time_format", device.time_format,
                     MAX_TIME_FORMAT_LENGTH);
   if (err != ESP_OK) {
+    /**Same as above. */
     err = set_device_time_format(device.time_format);
+    if (err != ESP_OK) {
+      return err;
+    }
+  }
+
+  err = get_nvs_int("device", "brightness", &device.brightness);
+  if (err != ESP_OK) {
+    /**Same as above. */
+    err = set_device_utc_offset(device.brightness);
+    if (err != ESP_OK) {
+      return err;
+    }
   }
 
   return err;
