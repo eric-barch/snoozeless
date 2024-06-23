@@ -55,6 +55,17 @@ static esp_err_t parse_response(const char *response) {
     return ESP_FAIL;
   }
 
+  cJSON *utc_offset_item = cJSON_GetObjectItem(new_object, "utc_offset");
+  if (cJSON_IsNumber(utc_offset_item)) {
+    set_device_utc_offset(utc_offset_item->valueint);
+  } else {
+    ESP_LOGE(
+        TAG,
+        "Failed to extract 'utc_offset_item' from 'new' object in JSON data.");
+    cJSON_Delete(json);
+    return ESP_FAIL;
+  }
+
   cJSON *time_format_item = cJSON_GetObjectItem(new_object, "time_format");
   if (cJSON_IsString(time_format_item) &&
       (time_format_item->valuestring != NULL)) {
@@ -62,6 +73,17 @@ static esp_err_t parse_response(const char *response) {
   } else {
     ESP_LOGE(TAG,
              "Failed to extract 'time_format' from 'new' object in JSON data.");
+    cJSON_Delete(json);
+    return ESP_FAIL;
+  }
+
+  cJSON *brightness_item = cJSON_GetObjectItem(new_object, "brightness");
+  if (cJSON_IsNumber(brightness_item)) {
+    set_device_brightness(brightness_item->valueint);
+  } else {
+    ESP_LOGE(
+        TAG,
+        "Failed to extract 'brightness_item' from 'new' object in JSON data.");
     cJSON_Delete(json);
     return ESP_FAIL;
   }
