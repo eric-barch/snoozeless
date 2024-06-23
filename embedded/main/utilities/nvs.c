@@ -89,6 +89,61 @@ esp_err_t get_nvs_str(const char *namespace, const char *key, char *out_value,
   return err;
 }
 
+esp_err_t set_nvs_int(const char *namespace, const char *key, int in_value) {
+  esp_err_t err = nvs_open(namespace, NVS_READWRITE, &handle);
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  err = nvs_set_i32(handle, key, (int32_t)in_value);
+
+  if (err == ESP_OK) {
+    err = nvs_commit(handle);
+  }
+
+  switch (err) {
+  case ESP_OK:
+    printf("Set integer %s in NVS: %d\n", key, in_value);
+    break;
+  case ESP_ERR_NVS_NOT_FOUND:
+    printf("Key not found in NVS: %s\n", key);
+    break;
+  default:
+    printf("Error setting integer in NVS: %s\n", esp_err_to_name(err));
+    break;
+  }
+
+  return err;
+}
+
+esp_err_t get_nvs_int(const char *namespace, const char *key, int *out_value) {
+  nvs_handle_t handle;
+  esp_err_t err = nvs_open(namespace, NVS_READWRITE, &handle);
+  if (err != ESP_OK) {
+    return err;
+  }
+
+  int32_t temp_value;
+  err = nvs_get_i32(handle, key, &temp_value);
+
+  if (err == ESP_OK) {
+    *out_value = (int)temp_value;
+    printf("Got integer %s from NVS: %d\n", key, *out_value);
+  } else {
+    switch (err) {
+    case ESP_ERR_NVS_NOT_FOUND:
+      printf("Key not found in NVS: %s\n", key);
+      break;
+    default:
+      printf("Error getting integer from NVS: %s\n", esp_err_to_name(err));
+      break;
+    }
+  }
+
+  nvs_close(handle);
+  return err;
+}
+
 esp_err_t erase_nvs_key(const char *namespace, const char *key) {
   esp_err_t err = nvs_open(namespace, NVS_READWRITE, &handle);
   if (err != ESP_OK) {
