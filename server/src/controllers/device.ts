@@ -42,8 +42,8 @@ export const getDeviceStateController = async (
     });
 
     while (isStreaming) {
-      await stream.writeSSE({ data: "keep-alive" });
       await stream.sleep(60000);
+      await stream.writeSSE({ data: "keep-alive" });
     }
   });
 

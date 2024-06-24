@@ -57,9 +57,27 @@ export const getDeviceStateService = async (
         });
       },
     )
-    .subscribe((status, error) => {
+    .subscribe(async (status, error) => {
       if (status === "SUBSCRIBED") {
         console.log("Successfully subscribed to device state updates.");
+
+        const { data, error } = await supabaseClient
+          .from("devices")
+          .select("*")
+          .eq("id", deviceId)
+          .single();
+
+        if (error) {
+          await stream.writeSSE({
+            event: "device-state-error",
+            data: JSON.stringify(error),
+          });
+        } else {
+          await stream.writeSSE({
+            event: "device-state",
+            data: JSON.stringify(data),
+          });
+        }
       } else if (status === "CHANNEL_ERROR") {
         console.error("Channel error:", error);
       } else {

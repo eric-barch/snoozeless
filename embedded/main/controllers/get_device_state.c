@@ -13,19 +13,46 @@
 
 static const char *TAG = "controllers/get_device_state";
 
+typedef enum {
+  EVENT_TYPE_DEVICE_STATE,
+  EVENT_TYPE_DEVICE_STATE_UPDATE,
+} event_type_t;
+
+static event_type_t get_event_type(const char *event_type_str) {
+  if (strcmp(event_type_str, "device-state") == 0) {
+    return EVENT_TYPE_DEVICE_STATE;
+  } else if (strcmp(event_type_str, "device-state-update") == 0) {
+    return EVENT_TYPE_DEVICE_STATE_UPDATE;
+  }
+}
+
 static esp_err_t parse_response(const char *response) {
-  if (strstr(response, "event: device-state-update") == NULL) {
-    ESP_LOGE(TAG, "Unexpected event type in response.");
+  const char *event_field = strstr(response, "event: ");
+  if (event_field == NULL) {
+    ESP_LOGE(TAG, "No event field found in response.");
+    return ESP_FAIL;
+  }
+  event_field += strlen("event: ");
+
+  const char *newline = strchr(event_field, '\n');
+  if (newline == NULL) {
+    ESP_LOGE(TAG, "Malformed event field.");
     return ESP_FAIL;
   }
 
-  const char *data_field = strstr(response, "data: ");
+  size_t event_type_length = newline - event_field;
+  char event_type_str[event_type_length + 1];
+  strncpy(event_type_str, event_field, event_type_length);
+  event_type_str[event_type_length] = '\0';
+
+  event_type_t event_type = get_event_type(event_type_str);
+
+  const char *data_field = strstr(newline, "\ndata: ");
   if (data_field == NULL) {
     ESP_LOGE(TAG, "No data field found in response.");
     return ESP_FAIL;
   }
-
-  data_field += strlen("data: ");
+  data_field += strlen("\ndata: ");
 
   cJSON *json = cJSON_Parse(data_field);
   if (json == NULL) {
@@ -39,51 +66,58 @@ static esp_err_t parse_response(const char *response) {
     return ESP_FAIL;
   }
 
-  cJSON *new_object = cJSON_GetObjectItem(json, "new");
-  if (!cJSON_IsObject(new_object)) {
-    ESP_LOGE(TAG, "Failed to find 'new' object in JSON data.");
+  cJSON *data_object;
+  switch (event_type) {
+  case EVENT_TYPE_DEVICE_STATE:
+    data_object = json;
+    break;
+  case EVENT_TYPE_DEVICE_STATE_UPDATE:
+    data_object = cJSON_GetObjectItem(json, "new");
+    if (!cJSON_IsObject(data_object)) {
+      ESP_LOGE(TAG, "Failed to find 'new' object in JSON data.");
+      cJSON_Delete(json);
+      return ESP_FAIL;
+    }
+    break;
+  default:
+    ESP_LOGE(TAG, "Unknown event type.");
     cJSON_Delete(json);
     return ESP_FAIL;
   }
 
-  cJSON *id_item = cJSON_GetObjectItem(new_object, "id");
+  cJSON *id_item = cJSON_GetObjectItem(data_object, "id");
   if (cJSON_IsString(id_item) && (id_item->valuestring != NULL)) {
     set_device_id(id_item->valuestring);
   } else {
-    ESP_LOGE(TAG, "Failed to extract 'id' from 'new' object in JSON data.");
+    ESP_LOGE(TAG, "Failed to extract 'id' from JSON data.");
     cJSON_Delete(json);
     return ESP_FAIL;
   }
 
-  cJSON *utc_offset_item = cJSON_GetObjectItem(new_object, "utc_offset");
+  cJSON *utc_offset_item = cJSON_GetObjectItem(data_object, "utc_offset");
   if (cJSON_IsNumber(utc_offset_item)) {
     set_device_utc_offset(utc_offset_item->valueint);
   } else {
-    ESP_LOGE(
-        TAG,
-        "Failed to extract 'utc_offset_item' from 'new' object in JSON data.");
+    ESP_LOGE(TAG, "Failed to extract 'utc_offset' from JSON data.");
     cJSON_Delete(json);
     return ESP_FAIL;
   }
 
-  cJSON *time_format_item = cJSON_GetObjectItem(new_object, "time_format");
+  cJSON *time_format_item = cJSON_GetObjectItem(data_object, "time_format");
   if (cJSON_IsString(time_format_item) &&
       (time_format_item->valuestring != NULL)) {
     set_device_time_format(time_format_item->valuestring);
   } else {
-    ESP_LOGE(TAG,
-             "Failed to extract 'time_format' from 'new' object in JSON data.");
+    ESP_LOGE(TAG, "Failed to extract 'time_format' from JSON data.");
     cJSON_Delete(json);
     return ESP_FAIL;
   }
 
-  cJSON *brightness_item = cJSON_GetObjectItem(new_object, "brightness");
+  cJSON *brightness_item = cJSON_GetObjectItem(data_object, "brightness");
   if (cJSON_IsNumber(brightness_item)) {
     set_device_brightness(brightness_item->valueint);
   } else {
-    ESP_LOGE(
-        TAG,
-        "Failed to extract 'brightness_item' from 'new' object in JSON data.");
+    ESP_LOGE(TAG, "Failed to extract 'brightness' from JSON data.");
     cJSON_Delete(json);
     return ESP_FAIL;
   }
