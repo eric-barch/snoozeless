@@ -129,9 +129,10 @@ static esp_err_t parse_response(const char *response) {
   return ESP_OK;
 }
 
-esp_err_t get_device_state_event_handler(esp_http_client_event_t *event) {
+static esp_err_t
+get_device_state_event_handler(esp_http_client_event_t *event) {
   static char *output_buffer;
-  static int output_len;
+  static int output_length;
 
   switch (event->event_id) {
   case HTTP_EVENT_ERROR:
@@ -157,40 +158,40 @@ esp_err_t get_device_state_event_handler(esp_http_client_event_t *event) {
       }
     }
 
-    int copy_len = MIN(event->data_len, (MAX_HTTP_TX_BUFFER - output_len));
-    if (copy_len) {
-      memcpy(output_buffer + output_len, event->data, copy_len);
-      output_len += copy_len;
-      output_buffer[output_len] = (char){0};
+    int copy_length =
+        MIN(event->data_len, (MAX_HTTP_TX_BUFFER - output_length));
+    if (copy_length) {
+      memcpy(output_buffer + output_length, event->data, copy_length);
+      output_length += copy_length;
+      output_buffer[output_length] = (char){0};
     }
 
-    if (output_len >= 2 &&
-        strcmp(&output_buffer[output_len - 2], "\n\n") == 0) {
-      output_len -= 2;
-      output_buffer[output_len] = (char){0};
+    if (output_length >= 2 &&
+        strcmp(&output_buffer[output_length - 2], "\n\n") == 0) {
+      output_length -= 2;
+      output_buffer[output_length] = (char){0};
     }
 
-    if (output_len > 0) {
-      ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_len);
+    if (output_length > 0) {
+      ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_length);
 
-      if (strncmp(output_buffer, "data: keep-alive", output_len) != 0) {
+      if (strncmp(output_buffer, "data: keep-alive", output_length) != 0) {
         parse_response(output_buffer);
       }
 
       memset(output_buffer, 0, MAX_HTTP_TX_BUFFER);
-      output_len = 0;
-      output_buffer[output_len] = (char){0};
+      output_length = 0;
+      output_buffer[output_length] = (char){0};
     }
-
     break;
   case HTTP_EVENT_ON_FINISH:
     ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
     if (output_buffer != NULL) {
-      ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_len);
+      ESP_LOG_BUFFER_CHAR(TAG, output_buffer, output_length);
       free(output_buffer);
       output_buffer = NULL;
     }
-    output_len = 0;
+    output_length = 0;
     break;
   case HTTP_EVENT_DISCONNECTED:
     ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
@@ -205,24 +206,25 @@ esp_err_t get_device_state_event_handler(esp_http_client_event_t *event) {
       free(output_buffer);
       output_buffer = NULL;
     }
-    output_len = 0;
+    output_length = 0;
     break;
   case HTTP_EVENT_REDIRECT:
     ESP_LOGD(TAG, "HTTP_EVENT_REDIRECT");
     break;
   }
+
   return ESP_OK;
 }
 
 esp_err_t get_device_state(char *deviceId) {
-  size_t query_len = strlen("deviceId=") + strlen(deviceId) + 1;
-  char *query = malloc(query_len);
+  size_t query_length = strlen("deviceId=") + strlen(deviceId) + 1;
+  char *query = malloc(query_length);
   if (query == NULL) {
     ESP_LOGE(TAG, "Failed to allocate memory for query.");
     vTaskDelete(NULL);
     return ESP_FAIL;
   }
-  snprintf(query, query_len, "deviceId=%s", deviceId);
+  snprintf(query, query_length, "deviceId=%s", deviceId);
 
   int port = atoi(CONFIG_PORT);
 
