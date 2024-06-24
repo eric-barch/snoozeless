@@ -238,7 +238,6 @@ esp_err_t get_device_state(char *deviceId) {
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
       .is_async = true,
       .timeout_ms = 300000,
-      .user_data = deviceId,
   };
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
