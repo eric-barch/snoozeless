@@ -16,6 +16,7 @@ static const char *TAG = "controllers/get_device_state";
 typedef enum {
   EVENT_TYPE_DEVICE_STATE,
   EVENT_TYPE_DEVICE_STATE_UPDATE,
+  EVENT_TYPE_UNKNOWN,
 } event_type_t;
 
 static event_type_t get_event_type(const char *event_type_str) {
@@ -23,6 +24,8 @@ static event_type_t get_event_type(const char *event_type_str) {
     return EVENT_TYPE_DEVICE_STATE;
   } else if (strcmp(event_type_str, "device-state-update") == 0) {
     return EVENT_TYPE_DEVICE_STATE_UPDATE;
+  } else {
+    return EVENT_TYPE_UNKNOWN;
   }
 }
 
