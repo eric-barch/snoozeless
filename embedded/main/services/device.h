@@ -3,7 +3,7 @@
 
 #include "device_state.h"
 
-esp_err_t register_device(device_t *device);
+esp_err_t register_device(device_state_t *device);
 
 void subscribe_to_device_state(void *pvParameters);
 

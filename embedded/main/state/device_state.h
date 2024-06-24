@@ -1,5 +1,5 @@
-#ifndef DEVICE_H
-#define DEVICE_H
+#ifndef DEVICE_STATE_H
+#define DEVICE_STATE_H
 
 #include "esp_err.h"
 
@@ -11,7 +11,7 @@ typedef struct {
   char time_format[MAX_TIME_FORMAT_LENGTH];
   int utc_offset;
   int brightness;
-} device_t;
+} device_state_t;
 
 esp_err_t initialize_device_state(void);
 

@@ -162,7 +162,7 @@ static esp_err_t event_handler(esp_http_client_event_t *event) {
   return ESP_OK;
 }
 
-esp_err_t post_device_register(device_t *device) {
+esp_err_t post_device_register(device_state_t *device) {
   int port = atoi(CONFIG_PORT);
 
   esp_http_client_config_t config = {

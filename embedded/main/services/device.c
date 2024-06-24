@@ -8,7 +8,7 @@
 
 static const char *TAG = "services/device";
 
-esp_err_t register_device(device_t *device) {
+esp_err_t register_device(device_state_t *device) {
   esp_err_t err = post_device_register(device);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to get post to device/register.");
