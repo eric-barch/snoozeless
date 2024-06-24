@@ -1,5 +1,5 @@
-#ifndef GET_DEVICE_STATE_H
-#define GET_DEVICE_STATE_H
+#ifndef CONTROLLERS_GET_DEVICE_STATE_H
+#define CONTROLLERS_GET_DEVICE_STATE_H
 
 #include "esp_err.h"
 

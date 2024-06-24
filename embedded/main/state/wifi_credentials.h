@@ -1,5 +1,5 @@
-#ifndef WIFI_CREDENTIALS_H
-#define WIFI_CREDENTIALS_H
+#ifndef STATE_WIFI_CREDENTIALS_H
+#define STATE_WIFI_CREDENTIALS_H
 
 #include "esp_err.h"
 

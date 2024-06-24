@@ -7,7 +7,7 @@
 #include "esp_tls.h"
 #include "sdkconfig.h"
 #include "state/app_credentials.h"
-#include "state/device_state.h"
+#include "state/device.h"
 #include "utilities/wifi.h"
 #include <sys/param.h>
 

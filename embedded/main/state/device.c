@@ -1,11 +1,11 @@
-#include "state/device_state.h"
+#include "state/device.h"
 #include "esp_err.h"
 #include "services/device.h"
 #include "utilities/nvs.h"
 #include <stdbool.h>
 #include <string.h>
 
-device_state_t device_state;
+static device_state_t device_state;
 
 esp_err_t initialize_device_state(void) {
   esp_err_t err = get_nvs_str("device", "id", device_state.id, MAX_ID_LENGTH);
@@ -79,7 +79,7 @@ static bool is_valid_time_format(const char *time_format) {
           strcmp(time_format, "HH:MM XM") == 0);
 }
 
-esp_err_t set_device_time_format(char *time_format) {
+esp_err_t set_device_time_format(const char *time_format) {
   if (!is_valid_time_format(time_format)) {
     return ESP_FAIL;
   }

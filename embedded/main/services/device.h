@@ -1,7 +1,7 @@
 #ifndef SERVICES_DEVICE_H
 #define SERVICES_DEVICE_H
 
-#include "device_state.h"
+#include "state/device.h"
 
 esp_err_t register_device(device_state_t *device);
 

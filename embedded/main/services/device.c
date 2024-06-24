@@ -1,8 +1,9 @@
+#include "services/device.h"
 #include "controllers/get_device_state.h"
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
 #include "post_device_register.h"
-#include "state/device_state.h"
+#include "state/device.h"
 #include <stdio.h>
 #include <stdlib.h>
 
