@@ -1,5 +1,6 @@
 #include "freertos/idf_additions.h"
 #include "services/device.h"
+#include "services/real_time.h"
 #include "state/app_credentials.h"
 #include "state/device.h"
 #include "state/wifi_credentials.h"
@@ -20,6 +21,7 @@ void app_main(void) {
   close_nvs();
   close_console();
 
+  xTaskCreate(&calibrate_real_time, "calibrate_real_time", 4096, NULL, 5, NULL);
   xTaskCreate(&subscribe_to_device_state, "subscribe_to_device_state", 4096,
               NULL, 5, NULL);
 }
