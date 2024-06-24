@@ -4,6 +4,7 @@
 
 void calibrate_real_time(void *pvParameters) {
   while (true) {
+    get_real_time();
     vTaskDelay(pdMS_TO_TICKS(3600000));
   }
 }
