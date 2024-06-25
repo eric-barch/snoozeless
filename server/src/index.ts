@@ -1,19 +1,21 @@
 import "dotenv/config";
 import { readFileSync } from "fs";
-import { logger } from "hono/logger";
 import { createSecureServer } from "http2";
 import { Hono } from "hono";
+import { logger } from "hono/logger";
 import { serve } from "@hono/node-server";
 import { deviceRoutes } from "@/routes/device";
+import { unixTimeRoutes } from "@/routes/unix-time";
 
 const app = new Hono();
 
 app.use(logger());
 
 app.get("/", (c) => {
-  return c.text("Snoozeless server working.");
+  return c.text("Snoozeless server OK.");
 });
 
+app.route("/unix-time", unixTimeRoutes);
 app.route("/device", deviceRoutes);
 
 const port = 3000;
