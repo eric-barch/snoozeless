@@ -12,11 +12,11 @@ esp_err_t set_real_time_unix(const int unix) {
 
 int get_real_time_unix(void) { return real_time.unix; }
 
-esp_err_t set_real_time_ticks(const int ticks) {
-  real_time.ticks = ticks;
+esp_err_t set_real_time_timestamp(const int timestamp) {
+  real_time.timestamp = timestamp;
 
-  esp_err_t err = set_nvs_int("time", "ticks", ticks);
+  esp_err_t err = set_nvs_int("time", "timestamp", timestamp);
   return err;
 }
 
-int get_real_time_ticks(void) { return real_time.ticks; }
+int get_real_time_timestamp(void) { return real_time.timestamp; }

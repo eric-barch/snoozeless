@@ -32,7 +32,7 @@ static esp_err_t parse_response(const char *response) {
   cJSON *unix_time_item = cJSON_GetObjectItem(json, "unix_time");
   if (cJSON_IsNumber(unix_time_item)) {
     set_real_time_unix(unix_time_item->valueint);
-    set_real_time_ticks(xTaskGetTickCount());
+    set_real_time_timestamp(esp_log_timestamp());
   } else {
     ESP_LOGE(TAG, "Failed to extract 'unix_time' from JSON data.");
     cJSON_Delete(json);

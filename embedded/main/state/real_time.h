@@ -5,15 +5,15 @@
 
 typedef struct {
   int unix;
-  int ticks;
+  int timestamp;
 } real_time_t;
 
 esp_err_t set_real_time_unix(const int unix);
 
 int get_real_time_unix(void);
 
-esp_err_t set_real_time_ticks(const int ticks);
+esp_err_t set_real_time_timestamp(const int timestamp);
 
-int get_real_time_ticks(void);
+int get_real_time_timestamp(void);
 
 #endif
