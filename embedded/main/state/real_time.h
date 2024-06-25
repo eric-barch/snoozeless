@@ -8,6 +8,8 @@ typedef struct {
   int timestamp;
 } real_time_t;
 
+esp_err_t initialize_real_time(void);
+
 esp_err_t set_real_time_unix(const int unix);
 
 int get_real_time_unix(void);

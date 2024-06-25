@@ -3,6 +3,7 @@
 #include "services/real_time.h"
 #include "state/app_credentials.h"
 #include "state/device.h"
+#include "state/real_time.h"
 #include "state/wifi_credentials.h"
 #include "utilities/console.h"
 #include "utilities/nvs.h"
@@ -14,8 +15,8 @@ void app_main(void) {
 
   initialize_wifi_credentials();
   connect_to_wifi();
-
   initialize_app_credentials();
+  initialize_real_time();
   initialize_device_state();
 
   close_nvs();

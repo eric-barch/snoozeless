@@ -23,10 +23,10 @@ esp_err_t initialize_device_state(void) {
 
   err = get_nvs_int("device", "utc_offset", &device_state.utc_offset);
   if (err != ESP_OK) {
-    /**If this fails, we have already called `register_device` above, so the
-     * utc_offset is stored in the volatile device struct. We still call
-     * `set_device_utc_offset` to register the utc_offset in non-volatile
-     * storage for persistence across reboots. */
+    /**If we have entered this block, utc_offset is already stored in the
+     * volatile device struct as a result of calling `register_device` above. We
+     * still call `set_device_utc_offset` to register the utc_offset in
+     * non-volatile storage. */
     err = set_device_utc_offset(device_state.utc_offset);
     if (err != ESP_OK) {
       return err;
