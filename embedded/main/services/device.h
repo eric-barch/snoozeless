@@ -5,6 +5,6 @@
 
 esp_err_t register_device(device_state_t *device);
 
-void subscribe_to_device_state(void *pvParameters);
+void subscribe_to_device_state_task(void *pvParameters);
 
 #endif
