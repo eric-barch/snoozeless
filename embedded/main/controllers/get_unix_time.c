@@ -1,4 +1,4 @@
-#include "controllers/get_real_time.h"
+#include "controllers/get_unix_time.h"
 #include "app_credentials.h"
 #include "cJSON.h"
 #include "esp_crt_bundle.h"
@@ -14,7 +14,7 @@
 #include <string.h>
 #include <sys/param.h>
 
-static const char *TAG = "controllers/get_real_time";
+static const char *TAG = "controllers/get_unix_time";
 
 static esp_err_t parse_response(const char *response) {
   cJSON *json = cJSON_Parse(response);
@@ -43,7 +43,7 @@ static esp_err_t parse_response(const char *response) {
   return ESP_OK;
 }
 
-static esp_err_t get_real_time_event_handler(esp_http_client_event_t *event) {
+static esp_err_t get_unix_time_event_handler(esp_http_client_event_t *event) {
   static char *output_buffer;
   static int output_length;
 
@@ -123,15 +123,15 @@ static esp_err_t get_real_time_event_handler(esp_http_client_event_t *event) {
   return ESP_OK;
 }
 
-esp_err_t get_real_time(void) {
+esp_err_t get_unix_time(void) {
   int port = atoi(CONFIG_PORT);
 
   esp_http_client_config_t config = {
       .transport_type = HTTP_TRANSPORT_OVER_SSL,
       .host = CONFIG_HOST,
       .port = port,
-      .path = "/real-time",
-      .event_handler = get_real_time_event_handler,
+      .path = "/unix-time",
+      .event_handler = get_unix_time_event_handler,
       .crt_bundle_attach = esp_crt_bundle_attach,
       .buffer_size = MAX_HTTP_RX_BUFFER,
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
