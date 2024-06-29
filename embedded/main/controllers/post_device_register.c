@@ -63,15 +63,6 @@ static esp_err_t parse_response(const char *response) {
     return ESP_FAIL;
   }
 
-  cJSON *brightness_item = cJSON_GetObjectItem(item, "brightness");
-  if (cJSON_IsNumber(brightness_item)) {
-    set_device_brightness(brightness_item->valueint);
-  } else {
-    ESP_LOGE(TAG, "Failed to extract 'brightness' from JSON response.");
-    cJSON_Delete(json);
-    return ESP_FAIL;
-  }
-
   cJSON_Delete(json);
   return ESP_OK;
 }

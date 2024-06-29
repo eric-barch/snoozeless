@@ -10,7 +10,6 @@ typedef struct {
   char id[MAX_ID_LENGTH];
   char time_format[MAX_TIME_FORMAT_LENGTH];
   int utc_offset;
-  int brightness;
 } device_state_t;
 
 esp_err_t initialize_device_state(void);
@@ -26,9 +25,5 @@ int get_device_utc_offset(void);
 esp_err_t set_device_time_format(const char *time_format);
 
 char *get_device_time_format(void);
-
-esp_err_t set_device_brightness(const int brightness);
-
-int get_device_brightness(void);
 
 #endif

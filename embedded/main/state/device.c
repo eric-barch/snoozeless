@@ -43,15 +43,6 @@ esp_err_t initialize_device_state(void) {
     }
   }
 
-  err = get_nvs_int("device", "brightness", &device_state.brightness);
-  if (err != ESP_OK) {
-    /**Same as above. */
-    err = set_device_utc_offset(device_state.brightness);
-    if (err != ESP_OK) {
-      return err;
-    }
-  }
-
   return err;
 };
 
@@ -93,12 +84,3 @@ esp_err_t set_device_time_format(const char *time_format) {
 }
 
 char *get_device_time_format(void) { return device_state.time_format; }
-
-esp_err_t set_device_brightness(int brightness) {
-  device_state.brightness = brightness;
-
-  esp_err_t err = set_nvs_int("device", "brightness", brightness);
-  return err;
-}
-
-int get_device_brightness(void) { return device_state.brightness; }
