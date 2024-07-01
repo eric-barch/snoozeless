@@ -26,4 +26,4 @@ public:
                       const int &in_value);
 };
 
-#endif
+#endif // NVS_MANAGER_H
