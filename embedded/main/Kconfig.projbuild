@@ -1,0 +1,21 @@
+menu "Snoozeless Embedded Configuration"
+    config WIFI_SSID
+        string "WiFi SSID"
+        help
+            SSID of the WiFi network to join.
+
+    config WIFI_PASSWORD
+        string "WiFi Password"
+        help
+            Password for the WiFi network to join.
+
+    config AUTH_BEARER_TOKEN
+        string "Authorization Bearer Token"
+        help
+            Session authorization bearer token.
+
+    config REFRESH_TOKEN
+        string "Refresh Token"
+        help
+            Session refresh token.
+endmenu

@@ -8,19 +8,17 @@ static const char *TAG = "WifiManager";
 
 WifiManager::WifiManager(NvsManager &nvs_manager)
     : nvs_manager(nvs_manager), wifi_event_group(nullptr), retry_count(0) {
-  esp_err_t err;
-
-  err = nvs_manager.read_string("wifi_cred", "ssid", ssid);
+  esp_err_t err = nvs_manager.read_string("wifi_cred", "ssid", ssid);
   if (err != ESP_OK) {
-    ESP_LOGI(TAG, "SSID not found in NVS. Using default SSID.");
-    ssid = CONFIG_EXAMPLE_WIFI_SSID;
+    ESP_LOGW(TAG, "SSID not found in NVS. Using config.");
+    ssid = CONFIG_WIFI_SSID;
     nvs_manager.write_string("wifi_cred", "ssid", ssid);
   }
 
   err = nvs_manager.read_string("wifi_cred", "password", password);
   if (err != ESP_OK) {
-    ESP_LOGI(TAG, "Password not found in NVS. Using default password.");
-    password = CONFIG_EXAMPLE_WIFI_PASSWORD;
+    ESP_LOGW(TAG, "Password not found in NVS. Using config.");
+    password = CONFIG_WIFI_PASSWORD;
     nvs_manager.write_string("wifi_cred", "password", password);
   }
 }
@@ -46,7 +44,7 @@ void WifiManager::wifi_event_handler(void *arg, esp_event_base_t event_base,
     } else {
       xEventGroupSetBits(wifi_manager->wifi_event_group, WIFI_FAIL_BIT);
     }
-    ESP_LOGI(TAG, "Failed to connect to access point.");
+    ESP_LOGW(TAG, "Failed to connect to access point.");
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
@@ -55,7 +53,7 @@ void WifiManager::wifi_event_handler(void *arg, esp_event_base_t event_base,
   }
 }
 
-void WifiManager::initialize_wifi() {
+void WifiManager::initialize() {
   wifi_event_group = xEventGroupCreate();
 
   ESP_ERROR_CHECK(esp_netif_init());
@@ -86,7 +84,7 @@ void WifiManager::initialize_wifi() {
 }
 
 esp_err_t WifiManager::connect() {
-  initialize_wifi();
+  initialize();
 
   EventBits_t bits =
       xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
