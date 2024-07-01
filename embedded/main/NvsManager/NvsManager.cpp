@@ -4,7 +4,7 @@
 #include "nvs_flash.h"
 #include <cstring>
 
-const char *TAG = "NvsManager";
+static const char *TAG = "NvsManager";
 
 NvsManager::NvsManager() {
   esp_err_t err = nvs_flash_init();
