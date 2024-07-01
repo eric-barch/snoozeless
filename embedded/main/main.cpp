@@ -1,4 +1,5 @@
 #include "NvsManager.h"
+#include "Session.h"
 #include "WifiManager.h"
 
 extern "C" void app_main(void) {
@@ -7,13 +8,13 @@ extern "C" void app_main(void) {
   WifiManager wifi_manager(nvs_manager);
   wifi_manager.connect();
 
-  // User user(nvs_manager);
-  // Device device(nvs_manager, user);
+  Session session(nvs_manager);
+  // Device device(nvs_manager, session);
   //
-  // CurrentTime current_time(nvs_manager, user, device);
+  // CurrentTime current_time(nvs_manager, session, device);
   // Display display(nvs_manager, current_time);
   //
-  // user.maintain_session();
+  // session.keep_active();
   // device.subscribe();
   // current_time.subscribe();
   //
