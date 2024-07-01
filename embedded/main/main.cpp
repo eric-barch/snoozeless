@@ -1,20 +1,12 @@
-#include "NvsManager/NvsManager.h"
-#include "esp_log.h"
-#include <string>
-
-const char *TAG = "main";
+#include "NvsManager.h"
+#include "WifiManager.h"
 
 extern "C" void app_main(void) {
   NvsManager nvs_manager;
 
-  std::string wifi_ssid;
+  WifiManager wifi_manager(nvs_manager);
+  wifi_manager.connect();
 
-  nvs_manager.write_string("wifi_cred", "ssid", "ORBI39");
-  nvs_manager.read_string("wifi_cred", "ssid", wifi_ssid);
-
-  ESP_LOGI(TAG, "wifi_ssid: %s", wifi_ssid.c_str());
-
-  // WifiManager wifi_manager(nvs_manager);
   // User user(nvs_manager);
   // Device device(nvs_manager, user);
   //

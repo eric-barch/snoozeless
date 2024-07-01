@@ -4,5 +4,6 @@ idf_component_register(
     SRCS ${MAIN_SRCS}
     INCLUDE_DIRS "."
                  "NvsManager"
+                 "WifiManager"
     EMBED_TXTFILES server_cert.pem
 )
