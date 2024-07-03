@@ -15,7 +15,6 @@ private:
 
 public:
   Device(NvsManager &nvs_manager, Session &session);
-  ~Device();
 
   esp_err_t subscribe();
 };

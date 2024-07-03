@@ -1,6 +1,7 @@
 #include "Session.h"
 #include "NvsManager.h"
 #include "esp_log.h"
+#include <string>
 
 static const char *TAG = "Session";
 
@@ -22,5 +23,9 @@ Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
 };
 
 Session::~Session() {};
+
+std::string Session::get_auth_bearer_token() { return auth_bearer_token; }
+
+std::string Session::get_refresh_token() { return refresh_token; }
 
 void Session::keep_active() {};

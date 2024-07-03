@@ -1,4 +1,5 @@
 #include "Device.h"
+#include "ApiRequest.h"
 #include "NvsManager.h"
 #include "Session.h"
 #include "esp_err.h"
@@ -24,19 +25,30 @@ Device::Device(NvsManager &nvs_manager, Session &session)
 
   ESP_LOGW(TAG, "Device ID not found in NVS. Enrolling this device.");
   enroll();
-
-  if (id.empty()) {
-    ESP_LOGE(TAG, "Could not set Device ID in NVS. ID is empty.");
-    return;
-  }
-
-  nvs_manager.write_string("device", "id", id);
 }
 
-Device::~Device() {}
-
 esp_err_t Device::enroll() {
+  ApiRequest post_device_register(session, HTTP_METHOD_POST, 60000,
+                                  "/device/register");
+  post_device_register.call();
+  return ESP_OK;
 }
 
 esp_err_t Device::subscribe() {
+  if (id.empty()) {
+    ESP_LOGE(TAG, "Cannot subscribe. Device ID is empty.");
+    return ESP_FAIL;
+  }
+
+  std::string query = "deviceId=" + id;
+  ApiRequest get_device_state(session, HTTP_METHOD_GET, 300000, "device/state",
+                              query);
+
+  get_device_state.set_on_data_callback([](const std::string &data) {
+    ESP_LOGI(TAG, "Received update: %s", data.c_str());
+  });
+
+  get_device_state.call();
+
+  return ESP_OK;
 }

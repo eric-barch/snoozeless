@@ -13,6 +13,8 @@ public:
   Session(NvsManager &nvs_manager);
   ~Session();
 
+  std::string get_auth_bearer_token();
+  std::string get_refresh_token();
   void keep_active();
 };
 
