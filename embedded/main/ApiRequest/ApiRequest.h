@@ -15,6 +15,7 @@ public:
              OnDataCallback on_data_callback = nullptr);
 
   void set_on_data_callback(OnDataCallback on_data_callback);
+  OnDataCallback get_on_data_callback();
   void call();
 
 private:

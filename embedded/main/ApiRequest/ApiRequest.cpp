@@ -25,13 +25,18 @@ void ApiRequest::set_on_data_callback(OnDataCallback on_data_callback) {
   this->on_data_callback = on_data_callback;
 }
 
+ApiRequest::OnDataCallback ApiRequest::get_on_data_callback() {
+  return this->on_data_callback;
+}
+
 esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
   ApiRequest *api_request = static_cast<ApiRequest *>(event->user_data);
+  ApiRequest::OnDataCallback on_data_callback =
+      api_request->get_on_data_callback();
 
-  static std::string output_buffer;
-
-  int mbedtls_err = 0;
   esp_err_t err = ESP_OK;
+  std::string output_buffer;
+  int status_code = esp_http_client_get_status_code(event->client);
 
   switch (event->event_id) {
   case HTTP_EVENT_ERROR:
@@ -44,28 +49,32 @@ esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
     ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
     break;
   case HTTP_EVENT_ON_HEADER:
-    ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", event->header_key,
-             event->header_value);
+    ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER");
     break;
   case HTTP_EVENT_ON_DATA:
-    ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", event->data_len);
+    ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA");
 
-    if (event->data_len > 0) {
-      output_buffer.append(static_cast<const char *>(event->data),
-                           event->data_len);
+    if (event->data_len <= 0) {
+      ESP_LOGE(TAG, "No data. Exiting event handler.");
+      break;
     }
 
-    if (!output_buffer.empty()) {
-      ESP_LOG_BUFFER_CHAR(TAG, output_buffer.c_str(), output_buffer.size());
+    output_buffer.append(static_cast<const char *>(event->data),
+                         event->data_len);
+    ESP_LOG_BUFFER_CHAR(TAG, output_buffer.c_str(), output_buffer.size());
 
-      /**TODO: This will never be called because we're not currently passing the
-       * instance in via user_data. */
-      if (api_request != nullptr) {
-        api_request->on_data_callback(output_buffer);
-      }
-
-      output_buffer.clear();
+    if (status_code < 200 || status_code >= 300) {
+      ESP_LOGE(TAG, "Error response code: %d. Exiting event handler.",
+               status_code);
+      break;
     }
+
+    if (on_data_callback == nullptr) {
+      ESP_LOGW(TAG, "No on_data_callback. Exiting event handler.");
+      break;
+    }
+
+    on_data_callback(output_buffer);
     break;
   case HTTP_EVENT_ON_FINISH:
     ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
@@ -73,12 +82,6 @@ esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
     break;
   case HTTP_EVENT_DISCONNECTED:
     ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
-    err = esp_tls_get_and_clear_last_error((esp_tls_error_handle_t)event->data,
-                                           &mbedtls_err, nullptr);
-    if (err != 0) {
-      ESP_LOGI(TAG, "Last esp error code: 0x%x", err);
-      ESP_LOGI(TAG, "Last mbedtls failure: 0x%x", mbedtls_err);
-    }
     output_buffer.clear();
     break;
   case HTTP_EVENT_REDIRECT:
@@ -103,6 +106,7 @@ void ApiRequest::call_task(void *pvParameters) {
       .transport_type = HTTP_TRANSPORT_OVER_SSL,
       .buffer_size = MAX_HTTP_RX_BUFFER,
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
+      .user_data = api_request,
       .is_async = true,
       .crt_bundle_attach = esp_crt_bundle_attach,
   };
