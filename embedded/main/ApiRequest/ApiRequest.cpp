@@ -5,6 +5,8 @@
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "esp_tls.h"
+#include "freertos/idf_additions.h"
+#include "freertos/task.h"
 #include <string>
 
 #define MAX_HTTP_RX_BUFFER 1024
@@ -16,14 +18,14 @@ ApiRequest::ApiRequest(Session &session, esp_http_client_method_t method,
                        int timeout_ms, const std::string &path,
                        const std::string &query,
                        OnDataCallback on_data_callback)
-    : session(session), client(nullptr), method(method), timeout_ms(timeout_ms),
-      path(path), query(query), on_data_callback(on_data_callback) {}
+    : session(session), method(method), timeout_ms(timeout_ms), path(path),
+      query(query), on_data_callback(on_data_callback) {}
 
 void ApiRequest::set_on_data_callback(OnDataCallback on_data_callback) {
   this->on_data_callback = on_data_callback;
 }
 
-esp_err_t ApiRequest::event_handler(esp_http_client_event_t *event) {
+esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
   ApiRequest *api_request = static_cast<ApiRequest *>(event->user_data);
 
   static std::string output_buffer;
@@ -56,9 +58,9 @@ esp_err_t ApiRequest::event_handler(esp_http_client_event_t *event) {
     if (!output_buffer.empty()) {
       ESP_LOG_BUFFER_CHAR(TAG, output_buffer.c_str(), output_buffer.size());
 
-      ESP_LOGI(TAG, "foo1");
+      /**TODO: This will never be called because we're not currently passing the
+       * instance in via user_data. */
       if (api_request != nullptr) {
-        ESP_LOGI(TAG, "foo2");
         api_request->on_data_callback(output_buffer);
       }
 
@@ -90,38 +92,14 @@ esp_err_t ApiRequest::event_handler(esp_http_client_event_t *event) {
 void ApiRequest::call_task(void *pvParameters) {
   ApiRequest *api_request = static_cast<ApiRequest *>(pvParameters);
 
-  esp_err_t err;
-
-  while (true) {
-    err = esp_http_client_perform(api_request->client);
-    if (err != ESP_ERR_HTTP_EAGAIN) {
-      break;
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(100));
-  };
-
-  int status_code = esp_http_client_get_status_code(api_request->client);
-
-  if (err == ESP_OK) {
-    ESP_LOGI(TAG, "HTTP request successful. Status code: %d", status_code);
-  } else {
-    ESP_LOGE(TAG, "HTTP request failed. Status code: %d", status_code);
-  }
-
-  esp_http_client_close(api_request->client);
-  esp_http_client_cleanup(api_request->client);
-}
-
-void ApiRequest::call() {
   esp_http_client_config_t config = {
       .host = "192.168.1.6",
       .port = 3000,
-      .path = this->path.c_str(),
-      .query = this->query.c_str(),
-      .method = this->method,
-      .timeout_ms = this->timeout_ms,
-      .event_handler = this->event_handler,
+      .path = api_request->path.c_str(),
+      .query = api_request->query.c_str(),
+      .method = api_request->method,
+      .timeout_ms = api_request->timeout_ms,
+      .event_handler = &ApiRequest::http_event_handler,
       .transport_type = HTTP_TRANSPORT_OVER_SSL,
       .buffer_size = MAX_HTTP_RX_BUFFER,
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
@@ -129,14 +107,35 @@ void ApiRequest::call() {
       .crt_bundle_attach = esp_crt_bundle_attach,
   };
 
-  this->client = esp_http_client_init(&config);
+  esp_http_client_handle_t client = esp_http_client_init(&config);
 
-  std::string auth_bearer_header = "Bearer " + session.get_auth_bearer_token();
+  std::string auth_bearer_header =
+      "Bearer " + api_request->session.get_auth_bearer_token();
+  ESP_LOGD(TAG, "auth_bearer_header: %s", auth_bearer_header.c_str());
   esp_http_client_set_header(client, "Authorization",
                              auth_bearer_header.c_str());
-  std::string refresh_token_header = session.get_refresh_token();
+
+  std::string refresh_token_header = api_request->session.get_refresh_token();
+  ESP_LOGD(TAG, "refresh_token_header: %s", refresh_token_header.c_str());
   esp_http_client_set_header(client, "Refresh-Token",
                              refresh_token_header.c_str());
 
-  ApiRequest::call_task(this);
+  esp_err_t err;
+
+  while (true) {
+    err = esp_http_client_perform(client);
+    if (err != ESP_ERR_HTTP_EAGAIN) {
+      break;
+    }
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  };
+
+  esp_http_client_close(client);
+  esp_http_client_cleanup(client);
+
+  vTaskDelete(NULL);
+}
+
+void ApiRequest::call() {
+  xTaskCreate(&ApiRequest::call_task, "call_task", 4096, this, 5, NULL);
 }

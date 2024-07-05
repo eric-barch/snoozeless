@@ -19,14 +19,13 @@ public:
 
 private:
   Session &session;
-  esp_http_client_handle_t client;
   esp_http_client_method_t method;
   int timeout_ms;
   std::string path;
   std::string query;
   OnDataCallback on_data_callback;
 
-  static esp_err_t event_handler(esp_http_client_event_t *event);
+  static esp_err_t http_event_handler(esp_http_client_event_t *event);
   static void call_task(void *pvParameters);
 };
 
