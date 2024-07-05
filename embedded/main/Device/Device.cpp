@@ -19,7 +19,7 @@ void Device::init() {
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Device ID read from NVS: %s", this->id.c_str());
   } else {
-    ESP_LOGW(TAG, "Error reading Device ID from NVS. Enrolling device: %s",
+    ESP_LOGW(TAG, "Error reading Device ID from NVS: %s. Enrolling device.",
              esp_err_to_name(err));
     this->enroll();
   }
