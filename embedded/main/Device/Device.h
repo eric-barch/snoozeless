@@ -3,20 +3,20 @@
 
 #include "NvsManager.h"
 #include "Session.h"
-#include "esp_err.h"
 
 class Device {
+public:
+  Device(NvsManager &nvs_manager, Session &session);
+
+  void subscribe();
+
 private:
   NvsManager &nvs_manager;
   Session &session;
   std::string id;
 
-  esp_err_t enroll();
-
-public:
-  Device(NvsManager &nvs_manager, Session &session);
-
-  esp_err_t subscribe();
+  void init();
+  void enroll();
 };
 
 #endif // DEVICE_H
