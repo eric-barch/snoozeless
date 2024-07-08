@@ -16,6 +16,7 @@ private:
   std::string id;
 
   void init();
+  static void enroll_on_data(void *device_context, const std::string &response);
   void enroll();
 };
 

@@ -3,7 +3,6 @@
 #include "NvsManager.h"
 #include "Session.h"
 #include "esp_err.h"
-#include "esp_http_client.h"
 #include "esp_log.h"
 
 static const char *TAG = "Device";
@@ -25,10 +24,20 @@ void Device::init() {
   }
 }
 
+void Device::enroll_on_data(void *device_context, const std::string &response) {
+  Device *self = static_cast<Device *>(device_context);
+  ESP_LOGI(TAG, "Device memory address in enroll_on_data: %p", self);
+  ESP_LOGI(TAG, "enroll_on_data memory address in enroll_on_data: %p",
+           self->enroll_on_data);
+  ESP_LOGI(TAG, "Enroll API Response: %s", response.c_str());
+}
+
 void Device::enroll() {
+  ESP_LOGI(TAG, "Device memory address in enroll: %p", this);
+  ESP_LOGI(TAG, "enroll_on_data memory address in enroll: %p", enroll_on_data);
   ApiRequest post_device_register(session, HTTP_METHOD_POST, 60000,
-                                  "/device/register");
-  post_device_register.call();
+                                  "/device/register", "", this, enroll_on_data);
+  post_device_register.send_request();
 }
 
 void Device::subscribe() {}
