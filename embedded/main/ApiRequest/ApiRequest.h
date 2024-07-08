@@ -16,10 +16,6 @@ public:
              const std::string &query = "", void *caller_context = nullptr,
              OnDataCallback on_data = nullptr);
 
-  void set_caller_context(void *caller_context);
-  void *get_caller_context();
-  void set_on_data(OnDataCallback on_data);
-  OnDataCallback get_on_data();
   void send_request();
 
 private:

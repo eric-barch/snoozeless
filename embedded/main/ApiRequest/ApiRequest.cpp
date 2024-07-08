@@ -24,22 +24,11 @@ ApiRequest::ApiRequest(Session &session, const esp_http_client_method_t method,
            caller_context, (void *)on_data);
 }
 
-void ApiRequest::set_caller_context(void *caller_context) {
-  this->caller_context = caller_context;
-}
-
-void *ApiRequest::get_caller_context() { return this->caller_context; }
-
-void ApiRequest::set_on_data(OnDataCallback on_data) {
-  this->on_data = on_data;
-}
-
-OnDataCallback ApiRequest::get_on_data() { return this->on_data; }
-
 esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
   ApiRequest *api_request = static_cast<ApiRequest *>(event->user_data);
-  void *caller_context = api_request->get_caller_context();
-  OnDataCallback on_data = api_request->get_on_data();
+
+  void *caller_context = api_request->caller_context;
+  OnDataCallback on_data = api_request->on_data;
 
   ESP_LOGI(TAG, "caller_context: %p", caller_context);
   ESP_LOGI(TAG, "on_data: %p", on_data);
