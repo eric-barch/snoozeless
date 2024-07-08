@@ -7,6 +7,10 @@ import { serve } from "@hono/node-server";
 import { deviceRoutes } from "@/routes/device";
 import { unixTimeRoutes } from "@/routes/unix-time";
 
+const port = 3000;
+const key = readFileSync(process.env.TLS_KEY_FILE!);
+const cert = readFileSync(process.env.TLS_CERT_FILE!);
+
 const app = new Hono();
 
 app.use(logger());
@@ -17,11 +21,6 @@ app.get("/", (c) => {
 
 app.route("/unix-time", unixTimeRoutes);
 app.route("/device", deviceRoutes);
-
-const port = 3000;
-
-const key = readFileSync(process.env.TLS_KEY_FILE!);
-const cert = readFileSync(process.env.TLS_CERT_FILE!);
 
 serve({
   fetch: app.fetch,
