@@ -4,8 +4,9 @@ import { createSecureServer } from "http2";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { serve } from "@hono/node-server";
-import { deviceRoutes } from "@/routes/device";
+import { authRoutes } from "./routes/auth";
 import { unixTimeRoutes } from "@/routes/unix-time";
+import { deviceRoutes } from "@/routes/device";
 
 const port = 3000;
 const key = readFileSync(process.env.TLS_KEY_FILE!);
@@ -19,6 +20,7 @@ app.get("/", (c) => {
   return c.text("Snoozeless server OK.");
 });
 
+app.route("/auth", authRoutes);
 app.route("/unix-time", unixTimeRoutes);
 app.route("/device", deviceRoutes);
 
