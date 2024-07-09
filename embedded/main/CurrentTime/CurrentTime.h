@@ -20,6 +20,9 @@ private:
   int utc_offset;
   std::string format;
 
+  static void calibrate_on_data(void *current_time_instance,
+                                const std::string &response);
+  void calibrate();
   void init();
 };
 
