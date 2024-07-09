@@ -13,24 +13,27 @@
 #define MAX_RETRY 5
 
 class WifiManager {
-private:
-  std::string ssid;
-  std::string password;
-  NvsManager &nvs_manager;
-  EventGroupHandle_t wifi_event_group;
-  int retry_count;
-
-  static void wifi_event_handler(void *arg, esp_event_base_t event_base,
-                                 int32_t event_id, void *event_data);
-
-  void initialize();
-
 public:
   WifiManager(NvsManager &nvs_manager);
   ~WifiManager();
 
   esp_err_t connect();
   esp_err_t disconnect();
+
+private:
+  NvsManager &nvs_manager;
+  EventGroupHandle_t wifi_event_group;
+  int retry_count;
+  std::string ssid;
+  std::string password;
+
+  void set_ssid(std::string ssid);
+  void set_password(std::string password);
+
+  static void wifi_event_handler(void *arg, esp_event_base_t event_base,
+                                 int32_t event_id, void *event_data);
+
+  void init();
 };
 
 #endif // WIFI_MANAGER_H
