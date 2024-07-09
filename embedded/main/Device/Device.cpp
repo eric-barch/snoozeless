@@ -15,6 +15,12 @@ Device::Device(NvsManager &nvs_manager, Session &session,
   this->init();
 }
 
+void Device::set_id(std::string id) {
+  this->id = id;
+  this->nvs_manager.write_string("device", "id", id);
+  ESP_LOGI(TAG, "Set ID: %s", id.c_str());
+}
+
 void Device::enroll_on_data(void *device_instance,
                             const std::string &response) {
   Device *self = static_cast<Device *>(device_instance);
@@ -32,20 +38,17 @@ void Device::enroll_on_data(void *device_instance,
     return;
   }
 
-  self->id = std::string(id_item->valuestring);
-  self->nvs_manager.write_string("device", "id", self->id);
-  ESP_LOGI(TAG, "Device ID set to: %s", self->id.c_str());
+  self->set_id(id_item->valuestring);
 
   cJSON_Delete(json_response);
 }
 
+/**NOTE: Does not return until `post_device_register` destructs. */
 void Device::enroll() {
   ApiRequest post_device_register =
       ApiRequest(session, HTTP_METHOD_POST, 60000, "/device/register", "", this,
                  enroll_on_data);
   post_device_register.send_request();
-  /**NOTE: `enroll` does not return until `post_device_register` allows itself
-   * to destruct. */
 }
 
 void Device::init() {
