@@ -12,6 +12,26 @@ Device::Device(NvsManager &nvs_manager, Session &session)
   this->init();
 }
 
+void Device::enroll_on_data(void *device_context, const std::string &response) {
+  Device *self = static_cast<Device *>(device_context);
+  /**TODO: Handle response. */
+  ESP_LOGI(TAG, "response: %s", response.c_str());
+}
+
+void Device::enroll() {
+  ApiRequest post_device_register =
+      ApiRequest(session, HTTP_METHOD_POST, 60000, "/device/register", "", this,
+                 enroll_on_data);
+  post_device_register.send_request();
+  /**NOTE: `enroll` will not return until `post_device_register` allows itself
+   * to destruct after the HTTP connection terminates. This is fine because we
+   * don't want `main` to resume until `device` is fully initialized. For a
+   * persistent and/or asynchronous request, the `ApiRequest` (in this case,
+   * `post_device_register`) should live in a higher scope (e.g. as an instance
+   * property on `Device`) so the calling function can return while the request
+   * continues to run in the background. */
+}
+
 void Device::init() {
   esp_err_t err = this->nvs_manager.read_string("device", "id", this->id);
 
@@ -23,21 +43,3 @@ void Device::init() {
     this->enroll();
   }
 }
-
-void Device::enroll_on_data(void *device_context, const std::string &response) {
-  Device *self = static_cast<Device *>(device_context);
-  ESP_LOGI(TAG, "Device memory address in enroll_on_data: %p", self);
-  ESP_LOGI(TAG, "enroll_on_data memory address in enroll_on_data: %p",
-           self->enroll_on_data);
-  ESP_LOGI(TAG, "Enroll API Response: %s", response.c_str());
-}
-
-void Device::enroll() {
-  ESP_LOGI(TAG, "Device memory address in enroll: %p", this);
-  ESP_LOGI(TAG, "enroll_on_data memory address in enroll: %p", enroll_on_data);
-  ApiRequest post_device_register(session, HTTP_METHOD_POST, 60000,
-                                  "/device/register", "", this, enroll_on_data);
-  post_device_register.send_request();
-}
-
-void Device::subscribe() {}

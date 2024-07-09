@@ -3,6 +3,8 @@
 #include "Session.h"
 #include "WifiManager.h"
 
+static const char *TAG = "main";
+
 extern "C" void app_main(void) {
   NvsManager nvs_manager;
 
