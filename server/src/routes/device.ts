@@ -1,10 +1,10 @@
 import { Hono } from "hono";
+import { auth } from "@/middleware/auth";
 import {
   registerDeviceController,
   getDeviceStateController,
   updateDeviceStateController,
 } from "@/controllers/device";
-import { auth } from "@/middleware/auth";
 
 const deviceRoutes = new Hono();
 
