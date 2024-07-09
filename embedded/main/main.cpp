@@ -1,3 +1,4 @@
+#include "CurrentTime/CurrentTime.h"
 #include "Device.h"
 #include "NvsManager.h"
 #include "Session.h"
@@ -12,14 +13,15 @@ extern "C" void app_main(void) {
   wifi_manager.connect();
 
   Session session(nvs_manager);
-  Device device(nvs_manager, session);
+  CurrentTime current_time(nvs_manager, session);
 
-  // CurrentTime current_time(nvs_manager, session, device);
+  Device device(nvs_manager, session, current_time);
+
   // Display display(nvs_manager, current_time);
-  //
+
   // session.keep_active();
   // device.subscribe();
   // current_time.subscribe();
-  //
+
   // display.show_current_time();
 }

@@ -1,5 +1,6 @@
 #include "Device.h"
 #include "ApiRequest.h"
+#include "CurrentTime.h"
 #include "NvsManager.h"
 #include "Session.h"
 #include "cJSON.h"
@@ -8,13 +9,15 @@
 
 static const char *TAG = "Device";
 
-Device::Device(NvsManager &nvs_manager, Session &session)
-    : nvs_manager(nvs_manager), session(session) {
+Device::Device(NvsManager &nvs_manager, Session &session,
+               CurrentTime &current_time)
+    : nvs_manager(nvs_manager), session(session), current_time(current_time) {
   this->init();
 }
 
-void Device::enroll_on_data(void *device_context, const std::string &response) {
-  Device *self = static_cast<Device *>(device_context);
+void Device::enroll_on_data(void *device_instance,
+                            const std::string &response) {
+  Device *self = static_cast<Device *>(device_instance);
   ESP_LOGI(TAG, "Response: %s", response.c_str());
 
   cJSON *json_response = cJSON_Parse(response.c_str());
