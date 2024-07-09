@@ -9,6 +9,8 @@ static const char *TAG = "main";
 extern "C" void app_main(void) {
   NvsManager nvs_manager;
 
+  nvs_manager.erase_key("device", "id");
+
   WifiManager wifi_manager(nvs_manager);
   wifi_manager.connect();
 

@@ -6,20 +6,37 @@
 
 static const char *TAG = "NvsManager";
 
-NvsManager::NvsManager() {
-  esp_err_t err = nvs_flash_init();
-  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
-      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    err = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(err);
-}
+NvsManager::NvsManager() { this->init(); }
 
 NvsManager::~NvsManager() {
   if (nvs_handle != 0) {
     nvs_close(nvs_handle);
   }
+}
+
+esp_err_t NvsManager::write_string(const std::string &nvs_namespace,
+                                   const std::string &key,
+                                   const std::string &in_value) {
+  esp_err_t err = nvs_open(nvs_namespace.c_str(), NVS_READWRITE, &nvs_handle);
+  if (err != ESP_OK) {
+    ESP_LOGD(TAG, "Error opening NVS namespace: %s", esp_err_to_name(err));
+    return err;
+  }
+
+  err = nvs_set_str(nvs_handle, key.c_str(), in_value.c_str());
+  if (err != ESP_OK) {
+    ESP_LOGD(TAG, "Error setting string in NVS: %s", esp_err_to_name(err));
+    nvs_close(nvs_handle);
+    return err;
+  }
+
+  err = nvs_commit(nvs_handle);
+  if (err != ESP_OK) {
+    ESP_LOGD(TAG, "Error committing string to NVS: %s", esp_err_to_name(err));
+  }
+
+  nvs_close(nvs_handle);
+  return err;
 }
 
 esp_err_t NvsManager::read_string(const std::string &nvs_namespace,
@@ -53,25 +70,25 @@ esp_err_t NvsManager::read_string(const std::string &nvs_namespace,
   return err;
 }
 
-esp_err_t NvsManager::write_string(const std::string &nvs_namespace,
-                                   const std::string &key,
-                                   const std::string &in_value) {
-  esp_err_t err = nvs_open(nvs_namespace.c_str(), NVS_READWRITE, &nvs_handle);
+esp_err_t NvsManager::write_int(const std::string &namespace_name,
+                                const std::string &key, const int &in_value) {
+  esp_err_t err = nvs_open(namespace_name.c_str(), NVS_READWRITE, &nvs_handle);
   if (err != ESP_OK) {
     ESP_LOGD(TAG, "Error opening NVS namespace: %s", esp_err_to_name(err));
     return err;
   }
 
-  err = nvs_set_str(nvs_handle, key.c_str(), in_value.c_str());
+  int32_t temp_value = static_cast<int32_t>(in_value);
+  err = nvs_set_i32(nvs_handle, key.c_str(), temp_value);
   if (err != ESP_OK) {
-    ESP_LOGD(TAG, "Error setting string in NVS: %s", esp_err_to_name(err));
+    ESP_LOGD(TAG, "Error setting int in NVS: %s", esp_err_to_name(err));
     nvs_close(nvs_handle);
     return err;
   }
 
   err = nvs_commit(nvs_handle);
   if (err != ESP_OK) {
-    ESP_LOGD(TAG, "Error committing string to NVS: %s", esp_err_to_name(err));
+    ESP_LOGD(TAG, "Error committing int to NVS: %s", esp_err_to_name(err));
   }
 
   nvs_close(nvs_handle);
@@ -98,27 +115,30 @@ esp_err_t NvsManager::read_int(const std::string &nvs_namespace,
   return err;
 }
 
-esp_err_t NvsManager::write_int(const std::string &namespace_name,
-                                const std::string &key, const int &in_value) {
-  esp_err_t err = nvs_open(namespace_name.c_str(), NVS_READWRITE, &nvs_handle);
+esp_err_t NvsManager::erase_key(const std::string &nvs_namespace,
+                                const std::string &key) {
+  esp_err_t err = nvs_open(nvs_namespace.c_str(), NVS_READWRITE, &nvs_handle);
   if (err != ESP_OK) {
-    ESP_LOGD(TAG, "Error opening NVS namespace: %s", esp_err_to_name(err));
+    ESP_LOGD(TAG, "Error opening NVS namespace for write: %s",
+             esp_err_to_name(err));
     return err;
   }
 
-  int32_t temp_value = static_cast<int32_t>(in_value);
-  err = nvs_set_i32(nvs_handle, key.c_str(), temp_value);
+  err = nvs_erase_key(nvs_handle, key.c_str());
   if (err != ESP_OK) {
-    ESP_LOGD(TAG, "Error setting int in NVS: %s", esp_err_to_name(err));
-    nvs_close(nvs_handle);
-    return err;
-  }
-
-  err = nvs_commit(nvs_handle);
-  if (err != ESP_OK) {
-    ESP_LOGD(TAG, "Error committing int to NVS: %s", esp_err_to_name(err));
+    ESP_LOGD(TAG, "Error erasing key in NVS: %s", esp_err_to_name(err));
   }
 
   nvs_close(nvs_handle);
   return err;
+}
+
+void NvsManager::init() {
+  esp_err_t err = nvs_flash_init();
+  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    err = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(err);
 }
