@@ -2,6 +2,7 @@
 #include "ApiRequest.h"
 #include "NvsManager.h"
 #include "Session.h"
+#include "cJSON.h"
 #include "esp_err.h"
 #include "esp_log.h"
 
@@ -14,8 +15,25 @@ Device::Device(NvsManager &nvs_manager, Session &session)
 
 void Device::enroll_on_data(void *device_context, const std::string &response) {
   Device *self = static_cast<Device *>(device_context);
-  /**TODO: Handle response. */
-  ESP_LOGI(TAG, "response: %s", response.c_str());
+  ESP_LOGI(TAG, "Response: %s", response.c_str());
+
+  cJSON *json_response = cJSON_Parse(response.c_str());
+  if (!json_response) {
+    ESP_LOGE(TAG, "Failed to parse JSON response.");
+    return;
+  }
+
+  cJSON *id_item = cJSON_GetObjectItem(json_response, "id");
+  if (!cJSON_IsString(id_item) || (id_item->valuestring == NULL)) {
+    ESP_LOGE(TAG, "Failed to extract `id` from JSON response");
+    return;
+  }
+
+  self->id = std::string(id_item->valuestring);
+  self->nvs_manager.write_string("device", "id", self->id);
+  ESP_LOGI(TAG, "Device ID set to: %s", self->id.c_str());
+
+  cJSON_Delete(json_response);
 }
 
 void Device::enroll() {
@@ -23,13 +41,8 @@ void Device::enroll() {
       ApiRequest(session, HTTP_METHOD_POST, 60000, "/device/register", "", this,
                  enroll_on_data);
   post_device_register.send_request();
-  /**NOTE: `enroll` will not return until `post_device_register` allows itself
-   * to destruct after the HTTP connection terminates. This is fine because we
-   * don't want `main` to resume until `device` is fully initialized. For a
-   * persistent and/or asynchronous request, the `ApiRequest` (in this case,
-   * `post_device_register`) should live in a higher scope (e.g. as an instance
-   * property on `Device`) so the calling function can return while the request
-   * continues to run in the background. */
+  /**NOTE: `enroll` does not return until `post_device_register` allows itself
+   * to destruct. */
 }
 
 void Device::init() {
