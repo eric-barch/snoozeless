@@ -24,7 +24,8 @@ export const registerDeviceService = async (c: Context) => {
   const { data: insertData, error: insertError } = await supabaseClient
     .from("devices")
     .insert({ user_id: userId })
-    .select();
+    .select()
+    .single();
 
   if (insertError) {
     throw new HTTPException(400, { message: insertError.message });
