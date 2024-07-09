@@ -35,10 +35,24 @@ void Device::enroll_on_data(void *device_instance,
   cJSON *id_item = cJSON_GetObjectItem(json_response, "id");
   if (!cJSON_IsString(id_item) || (id_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `id` from JSON response");
-    return;
+  } else {
+    self->set_id(id_item->valuestring);
   }
 
-  self->set_id(id_item->valuestring);
+  cJSON *utc_offset_item = cJSON_GetObjectItem(json_response, "utc_offset");
+  if (!cJSON_IsNumber(utc_offset_item)) {
+    ESP_LOGE(TAG, "Failed to extract `utc_offset` from JSON response.");
+  } else {
+    self->current_time.set_utc_offset(utc_offset_item->valueint);
+  }
+
+  cJSON *time_format_item = cJSON_GetObjectItem(json_response, "time_format");
+  if (!cJSON_IsString(time_format_item) ||
+      (time_format_item->valuestring == NULL)) {
+    ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
+  } else {
+    self->current_time.set_format(time_format_item->valuestring);
+  }
 
   cJSON_Delete(json_response);
 }

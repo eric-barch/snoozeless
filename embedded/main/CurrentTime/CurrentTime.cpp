@@ -73,9 +73,7 @@ void CurrentTime::init() {
   esp_err_t err = this->nvs_manager.read_int("current_time", "cal_unix",
                                              this->unix_at_calibration);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG,
-             "Initial Unix at Calibration read from NVS: %d. Will still try to "
-             "calibrate.",
+    ESP_LOGI(TAG, "Initial Unix at Calibration read from NVS: %d",
              this->unix_at_calibration);
   } else {
     ESP_LOGW(TAG, "Error reading initial Unix at Calibration from NVS: %s",
@@ -85,9 +83,7 @@ void CurrentTime::init() {
   err = this->nvs_manager.read_int("current_time", "cal_ms",
                                    this->ms_at_calibration);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG,
-             "Initial Milliseconds at Calibration read from NVS: %d. Will "
-             "still try to calibrate.",
+    ESP_LOGI(TAG, "Initial Milliseconds at Calibration read from NVS: %d",
              this->ms_at_calibration);
   } else {
     ESP_LOGW(TAG,
