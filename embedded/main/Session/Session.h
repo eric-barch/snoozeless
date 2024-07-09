@@ -15,6 +15,9 @@ private:
   std::string auth_bearer_token;
   std::string refresh_token;
 
+  void set_auth_bearer_token(std::string auth_bearer_token);
+  void set_refresh_token(std::string refresh_token);
+
   void init();
 };
 
