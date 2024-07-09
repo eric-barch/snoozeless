@@ -6,6 +6,7 @@ idf_component_register(
                  "ApiRequest"
                  "CurrentTime"
                  "Device"
+                 "Display"
                  "NvsManager"
                  "Session"
                  "WifiManager"
