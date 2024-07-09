@@ -52,7 +52,7 @@ esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
     ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER");
     break;
   case HTTP_EVENT_ON_DATA:
-    ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA");
+    ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA");
 
     if (status_code < 200 || status_code >= 300) {
       ESP_LOGE(TAG, "Error response code: %d. Exiting event handler.",

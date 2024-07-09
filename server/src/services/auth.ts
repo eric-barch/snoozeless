@@ -17,7 +17,7 @@ export const refreshAuthService = async (c: Context) => {
     throw new HTTPException(400, { message: "Session not found." });
   }
 
-  const { access_token: accessToken, refresh_token: refreshToken } = session;
+  const { access_token, refresh_token } = session;
 
-  return { accessToken, refreshToken };
+  return { access_token, refresh_token };
 };

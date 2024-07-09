@@ -41,20 +41,20 @@ void Session::refresh_on_data(void *session_instance,
     return;
   }
 
-  cJSON *access_token_item = cJSON_GetObjectItem(json_response, "accessToken");
+  cJSON *access_token_item = cJSON_GetObjectItem(json_response, "access_token");
   if (!cJSON_IsString(access_token_item) ||
       (access_token_item->valuestring == NULL)) {
-    ESP_LOGE(TAG, "Failed to extract `accessToken` from JSON response");
+    ESP_LOGE(TAG, "Failed to extract `access_token` from JSON response.");
     return;
   }
 
   self->set_auth_bearer_token(access_token_item->valuestring);
 
   cJSON *refresh_token_item =
-      cJSON_GetObjectItem(json_response, "refreshToken");
+      cJSON_GetObjectItem(json_response, "refresh_token");
   if (!cJSON_IsString(refresh_token_item) ||
       (refresh_token_item->valuestring == NULL)) {
-    ESP_LOGE(TAG, "Failed to extract `refreshToken` from JSON response");
+    ESP_LOGE(TAG, "Failed to extract `refresh_token` from JSON response.");
     return;
   }
 
