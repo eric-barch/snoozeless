@@ -9,7 +9,6 @@ public:
 
   std::string get_auth_bearer_token();
   std::string get_refresh_token();
-  void keep_active();
 
 private:
   NvsManager &nvs_manager;
