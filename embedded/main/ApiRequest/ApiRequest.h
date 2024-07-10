@@ -29,7 +29,7 @@ private:
   OnDataCallback on_data;
   SemaphoreHandle_t is_open;
 
-  static esp_err_t http_event_handler(esp_http_client_event_t *event);
+  static esp_err_t handle_http_event(esp_http_client_event_t *event);
   static void send_request_task(void *pvParameters);
 };
 

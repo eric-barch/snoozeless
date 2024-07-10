@@ -30,10 +30,8 @@ private:
   void set_ssid(std::string ssid);
   void set_password(std::string password);
 
-  static void wifi_event_handler(void *arg, esp_event_base_t event_base,
-                                 int32_t event_id, void *event_data);
-
-  void init();
+  static void handle_wifi_event(void *arg, esp_event_base_t event_base,
+                                int32_t event_id, void *event_data);
 };
 
 #endif // WIFI_MANAGER_H

@@ -9,13 +9,31 @@ static const char *TAG = "WifiManager";
 
 WifiManager::WifiManager(NvsManager &nvs_manager)
     : nvs_manager(nvs_manager), wifi_event_group(nullptr), retry_count(0) {
-  this->init();
+  esp_err_t err =
+      this->nvs_manager.read_string("wifi_cred", "ssid", this->ssid);
+  if (err == ESP_OK) {
+    ESP_LOGI(TAG, "SSID read from NVS: %s", this->ssid.c_str());
+  } else {
+    ESP_LOGW(TAG, "Error reading SSID from NVS. Using config.");
+    this->set_ssid(CONFIG_WIFI_SSID);
+  }
+
+  err = this->nvs_manager.read_string("wifi_cred", "password", this->password);
+  if (err == ESP_OK) {
+    ESP_LOGI(TAG, "Password read from NVS: %s", this->password.c_str());
+  } else {
+    ESP_LOGW(TAG, "Error reading password from NVS. Using config.");
+    this->set_password(CONFIG_WIFI_PASSWORD);
+  }
+
+  this->wifi_event_group = xEventGroupCreate();
 }
 
 WifiManager::~WifiManager() {
   if (wifi_event_group) {
     vEventGroupDelete(wifi_event_group);
   }
+  ESP_LOGI(TAG, "Destruct.");
 }
 
 void WifiManager::set_ssid(std::string ssid) {
@@ -30,8 +48,8 @@ void WifiManager::set_password(std::string password) {
   ESP_LOGI(TAG, "Set Password: %s", ssid.c_str());
 }
 
-void WifiManager::wifi_event_handler(void *arg, esp_event_base_t event_base,
-                                     int32_t event_id, void *event_data) {
+void WifiManager::handle_wifi_event(void *arg, esp_event_base_t event_base,
+                                    int32_t event_id, void *event_data) {
   WifiManager *wifi_manager = static_cast<WifiManager *>(arg);
 
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
@@ -54,27 +72,6 @@ void WifiManager::wifi_event_handler(void *arg, esp_event_base_t event_base,
   }
 }
 
-void WifiManager::init() {
-  esp_err_t err =
-      this->nvs_manager.read_string("wifi_cred", "ssid", this->ssid);
-  if (err == ESP_OK) {
-    ESP_LOGI(TAG, "SSID read from NVS: %s", this->ssid.c_str());
-  } else {
-    ESP_LOGW(TAG, "Error reading SSID from NVS. Using config.");
-    this->set_ssid(CONFIG_WIFI_SSID);
-  }
-
-  err = this->nvs_manager.read_string("wifi_cred", "password", this->password);
-  if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Password read from NVS: %s", this->password.c_str());
-  } else {
-    ESP_LOGW(TAG, "Error reading password from NVS. Using config.");
-    this->set_password(CONFIG_WIFI_PASSWORD);
-  }
-
-  this->wifi_event_group = xEventGroupCreate();
-}
-
 esp_err_t WifiManager::connect() {
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -84,10 +81,10 @@ esp_err_t WifiManager::connect() {
   ESP_ERROR_CHECK(esp_wifi_init(&wifi_init_config));
 
   ESP_ERROR_CHECK(esp_event_handler_instance_register(
-      WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiManager::wifi_event_handler, this,
+      WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiManager::handle_wifi_event, this,
       NULL));
   ESP_ERROR_CHECK(esp_event_handler_instance_register(
-      IP_EVENT, IP_EVENT_STA_GOT_IP, &WifiManager::wifi_event_handler, this,
+      IP_EVENT, IP_EVENT_STA_GOT_IP, &WifiManager::handle_wifi_event, this,
       NULL));
 
   wifi_config_t wifi_config = {};

@@ -6,12 +6,21 @@
 
 static const char *TAG = "NvsManager";
 
-NvsManager::NvsManager() { this->init(); }
+NvsManager::NvsManager() {
+  esp_err_t err = nvs_flash_init();
+  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    err = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(err);
+}
 
 NvsManager::~NvsManager() {
   if (nvs_handle != 0) {
     nvs_close(nvs_handle);
   }
+  ESP_LOGI(TAG, "Destruct.");
 }
 
 esp_err_t NvsManager::write_string(const std::string &nvs_namespace,
@@ -131,14 +140,4 @@ esp_err_t NvsManager::erase_key(const std::string &nvs_namespace,
 
   nvs_close(nvs_handle);
   return err;
-}
-
-void NvsManager::init() {
-  esp_err_t err = nvs_flash_init();
-  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
-      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    err = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(err);
 }

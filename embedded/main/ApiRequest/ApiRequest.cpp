@@ -28,9 +28,10 @@ ApiRequest::ApiRequest(Session &session, const esp_http_client_method_t method,
 ApiRequest::~ApiRequest() {
   xSemaphoreTake(this->is_open, portMAX_DELAY);
   vSemaphoreDelete(this->is_open);
+  ESP_LOGI(TAG, "Destruct.");
 }
 
-esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
+esp_err_t ApiRequest::handle_http_event(esp_http_client_event_t *event) {
   ApiRequest *api_request = static_cast<ApiRequest *>(event->user_data);
   void *caller = api_request->caller;
   OnDataCallback on_data = api_request->on_data;
@@ -99,7 +100,7 @@ void ApiRequest::send_request_task(void *pvParameters) {
       .query = api_request->query.c_str(),
       .method = api_request->method,
       .timeout_ms = api_request->timeout_ms,
-      .event_handler = &ApiRequest::http_event_handler,
+      .event_handler = &ApiRequest::handle_http_event,
       .transport_type = HTTP_TRANSPORT_OVER_SSL,
       .buffer_size = MAX_HTTP_RX_BUFFER,
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
@@ -110,10 +111,9 @@ void ApiRequest::send_request_task(void *pvParameters) {
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
 
-  std::string auth_bearer_header =
-      "Bearer " + api_request->session.get_auth_bearer_token();
-  esp_http_client_set_header(client, "Authorization",
-                             auth_bearer_header.c_str());
+  std::string access_header =
+      "Bearer " + api_request->session.get_access_token();
+  esp_http_client_set_header(client, "Authorization", access_header.c_str());
 
   std::string refresh_token_header = api_request->session.get_refresh_token();
   esp_http_client_set_header(client, "Refresh-Token",

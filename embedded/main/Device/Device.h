@@ -10,6 +10,7 @@ class Device {
 public:
   Device(NvsManager &nvs_manager, Session &session, CurrentTime &current_time,
          Display &display);
+  ~Device();
 
 private:
   NvsManager &nvs_manager;
@@ -23,7 +24,6 @@ private:
   static void enroll_on_data(void *device_instance,
                              const std::string &response);
   void enroll();
-  void init();
 };
 
 #endif // DEVICE_H
