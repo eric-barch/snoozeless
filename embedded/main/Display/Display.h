@@ -8,6 +8,7 @@ public:
   Display(CurrentTime &current_time);
 
   void set_brightness(int brightness);
+  void show_current_time();
 
 private:
   CurrentTime &current_time;

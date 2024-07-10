@@ -27,5 +27,5 @@ extern "C" void app_main(void) {
   // device.subscribe();
   // current_time.subscribe();
 
-  // display.show_current_time();
+  display.show_current_time();
 }

@@ -1,6 +1,10 @@
 #include "Display.h"
 #include "esp_log.h"
 #include <cstring>
+// extern "C" {
+#include "ht16k33.h"
+#include "i2cdev.h"
+// }
 
 static const char *TAG = "Display";
 
@@ -43,4 +47,34 @@ void Display::set_minor_interval(const std::string &minor_interval) {
 void Display::init() {
   this->set_major_interval("TE");
   this->set_minor_interval("ST");
+}
+
+void Display::show_current_time() {
+  ESP_ERROR_CHECK(i2cdev_init());
+
+  i2c_dev_t dev;
+  memset(&dev, 0, sizeof(i2c_dev_t));
+
+  gpio_num_t sda = static_cast<gpio_num_t>(CONFIG_I2C_MASTER_SDA);
+  gpio_num_t scl = static_cast<gpio_num_t>(CONFIG_I2C_MASTER_SCL);
+  i2c_port_t port = static_cast<i2c_port_t>(0);
+
+  ESP_ERROR_CHECK(
+      ht16k33_init_desc(&dev, port, sda, scl, HT16K33_DEFAULT_ADDR));
+  ESP_ERROR_CHECK(ht16k33_init(&dev));
+  ESP_ERROR_CHECK(ht16k33_display_setup(&dev, 1, HTK16K33_F_0HZ));
+
+  // while (1) {
+  //   for (int hours = 0; hours < 24; hours++) {
+  //     for (int minutes = 0; minutes < 60; minutes++) {
+  //       // set_display(&dev, hours, minutes);
+  //       vTaskDelay(pdMS_TO_TICKS(100));
+  //     }
+  //   }
+  // }
+
+  ESP_ERROR_CHECK(ht16k33_free_desc(&dev));
+  memset(&dev, 0, sizeof(i2c_dev_t));
+
+  ESP_LOGI(TAG, "Completed `show_current_time`");
 }
