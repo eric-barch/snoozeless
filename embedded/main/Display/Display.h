@@ -7,6 +7,8 @@ class Display {
 public:
   Display(CurrentTime &current_time);
 
+  void set_brightness(int brightness);
+
 private:
   CurrentTime &current_time;
   bool top_indicator;

@@ -10,8 +10,9 @@
 static const char *TAG = "Device";
 
 Device::Device(NvsManager &nvs_manager, Session &session,
-               CurrentTime &current_time)
-    : nvs_manager(nvs_manager), session(session), current_time(current_time) {
+               CurrentTime &current_time, Display &display)
+    : nvs_manager(nvs_manager), session(session), current_time(current_time),
+      display(display) {
   this->init();
 }
 
@@ -52,6 +53,13 @@ void Device::enroll_on_data(void *device_instance,
     ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
   } else {
     self->current_time.set_format(time_format_item->valuestring);
+  }
+
+  cJSON *brightness_item = cJSON_GetObjectItem(json_response, "brightness");
+  if (!cJSON_IsNumber(brightness_item)) {
+    ESP_LOGE(TAG, "Failed to extract `brightness` from JSON response.");
+  } else {
+    self->display.set_brightness(brightness_item->valueint);
   }
 
   cJSON_Delete(json_response);
