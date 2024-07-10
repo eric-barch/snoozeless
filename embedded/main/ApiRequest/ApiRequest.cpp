@@ -54,12 +54,6 @@ esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
   case HTTP_EVENT_ON_DATA:
     ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA");
 
-    if (status_code < 200 || status_code >= 300) {
-      ESP_LOGE(TAG, "Error response code: %d. Exiting event handler.",
-               status_code);
-      break;
-    }
-
     if (event->data_len <= 0) {
       ESP_LOGE(TAG, "No data. Exiting event handler.");
       break;
@@ -67,6 +61,16 @@ esp_err_t ApiRequest::http_event_handler(esp_http_client_event_t *event) {
 
     output_buffer.append(static_cast<const char *>(event->data),
                          event->data_len);
+
+    if (status_code < 200 || status_code >= 300) {
+      ESP_LOGW(TAG, "output_buffer: %s", output_buffer.c_str());
+      ESP_LOGE(
+          TAG,
+          "Error response code: %d. output_buffer: %s. Exiting event handler.",
+          status_code, output_buffer.c_str());
+      break;
+    }
+
     on_data(caller, output_buffer);
     break;
   case HTTP_EVENT_ON_FINISH:
@@ -89,7 +93,7 @@ void ApiRequest::send_request_task(void *pvParameters) {
   ApiRequest *api_request = static_cast<ApiRequest *>(pvParameters);
 
   esp_http_client_config_t config = {
-      .host = "192.168.1.6",
+      .host = "192.168.1.8",
       .port = 3000,
       .path = api_request->path.c_str(),
       .query = api_request->query.c_str(),
