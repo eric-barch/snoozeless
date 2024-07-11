@@ -3,6 +3,7 @@
 
 #include "NvsManager.h"
 #include "Session.h"
+#include <ctime>
 #include <string>
 
 class CurrentTime {
@@ -12,6 +13,7 @@ public:
 
   void set_utc_offset(int utc_offset);
   void set_format(std::string);
+  std::tm get_time();
 
 private:
   NvsManager &nvs_manager;

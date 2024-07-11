@@ -5,6 +5,7 @@
 #include "cJSON.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
+#include <ctime>
 
 static const char *TAG = "CurrentTime";
 
@@ -78,6 +79,15 @@ void CurrentTime::set_format(std::string format) {
   this->format = format;
   this->nvs_manager.write_string("current_time", "format", format);
   ESP_LOGI(TAG, "Set format: %s", format.c_str());
+}
+
+std::tm CurrentTime::get_time() {
+  int seconds_since_calibration =
+      (esp_log_timestamp() - this->ms_at_calibration) / 1000;
+  std::time_t unix_time = this->unix_at_calibration + seconds_since_calibration;
+  std::tm time;
+  localtime_r(&unix_time, &time);
+  return time;
 }
 
 void CurrentTime::calibrate_on_data(void *current_time_instance,

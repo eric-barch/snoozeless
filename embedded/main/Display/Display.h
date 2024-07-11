@@ -14,6 +14,7 @@ public:
   void set_brightness(uint8_t brightness);
 
   void count();
+  void print_current_time();
 
 private:
   NvsManager &nvs_manager;
@@ -48,6 +49,7 @@ private:
 
   void print();
   static void count_task(void *pvParameters);
+  static void print_current_time_task(void *pvParameters);
 };
 
 #endif

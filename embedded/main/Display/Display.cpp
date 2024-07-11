@@ -1,8 +1,11 @@
 #include "Display.h"
 #include "esp_log.h"
+#include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
 #include "ht16k33.h"
 #include "i2cdev.h"
 #include <cstring>
+#include <ctime>
 
 static const char *TAG = "Display";
 
@@ -94,22 +97,22 @@ void Display::print() {
 }
 
 void Display::count_task(void *pvParameters) {
-  Display *display = static_cast<Display *>(pvParameters);
+  Display *self = static_cast<Display *>(pvParameters);
 
   int hours;
   int minutes;
   char hours_str[3];
   char minutes_str[3];
 
-  while (1) {
+  while (true) {
     for (hours = 0; hours < 24; hours++) {
       for (minutes = 0; minutes < 60; minutes++) {
         snprintf(hours_str, sizeof(hours_str), "%d", hours);
         snprintf(minutes_str, sizeof(minutes_str), "%02d", minutes);
 
-        display->set_major_interval(hours_str);
-        display->set_minor_interval(minutes_str);
-        display->print();
+        self->set_major_interval(hours_str);
+        self->set_minor_interval(minutes_str);
+        self->print();
 
         vTaskDelay(pdMS_TO_TICKS(10));
       }
@@ -119,4 +122,30 @@ void Display::count_task(void *pvParameters) {
 
 void Display::count() {
   xTaskCreate(Display::count_task, "count_task", 1024, this, 5, NULL);
+}
+
+void Display::print_current_time_task(void *pvParameters) {
+  Display *self = static_cast<Display *>(pvParameters);
+
+  std::tm time;
+  char hours_str[3];
+  char minutes_str[3];
+
+  while (true) {
+    time = self->current_time.get_time();
+
+    snprintf(hours_str, sizeof(hours_str), "%d", time.tm_hour);
+    snprintf(minutes_str, sizeof(minutes_str), "%02d", time.tm_min);
+
+    self->set_major_interval(hours_str);
+    self->set_minor_interval(minutes_str);
+    self->print();
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+}
+
+void Display::print_current_time() {
+  xTaskCreate(Display::print_current_time_task, "print_current_time_task", 2048,
+              this, 5, NULL);
 }
