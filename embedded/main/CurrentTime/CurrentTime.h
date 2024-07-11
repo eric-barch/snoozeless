@@ -11,8 +11,8 @@ public:
   CurrentTime(NvsManager &nvs_manager, Session &session);
   ~CurrentTime();
 
-  void set_utc_offset(int utc_offset);
-  void set_format(std::string);
+  void set_time_zone(const std::string &time_zone);
+  void set_format(const std::string &format);
   std::tm get_time();
 
 private:
@@ -20,7 +20,7 @@ private:
   Session &session;
   int unix_at_calibration;
   int ms_at_calibration;
-  int utc_offset;
+  std::string time_zone;
   std::string format;
 
   void set_unix_at_calibration(int unix_at_calibration);

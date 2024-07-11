@@ -11,9 +11,6 @@ static const char *TAG = "CurrentTime";
 
 CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
     : nvs_manager(nvs_manager), session(session) {
-  /**We'll always calibrate the time on `init`, but we may as well read any
-   * saved calibration here. If something goes wrong with the calibration API
-   * request, at least we'll have the real time at last shutdown. */
   esp_err_t err = this->nvs_manager.read_int("current_time", "cal_unix",
                                              this->unix_at_calibration);
   if (err == ESP_OK) {
@@ -35,13 +32,12 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
              esp_err_to_name(err));
   }
 
-  err = this->nvs_manager.read_int("current_time", "utc_offset",
-                                   this->utc_offset);
+  err = this->nvs_manager.read_string("current_time", "time_zone",
+                                      this->time_zone);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "UTC Offset read from NVS: %d", this->utc_offset);
+    ESP_LOGI(TAG, "Time zone read from NVS: %s", this->time_zone.c_str());
   } else {
-    ESP_LOGW(TAG, "Error reading UTC Offset from NVS: %s",
-             esp_err_to_name(err));
+    ESP_LOGW(TAG, "Error reading time zone from NVS: %s", esp_err_to_name(err));
   }
 
   err = this->nvs_manager.read_string("current_time", "format", this->format);
@@ -69,13 +65,14 @@ void CurrentTime::set_ms_at_calibration(int ms_at_calibration) {
   ESP_LOGI(TAG, "Set Milliseconds at Calibration: %d", ms_at_calibration);
 }
 
-void CurrentTime::set_utc_offset(int utc_offset) {
-  this->utc_offset = utc_offset;
-  this->nvs_manager.write_int("current_time", "utc_offset", utc_offset);
-  ESP_LOGI(TAG, "Set UTC Offset: %d", utc_offset);
+void CurrentTime::set_time_zone(const std::string &time_zone) {
+  setenv("TZ", time_zone.c_str(), 1);
+  tzset();
+  this->nvs_manager.write_string("current_time", "time_zone", time_zone);
+  ESP_LOGI(TAG, "Set time zone: %s", time_zone.c_str());
 }
 
-void CurrentTime::set_format(std::string format) {
+void CurrentTime::set_format(const std::string &format) {
   this->format = format;
   this->nvs_manager.write_string("current_time", "format", format);
   ESP_LOGI(TAG, "Set format: %s", format.c_str());

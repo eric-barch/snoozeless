@@ -50,11 +50,12 @@ void Device::enroll_on_data(void *device_instance,
     self->set_id(id_item->valuestring);
   }
 
-  cJSON *utc_offset_item = cJSON_GetObjectItem(json_response, "utc_offset");
-  if (!cJSON_IsNumber(utc_offset_item)) {
-    ESP_LOGE(TAG, "Failed to extract `utc_offset` from JSON response.");
+  cJSON *time_zone_item = cJSON_GetObjectItem(json_response, "time_zone");
+  if (!cJSON_IsString(time_zone_item) ||
+      (time_zone_item->valuestring == NULL)) {
+    ESP_LOGE(TAG, "Failed to extract `time_zone` from JSON response.");
   } else {
-    self->current_time.set_utc_offset(utc_offset_item->valueint);
+    self->current_time.set_time_zone(time_zone_item->valuestring);
   }
 
   cJSON *time_format_item = cJSON_GetObjectItem(json_response, "time_format");

@@ -4,7 +4,6 @@
 #include "NvsManager.h"
 #include "Session.h"
 #include "WifiManager.h"
-#include "esp_log.h"
 #include "freertos/idf_additions.h"
 
 static const char *TAG = "main";
@@ -30,8 +29,6 @@ extern "C" void app_main(void) {
   // current_time.subscribe();
 
   display.print_current_time();
-
-  ESP_LOGI(TAG, "End.");
 
   while (true) {
     vTaskDelay(portMAX_DELAY);
