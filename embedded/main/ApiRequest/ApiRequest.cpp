@@ -15,12 +15,12 @@
 
 static const char *TAG = "ApiRequest";
 
-ApiRequest::ApiRequest(Session &session, const esp_http_client_method_t method,
+ApiRequest::ApiRequest(Session &session, void *caller, OnDataCallback on_data,
+                       const esp_http_client_method_t method,
                        const int timeout_ms, const std::string &path,
-                       const std::string &query, void *caller,
-                       OnDataCallback on_data)
-    : session(session), method(method), timeout_ms(timeout_ms), path(path),
-      query(query), caller(caller), on_data(on_data) {
+                       const std::string &query)
+    : session(session), caller(caller), on_data(on_data), method(method),
+      timeout_ms(timeout_ms), path(path), query(query) {
   this->is_open = xSemaphoreCreateBinary();
   xSemaphoreGive(this->is_open);
 }
@@ -91,31 +91,30 @@ esp_err_t ApiRequest::handle_http_event(esp_http_client_event_t *event) {
 }
 
 void ApiRequest::send_request_task(void *pvParameters) {
-  ApiRequest *api_request = static_cast<ApiRequest *>(pvParameters);
+  ApiRequest *self = static_cast<ApiRequest *>(pvParameters);
 
   esp_http_client_config_t config = {
       .host = "192.168.1.8",
       .port = 3000,
-      .path = api_request->path.c_str(),
-      .query = api_request->query.c_str(),
-      .method = api_request->method,
-      .timeout_ms = api_request->timeout_ms,
+      .path = self->path.c_str(),
+      .query = self->query.c_str(),
+      .method = self->method,
+      .timeout_ms = self->timeout_ms,
       .event_handler = &ApiRequest::handle_http_event,
       .transport_type = HTTP_TRANSPORT_OVER_SSL,
       .buffer_size = MAX_HTTP_RX_BUFFER,
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
-      .user_data = api_request,
+      .user_data = self,
       .is_async = true,
       .crt_bundle_attach = esp_crt_bundle_attach,
   };
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
 
-  std::string access_header =
-      "Bearer " + api_request->session.get_access_token();
+  std::string access_header = "Bearer " + self->session.get_access_token();
   esp_http_client_set_header(client, "Authorization", access_header.c_str());
 
-  std::string refresh_token_header = api_request->session.get_refresh_token();
+  std::string refresh_token_header = self->session.get_refresh_token();
   esp_http_client_set_header(client, "Refresh-Token",
                              refresh_token_header.c_str());
 
@@ -132,7 +131,7 @@ void ApiRequest::send_request_task(void *pvParameters) {
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
 
-  xSemaphoreGive(api_request->is_open);
+  xSemaphoreGive(self->is_open);
   vTaskDelete(NULL);
 }
 

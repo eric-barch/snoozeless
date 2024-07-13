@@ -90,7 +90,6 @@ std::tm CurrentTime::get_time() {
 void CurrentTime::calibrate_on_data(void *current_time_instance,
                                     const std::string &response) {
   CurrentTime *self = static_cast<CurrentTime *>(current_time_instance);
-  ESP_LOGI(TAG, "Response: %s", response.c_str());
 
   cJSON *json_response = cJSON_Parse(response.c_str());
   if (!json_response) {
@@ -109,8 +108,7 @@ void CurrentTime::calibrate_on_data(void *current_time_instance,
 }
 
 void CurrentTime::calibrate() {
-  ApiRequest get_unix_time =
-      ApiRequest(session, HTTP_METHOD_GET, 60000, "/unix-time", "", this,
-                 calibrate_on_data);
+  ApiRequest get_unix_time = ApiRequest(session, this, calibrate_on_data,
+                                        HTTP_METHOD_GET, 60000, "/unix-time");
   get_unix_time.send_request();
 }

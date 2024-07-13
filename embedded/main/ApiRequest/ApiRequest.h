@@ -11,22 +11,21 @@ typedef void (*OnDataCallback)(void *caller, const std::string &response);
 
 class ApiRequest {
 public:
-  ApiRequest(Session &session, const esp_http_client_method_t method,
-             const int timeout_ms, const std::string &path,
-             const std::string &query = "", void *caller = nullptr,
-             OnDataCallback on_data = nullptr);
+  ApiRequest(Session &session, void *caller, OnDataCallback on_data,
+             const esp_http_client_method_t method, const int timeout_ms,
+             const std::string &path, const std::string &query = "");
   ~ApiRequest();
 
   void send_request();
 
 private:
   Session &session;
+  void *caller;
+  OnDataCallback on_data;
   esp_http_client_method_t method;
   int timeout_ms;
   std::string path;
   std::string query;
-  void *caller;
-  OnDataCallback on_data;
   SemaphoreHandle_t is_open;
 
   static esp_err_t handle_http_event(esp_http_client_event_t *event);

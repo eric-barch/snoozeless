@@ -35,7 +35,6 @@ void Device::set_id(std::string id) {
 void Device::enroll_on_data(void *device_instance,
                             const std::string &response) {
   Device *self = static_cast<Device *>(device_instance);
-  ESP_LOGI(TAG, "Response: %s", response.c_str());
 
   cJSON *json_response = cJSON_Parse(response.c_str());
   if (!json_response) {
@@ -79,7 +78,7 @@ void Device::enroll_on_data(void *device_instance,
 /**NOTE: Does not return until `post_device_register` destructs. */
 void Device::enroll() {
   ApiRequest post_device_register =
-      ApiRequest(session, HTTP_METHOD_POST, 60000, "/device/register", "", this,
-                 enroll_on_data);
+      ApiRequest(session, this, enroll_on_data, HTTP_METHOD_POST, 60000,
+                 "/device/register");
   post_device_register.send_request();
 }

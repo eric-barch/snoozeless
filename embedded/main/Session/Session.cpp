@@ -56,7 +56,6 @@ std::string Session::get_refresh_token() { return this->refresh_token; }
 void Session::refresh_on_data(void *session_instance,
                               const std::string &response) {
   Session *self = static_cast<Session *>(session_instance);
-  ESP_LOGI(TAG, "Response: %s", response.c_str());
 
   cJSON *json_response = cJSON_Parse(response.c_str());
   if (!json_response) {
@@ -86,8 +85,7 @@ void Session::refresh_on_data(void *session_instance,
 
 /**NOTE: Does not return until `post_auth_refresh` destructs. */
 void Session::refresh() {
-  ApiRequest post_auth_refresh =
-      ApiRequest(*this, HTTP_METHOD_POST, 60000, "/auth/refresh", "", this,
-                 refresh_on_data);
+  ApiRequest post_auth_refresh = ApiRequest(
+      *this, this, refresh_on_data, HTTP_METHOD_POST, 60000, "/auth/refresh");
   post_auth_refresh.send_request();
 }
