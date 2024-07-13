@@ -8,7 +8,13 @@ export const createAuthenticatedClient = async (
   accessToken: string,
   refreshToken: string,
 ): Promise<SupabaseClient> => {
-  const supabaseClient = createClient(supabaseUrl, supabaseKey);
+  const supabaseClient = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+  });
 
   const { error } = await supabaseClient.auth.setSession({
     access_token: accessToken,
@@ -16,6 +22,7 @@ export const createAuthenticatedClient = async (
   });
 
   if (error) {
+    console.error("Error setting session: ", error);
     throw new HTTPException(401, { message: error.message });
   }
 

@@ -4,16 +4,17 @@ import { HTTPException } from "hono/http-exception";
 export const refreshAuthService = async (c: Context) => {
   const supabaseClient = c.get("supabaseClient");
 
-  const { data: sessionData, error: sessionError } =
-    await supabaseClient.auth.refreshSession();
+  const { data, error } = await supabaseClient.auth.refreshSession();
 
-  if (sessionError) {
-    throw new HTTPException(400, { message: sessionError.message });
+  if (error) {
+    console.error("Error refreshing session: ", error);
+    throw new HTTPException(400, { message: error.message });
   }
 
-  const session = sessionData.session;
+  const session = data.session;
 
   if (!session) {
+    console.error("Session not found.");
     throw new HTTPException(400, { message: "Session not found." });
   }
 

@@ -2,6 +2,7 @@ import { createAuthenticatedClient } from "@/utils/supabase";
 import { SSEStreamingApi } from "hono/streaming";
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 export const registerDeviceService = async (c: Context) => {
   const supabaseClient = c.get("supabaseClient");
@@ -39,7 +40,7 @@ export const getDeviceStateService = async (
   stream: SSEStreamingApi,
   deviceId: string,
 ) => {
-  const supabaseClient = c.get("supabaseClient");
+  const supabaseClient: SupabaseClient = c.get("supabaseClient");
 
   const deviceStateChannel = supabaseClient
     .channel("device-state-updates")
