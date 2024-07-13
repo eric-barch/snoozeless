@@ -25,6 +25,17 @@ Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
                                     HT16K33_DEFAULT_ADDR));
   ESP_ERROR_CHECK(ht16k33_init(&(this->ht16k33)));
   ESP_ERROR_CHECK(ht16k33_display_setup(&(this->ht16k33), 1, HTK16K33_F_0HZ));
+
+  int brightness;
+  esp_err_t err =
+      this->nvs_manager.read_int("display", "brightness", brightness);
+  if (err == ESP_OK) {
+    this->set_brightness(brightness);
+    ESP_LOGI(TAG, "Brightness read from NVS: %d", brightness);
+  } else {
+    ESP_LOGW(TAG, "Error reading brightness from NVS: %s",
+             esp_err_to_name(err));
+  }
 }
 
 Display::~Display() {
@@ -78,7 +89,7 @@ void Display::print() {
   memset(this->ht16k33_ram, 0, sizeof(this->ht16k33_ram));
 
   if (major_interval[1] == '\0') {
-    this->ht16k33_ram[0] = 0; // Blank
+    this->ht16k33_ram[0] = 0;
     this->ht16k33_ram[2] = this->value_to_segments[major_interval[0] - '0'];
   } else {
     this->ht16k33_ram[0] = this->value_to_segments[major_interval[0] - '0'];
@@ -86,7 +97,7 @@ void Display::print() {
   }
 
   if (minor_interval[1] == '\0') {
-    this->ht16k33_ram[6] = 0; // Blank
+    this->ht16k33_ram[6] = 0;
     this->ht16k33_ram[8] = this->value_to_segments[minor_interval[0] - '0'];
   } else {
     this->ht16k33_ram[6] = this->value_to_segments[minor_interval[0] - '0'];
