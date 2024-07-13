@@ -11,25 +11,27 @@
 static const char *TAG = "Session";
 
 Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
+  std::string access_token;
   esp_err_t err =
-      this->nvs_manager.read_string("session", "access", this->access_token);
+      this->nvs_manager.read_string("session", "access", access_token);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Access token read from NVS: %s", this->access_token.c_str());
+    this->set_access_token(access_token);
+    ESP_LOGI(TAG, "Access token read from NVS: %s", access_token.c_str());
   } else {
-    ESP_LOGW(TAG, "Error reading access token from NVS: %s. Using config.",
-             esp_err_to_name(err));
     this->set_access_token(CONFIG_ACCESS_TOKEN);
+    ESP_LOGW(TAG, "Error reading access token from NVS: %s. Used config.",
+             esp_err_to_name(err));
   }
 
-  err =
-      this->nvs_manager.read_string("session", "refresh", this->refresh_token);
+  std::string refresh_token;
+  err = this->nvs_manager.read_string("session", "refresh", refresh_token);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Refresh token read from NVS: %s",
-             this->refresh_token.c_str());
+    this->set_refresh_token(refresh_token);
+    ESP_LOGI(TAG, "Refresh token read from NVS: %s", refresh_token.c_str());
   } else {
-    ESP_LOGW(TAG, "Error reading refresh token from NVS: %s. Using config.",
-             esp_err_to_name(err));
     this->set_refresh_token(CONFIG_REFRESH_TOKEN);
+    ESP_LOGW(TAG, "Error reading refresh token from NVS: %s. Used config.",
+             esp_err_to_name(err));
   }
 
   this->refresh();

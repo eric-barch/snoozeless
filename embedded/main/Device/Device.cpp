@@ -13,13 +13,13 @@ Device::Device(NvsManager &nvs_manager, Session &session,
                CurrentTime &current_time, Display &display)
     : nvs_manager(nvs_manager), session(session), current_time(current_time),
       display(display) {
-  esp_err_t err = this->nvs_manager.read_string("device", "id", this->id);
-
+  std::string id;
+  esp_err_t err = this->nvs_manager.read_string("device", "id", id);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Device ID read from NVS: %s", this->id.c_str());
+    this->set_id(id);
+    ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
   } else {
-    ESP_LOGW(TAG, "Error reading Device ID from NVS: %s. Enrolling device.",
-             esp_err_to_name(err));
+    ESP_LOGW(TAG, "Error reading ID from NVS: %s.", esp_err_to_name(err));
     this->enroll();
   }
 }

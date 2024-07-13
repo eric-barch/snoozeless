@@ -1,4 +1,4 @@
-#include "CurrentTime/CurrentTime.h"
+#include "CurrentTime.h"
 #include "ApiRequest.h"
 #include "NvsManager.h"
 #include "Session.h"
@@ -11,38 +11,44 @@ static const char *TAG = "CurrentTime";
 
 CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
     : nvs_manager(nvs_manager), session(session) {
+  int unix_at_calibration;
   esp_err_t err = this->nvs_manager.read_int("current_time", "cal_unix",
-                                             this->unix_at_calibration);
+                                             unix_at_calibration);
   if (err == ESP_OK) {
+    this->set_unix_at_calibration(unix_at_calibration);
     ESP_LOGI(TAG, "Initial Unix at Calibration read from NVS: %d",
-             this->unix_at_calibration);
+             unix_at_calibration);
   } else {
     ESP_LOGW(TAG, "Error reading initial Unix at Calibration from NVS: %s",
              esp_err_to_name(err));
   }
 
-  err = this->nvs_manager.read_int("current_time", "cal_ms",
-                                   this->ms_at_calibration);
+  int ms_at_calibration;
+  err = this->nvs_manager.read_int("current_time", "cal_ms", ms_at_calibration);
   if (err == ESP_OK) {
+    this->set_ms_at_calibration(ms_at_calibration);
     ESP_LOGI(TAG, "Initial Milliseconds at Calibration read from NVS: %d",
-             this->ms_at_calibration);
+             ms_at_calibration);
   } else {
     ESP_LOGW(TAG,
              "Error reading initial Milliseconds at Calibration from NVS: %s",
              esp_err_to_name(err));
   }
 
-  err = this->nvs_manager.read_string("current_time", "time_zone",
-                                      this->time_zone);
+  std::string time_zone;
+  err = this->nvs_manager.read_string("current_time", "time_zone", time_zone);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Time zone read from NVS: %s", this->time_zone.c_str());
+    this->set_time_zone(time_zone);
+    ESP_LOGI(TAG, "Time zone read from NVS: %s", time_zone.c_str());
   } else {
     ESP_LOGW(TAG, "Error reading time zone from NVS: %s", esp_err_to_name(err));
   }
 
-  err = this->nvs_manager.read_string("current_time", "format", this->format);
+  std::string format;
+  err = this->nvs_manager.read_string("current_time", "format", format);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Format read from NVS: %s", this->format.c_str());
+    this->set_format(format);
+    ESP_LOGI(TAG, "Format read from NVS: %s", format.c_str());
   } else {
     ESP_LOGW(TAG, "Error reading format from NVS: %s", esp_err_to_name(err));
   }
@@ -66,9 +72,10 @@ void CurrentTime::set_ms_at_calibration(int ms_at_calibration) {
 }
 
 void CurrentTime::set_time_zone(const std::string &time_zone) {
+  this->time_zone = time_zone;
+  this->nvs_manager.write_string("current_time", "time_zone", time_zone);
   setenv("TZ", time_zone.c_str(), 1);
   tzset();
-  this->nvs_manager.write_string("current_time", "time_zone", time_zone);
   ESP_LOGI(TAG, "Set time zone: %s", time_zone.c_str());
 }
 
