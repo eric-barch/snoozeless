@@ -55,9 +55,8 @@ void Session::set_refresh_token(std::string refresh_token) {
 
 std::string Session::get_refresh_token() { return this->refresh_token; }
 
-void Session::refresh_on_data(void *session_instance,
-                              const std::string &response) {
-  Session *self = static_cast<Session *>(session_instance);
+void Session::refresh_on_data(void *session, const std::string &response) {
+  Session *self = static_cast<Session *>(session);
 
   cJSON *json_response = cJSON_Parse(response.c_str());
   if (!json_response) {

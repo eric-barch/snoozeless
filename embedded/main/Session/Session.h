@@ -19,8 +19,7 @@ private:
   void set_access_token(std::string access_token);
   void set_refresh_token(std::string refresh_token);
 
-  static void refresh_on_data(void *session_instance,
-                              const std::string &response);
+  static void refresh_on_data(void *session, const std::string &response);
   void refresh();
 };
 

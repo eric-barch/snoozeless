@@ -21,8 +21,7 @@ private:
 
   void set_id(std::string);
 
-  static void enroll_on_data(void *device_instance,
-                             const std::string &response);
+  static void enroll_on_data(void *device, const std::string &response);
   void enroll();
 };
 

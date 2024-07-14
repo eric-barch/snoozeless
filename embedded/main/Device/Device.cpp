@@ -32,9 +32,8 @@ void Device::set_id(std::string id) {
   ESP_LOGI(TAG, "Set ID: %s", id.c_str());
 }
 
-void Device::enroll_on_data(void *device_instance,
-                            const std::string &response) {
-  Device *self = static_cast<Device *>(device_instance);
+void Device::enroll_on_data(void *device, const std::string &response) {
+  Device *self = static_cast<Device *>(device);
 
   cJSON *json_response = cJSON_Parse(response.c_str());
   if (!json_response) {

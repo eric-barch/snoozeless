@@ -94,9 +94,9 @@ std::tm CurrentTime::get_time() {
   return time;
 }
 
-void CurrentTime::calibrate_on_data(void *current_time_instance,
+void CurrentTime::calibrate_on_data(void *current_time,
                                     const std::string &response) {
-  CurrentTime *self = static_cast<CurrentTime *>(current_time_instance);
+  CurrentTime *self = static_cast<CurrentTime *>(current_time);
 
   cJSON *json_response = cJSON_Parse(response.c_str());
   if (!json_response) {
