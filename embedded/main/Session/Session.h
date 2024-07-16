@@ -2,6 +2,7 @@
 #define SESSION_H
 
 #include "NvsManager.h"
+#include "freertos/idf_additions.h"
 
 class Session {
 public:
@@ -15,6 +16,7 @@ private:
   NvsManager &nvs_manager;
   std::string access_token;
   std::string refresh_token;
+  SemaphoreHandle_t is_blocked;
 
   void set_access_token(std::string access_token);
   void set_refresh_token(std::string refresh_token);

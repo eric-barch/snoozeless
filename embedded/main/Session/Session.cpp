@@ -5,39 +5,43 @@
 #include "esp_err.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
+#include "freertos/idf_additions.h"
 #include "sdkconfig.h"
 #include <string>
 
 static const char *TAG = "Session";
 
 Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
+  this->is_blocked = xSemaphoreCreateBinary();
+  xSemaphoreGive(this->is_blocked);
+
   std::string access_token;
   esp_err_t err =
       this->nvs_manager.read_string("session", "access", access_token);
   if (err == ESP_OK) {
+    ESP_LOGI(TAG, "Access token read from NVS.");
     this->set_access_token(access_token);
-    ESP_LOGI(TAG, "Access token read from NVS: %s", access_token.c_str());
   } else {
-    this->set_access_token(CONFIG_ACCESS_TOKEN);
-    ESP_LOGW(TAG, "Error reading access token from NVS: %s. Used config.",
+    ESP_LOGW(TAG, "Error reading access token from NVS: %s. Using config.",
              esp_err_to_name(err));
+    this->set_access_token(CONFIG_ACCESS_TOKEN);
   }
 
   std::string refresh_token;
   err = this->nvs_manager.read_string("session", "refresh", refresh_token);
   if (err == ESP_OK) {
+    ESP_LOGI(TAG, "Refresh token read from NVS.");
     this->set_refresh_token(refresh_token);
-    ESP_LOGI(TAG, "Refresh token read from NVS: %s", refresh_token.c_str());
   } else {
-    this->set_refresh_token(CONFIG_REFRESH_TOKEN);
-    ESP_LOGW(TAG, "Error reading refresh token from NVS: %s. Used config.",
+    ESP_LOGW(TAG, "Error reading refresh token from NVS: %s. Using config.",
              esp_err_to_name(err));
+    this->set_refresh_token(CONFIG_REFRESH_TOKEN);
   }
 
   this->refresh();
 };
 
-Session::~Session() { ESP_LOGI(TAG, "Destruct."); }
+Session::~Session() {}
 
 void Session::set_access_token(std::string access_token) {
   this->access_token = access_token;
@@ -84,9 +88,11 @@ void Session::refresh_on_data(void *session, const std::string &response) {
   cJSON_Delete(json_response);
 }
 
-/**NOTE: Does not return until `post_auth_refresh` destructs. */
 void Session::refresh() {
-  ApiRequest post_auth_refresh = ApiRequest(
-      *this, this, refresh_on_data, HTTP_METHOD_POST, 60000, "/auth/refresh");
+  xSemaphoreTake(this->is_blocked, 0);
+  ApiRequest post_auth_refresh =
+      ApiRequest(*this, this, refresh_on_data, HTTP_METHOD_POST, 60000,
+                 "/auth/refresh", "", this->is_blocked);
   post_auth_refresh.send_request();
+  xSemaphoreTake(this->is_blocked, portMAX_DELAY);
 }
