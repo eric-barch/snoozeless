@@ -7,26 +7,27 @@
 #include "freertos/idf_additions.h"
 #include <string>
 
-typedef void (*OnDataCallback)(void *caller, const std::string &response);
+typedef void (*OnDataCallback)(void *calling_object, const std::string &data);
 
 class ApiRequest {
 public:
-  ApiRequest(Session &session, void *caller, OnDataCallback on_data,
+  ApiRequest(Session &session, void *calling_object, OnDataCallback on_data,
              const esp_http_client_method_t method, const int timeout_ms,
-             const std::string &path, const std::string &query = "");
+             const std::string &path, const std::string &query,
+             SemaphoreHandle_t calling_semaphore = nullptr);
   ~ApiRequest();
 
   void send_request();
 
 private:
   Session &session;
-  void *caller;
+  void *calling_object;
   OnDataCallback on_data;
   esp_http_client_method_t method;
   int timeout_ms;
   std::string path;
   std::string query;
-  SemaphoreHandle_t is_open;
+  SemaphoreHandle_t calling_semaphore;
 
   static esp_err_t handle_http_event(esp_http_client_event_t *event);
   static void send_request_task(void *pvParameters);

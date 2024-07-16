@@ -7,7 +7,6 @@
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
-#include "portmacro.h"
 #include <string>
 
 #define MAX_HTTP_RX_BUFFER 1024
@@ -15,26 +14,23 @@
 
 static const char *TAG = "ApiRequest";
 
-ApiRequest::ApiRequest(Session &session, void *caller, OnDataCallback on_data,
+ApiRequest::ApiRequest(Session &session, void *calling_object,
+                       OnDataCallback on_data,
                        const esp_http_client_method_t method,
                        const int timeout_ms, const std::string &path,
-                       const std::string &query)
-    : session(session), caller(caller), on_data(on_data), method(method),
-      timeout_ms(timeout_ms), path(path), query(query) {
-  this->is_open = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->is_open);
-}
+                       const std::string &query,
+                       SemaphoreHandle_t calling_semaphore)
+    : session(session), calling_object(calling_object), on_data(on_data),
+      method(method), timeout_ms(timeout_ms), path(path), query(query),
+      calling_semaphore(calling_semaphore) {}
 
-ApiRequest::~ApiRequest() {
-  xSemaphoreTake(this->is_open, portMAX_DELAY);
-  vSemaphoreDelete(this->is_open);
-  ESP_LOGI(TAG, "Destruct.");
-}
+ApiRequest::~ApiRequest() {}
 
 esp_err_t ApiRequest::handle_http_event(esp_http_client_event_t *event) {
-  ApiRequest *api_request = static_cast<ApiRequest *>(event->user_data);
-  void *caller = api_request->caller;
-  OnDataCallback on_data = api_request->on_data;
+  ApiRequest *self = static_cast<ApiRequest *>(event->user_data);
+
+  void *calling_object = self->calling_object;
+  OnDataCallback on_data = self->on_data;
 
   std::string output_buffer;
   int status_code = esp_http_client_get_status_code(event->client);
@@ -72,7 +68,7 @@ esp_err_t ApiRequest::handle_http_event(esp_http_client_event_t *event) {
       break;
     }
 
-    on_data(caller, output_buffer);
+    on_data(calling_object, output_buffer);
     break;
   case HTTP_EVENT_ON_FINISH:
     ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
@@ -118,8 +114,9 @@ void ApiRequest::send_request_task(void *pvParameters) {
   esp_http_client_set_header(client, "Refresh-Token",
                              refresh_token_header.c_str());
 
-  esp_err_t err;
+  ESP_LOGI(TAG, "sending request to %s", self->path.c_str());
 
+  esp_err_t err;
   while (true) {
     err = esp_http_client_perform(client);
     if (err != ESP_ERR_HTTP_EAGAIN) {
@@ -131,16 +128,14 @@ void ApiRequest::send_request_task(void *pvParameters) {
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
 
-  xSemaphoreGive(self->is_open);
+  if (self->calling_semaphore != nullptr) {
+    xSemaphoreGive(self->calling_semaphore);
+  }
+
   vTaskDelete(NULL);
 }
 
 void ApiRequest::send_request() {
-  xSemaphoreTake(this->is_open, 0);
-  BaseType_t err = xTaskCreate(&ApiRequest::send_request_task,
-                               "send_request_task", 8192, this, 5, NULL);
-  if (err != pdPASS) {
-    ESP_LOGE(TAG, "Failed to create send_request_task.");
-    xSemaphoreGive(this->is_open);
-  }
+  xTaskCreate(&ApiRequest::send_request_task, "send_request_task", 8192, this,
+              5, nullptr);
 }
