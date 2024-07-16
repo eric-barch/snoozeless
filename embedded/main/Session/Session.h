@@ -23,8 +23,8 @@ private:
 
   static void refresh_on_data(void *session, const std::string &response);
   void refresh();
-  static void keep_active_task(void *pvParameters);
-  void keep_active();
+  static void keep_refreshed_task(void *pvParameters);
+  void keep_refreshed();
 };
 
 #endif // SESSION_H

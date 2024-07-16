@@ -39,7 +39,7 @@ Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
   }
 
   this->refresh();
-  this->keep_active();
+  this->keep_refreshed();
 };
 
 Session::~Session() {}
@@ -98,7 +98,7 @@ void Session::refresh() {
   xSemaphoreTake(this->is_blocked, portMAX_DELAY);
 }
 
-void Session::keep_active_task(void *pvParameters) {
+void Session::keep_refreshed_task(void *pvParameters) {
   Session *self = static_cast<Session *>(pvParameters);
 
   while (true) {
@@ -110,6 +110,6 @@ void Session::keep_active_task(void *pvParameters) {
   vTaskDelete(NULL);
 }
 
-void Session::keep_active() {
-  xTaskCreate(Session::keep_active_task, "keep_active", 8192, this, 5, NULL);
+void Session::keep_refreshed() {
+  xTaskCreate(Session::keep_refreshed_task, "keep_active", 8192, this, 5, NULL);
 }
