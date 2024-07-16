@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export const registerDeviceService = async (c: Context) => {
+export const enrollDeviceService = async (c: Context) => {
   const supabaseClient = c.get("supabaseClient");
 
   const { data: sessionData, error: sessionError } =
