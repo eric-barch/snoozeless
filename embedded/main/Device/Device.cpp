@@ -5,7 +5,9 @@
 #include "Session.h"
 #include "cJSON.h"
 #include "esp_err.h"
+#include "esp_http_client.h"
 #include "esp_log.h"
+#include "freertos/idf_additions.h"
 
 static const char *TAG = "Device";
 
@@ -13,6 +15,9 @@ Device::Device(NvsManager &nvs_manager, Session &session,
                CurrentTime &current_time, Display &display)
     : nvs_manager(nvs_manager), session(session), current_time(current_time),
       display(display) {
+  this->is_blocked = xSemaphoreCreateBinary();
+  xSemaphoreGive(this->is_blocked);
+
   std::string id;
   esp_err_t err = this->nvs_manager.read_string("device", "id", id);
   if (err == ESP_OK) {
@@ -24,7 +29,7 @@ Device::Device(NvsManager &nvs_manager, Session &session,
   }
 }
 
-Device::~Device() { ESP_LOGI(TAG, "Destruct."); }
+Device::~Device() {}
 
 void Device::set_id(std::string id) {
   this->id = id;
@@ -48,6 +53,17 @@ void Device::enroll_on_data(void *device, const std::string &response) {
     self->set_id(id_item->valuestring);
   }
 
+  cJSON_Delete(json_response);
+}
+
+void Device::enroll() {
+  xSemaphoreTake(this->is_blocked, 0);
+  ApiRequest post_device_register =
+      ApiRequest(this->session, this, enroll_on_data, HTTP_METHOD_POST, 60000,
+                 "/device/register", "", this->is_blocked);
+  post_device_register.send_request();
+  xSemaphoreTake(this->is_blocked, portMAX_DELAY);
+}
   cJSON *time_zone_item = cJSON_GetObjectItem(json_response, "time_zone");
   if (!cJSON_IsString(time_zone_item) ||
       (time_zone_item->valuestring == NULL)) {
@@ -74,10 +90,4 @@ void Device::enroll_on_data(void *device, const std::string &response) {
   cJSON_Delete(json_response);
 }
 
-/**NOTE: Does not return until `post_device_register` destructs. */
-void Device::enroll() {
-  ApiRequest post_device_register =
-      ApiRequest(session, this, enroll_on_data, HTTP_METHOD_POST, 60000,
-                 "/device/register");
-  post_device_register.send_request();
 }

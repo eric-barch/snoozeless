@@ -5,6 +5,7 @@
 #include "Display.h"
 #include "NvsManager.h"
 #include "Session.h"
+#include "freertos/idf_additions.h"
 
 class Device {
 public:
@@ -18,6 +19,7 @@ private:
   CurrentTime &current_time;
   Display &display;
   std::string id;
+  SemaphoreHandle_t is_blocked;
 
   void set_id(std::string);
 
