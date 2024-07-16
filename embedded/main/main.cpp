@@ -21,7 +21,6 @@ extern "C" void app_main(void) {
   Session session(nvs_manager);
   CurrentTime current_time(nvs_manager, session);
   Display display(nvs_manager, current_time);
-
   Device device(nvs_manager, session, current_time, display);
 
   display.print_current_time();

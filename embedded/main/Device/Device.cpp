@@ -21,8 +21,8 @@ Device::Device(NvsManager &nvs_manager, Session &session,
   std::string id;
   esp_err_t err = this->nvs_manager.read_string("device", "id", id);
   if (err == ESP_OK) {
-    this->set_id(id);
     ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
+    this->set_id(id);
   } else {
     ESP_LOGW(TAG, "Error reading ID from NVS: %s.", esp_err_to_name(err));
     this->enroll();
@@ -64,7 +64,35 @@ void Device::enroll() {
   post_device_register.send_request();
   xSemaphoreTake(this->is_blocked, portMAX_DELAY);
 }
-  cJSON *time_zone_item = cJSON_GetObjectItem(json_response, "time_zone");
+
+void Device::subscribe_on_data(void *device, const std::string &response) {
+  std::string short_response = response.substr(0, response.length() - 2);
+  ESP_LOGI(TAG, "subscribe_on_data\n%s", short_response.c_str());
+
+  Device *self = static_cast<Device *>(device);
+
+  size_t data_pos = response.find("data: ");
+  if (data_pos == std::string::npos) {
+    ESP_LOGE(TAG, "No valid data field found in Server Sent Event.");
+    return;
+  }
+
+  /**Length of "data: " is 6. */
+  size_t start_pos = data_pos + 6;
+  size_t end_pos = response.find('\n', start_pos);
+  std::string sse_data = response.substr(start_pos, end_pos - start_pos);
+
+  if (sse_data == "keep-alive") {
+    return;
+  }
+
+  cJSON *json_data = cJSON_Parse(sse_data.c_str());
+  if (!json_data) {
+    ESP_LOGE(TAG, "Failed to parse JSON data.");
+    return;
+  }
+
+  cJSON *time_zone_item = cJSON_GetObjectItem(json_data, "time_zone");
   if (!cJSON_IsString(time_zone_item) ||
       (time_zone_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `time_zone` from JSON response.");
@@ -72,7 +100,7 @@ void Device::enroll() {
     self->current_time.set_time_zone(time_zone_item->valuestring);
   }
 
-  cJSON *time_format_item = cJSON_GetObjectItem(json_response, "time_format");
+  cJSON *time_format_item = cJSON_GetObjectItem(json_data, "time_format");
   if (!cJSON_IsString(time_format_item) ||
       (time_format_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
@@ -80,14 +108,30 @@ void Device::enroll() {
     self->current_time.set_format(time_format_item->valuestring);
   }
 
-  cJSON *brightness_item = cJSON_GetObjectItem(json_response, "brightness");
+  cJSON *brightness_item = cJSON_GetObjectItem(json_data, "brightness");
   if (!cJSON_IsNumber(brightness_item)) {
     ESP_LOGE(TAG, "Failed to extract `brightness` from JSON response.");
   } else {
     self->display.set_brightness(brightness_item->valueint);
   }
 
-  cJSON_Delete(json_response);
+  cJSON_Delete(json_data);
 }
 
+void Device::subscribe_task(void *pvParameters) {
+  Device *self = static_cast<Device *>(pvParameters);
+
+  xSemaphoreTake(self->is_blocked, 0);
+  std::string query = "deviceId=" + self->id;
+  ApiRequest get_device_state =
+      ApiRequest(self->session, self, subscribe_on_data, HTTP_METHOD_GET,
+                 300000, "/device/state", query, self->is_blocked);
+  get_device_state.send_request();
+  xSemaphoreTake(self->is_blocked, portMAX_DELAY);
+
+  vTaskDelete(NULL);
+}
+
+void Device::subscribe() {
+  xTaskCreate(Device::subscribe_task, "subscribe", 8192, this, 5, NULL);
 }
