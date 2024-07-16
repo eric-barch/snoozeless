@@ -55,7 +55,7 @@ export const getDeviceStateService = async (
       async (deviceStateChange) => {
         await stream.writeSSE({
           event: "device-state-update",
-          data: JSON.stringify(deviceStateChange),
+          data: JSON.stringify(deviceStateChange.new),
         });
       },
     )
@@ -76,7 +76,7 @@ export const getDeviceStateService = async (
           });
         } else {
           await stream.writeSSE({
-            event: "device-state",
+            event: "initial-device-state",
             data: JSON.stringify(data),
           });
         }
