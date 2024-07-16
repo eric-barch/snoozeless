@@ -27,6 +27,8 @@ Device::Device(NvsManager &nvs_manager, Session &session,
     ESP_LOGW(TAG, "Error reading ID from NVS: %s.", esp_err_to_name(err));
     this->enroll();
   }
+
+  this->subscribe();
 }
 
 Device::~Device() {}
@@ -58,10 +60,10 @@ void Device::enroll_on_data(void *device, const std::string &response) {
 
 void Device::enroll() {
   xSemaphoreTake(this->is_blocked, 0);
-  ApiRequest post_device_register =
+  ApiRequest post_device_enroll =
       ApiRequest(this->session, this, enroll_on_data, HTTP_METHOD_POST, 60000,
-                 "/device/register", "", this->is_blocked);
-  post_device_register.send_request();
+                 "/device/enroll", "", this->is_blocked);
+  post_device_enroll.send_request();
   xSemaphoreTake(this->is_blocked, portMAX_DELAY);
 }
 
