@@ -124,36 +124,6 @@ void Display::print() {
   ESP_ERROR_CHECK(ht16k33_ram_write(&(this->ht16k33), this->ht16k33_ram));
 }
 
-void Display::count_task(void *pvParameters) {
-  Display *self = static_cast<Display *>(pvParameters);
-
-  int hours;
-  int minutes;
-  char hours_str[3];
-  char minutes_str[3];
-
-  while (true) {
-    for (hours = 0; hours < 24; hours++) {
-      for (minutes = 0; minutes < 60; minutes++) {
-        snprintf(hours_str, sizeof(hours_str), "%d", hours);
-        snprintf(minutes_str, sizeof(minutes_str), "%02d", minutes);
-
-        self->set_major_interval(hours_str);
-        self->set_minor_interval(minutes_str);
-        self->print();
-
-        vTaskDelay(pdMS_TO_TICKS(10));
-      }
-    }
-  }
-
-  vTaskDelete(NULL);
-}
-
-void Display::count() {
-  xTaskCreate(Display::count_task, "count_task", 1024, this, 5, NULL);
-}
-
 void Display::print_current_time_task(void *pvParameters) {
   Display *self = static_cast<Display *>(pvParameters);
 
