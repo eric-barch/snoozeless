@@ -12,36 +12,51 @@ static const char *TAG = "Display";
 Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
     : nvs_manager(nvs_manager), current_time(current_time),
       top_indicator(false), bottom_indicator(false), colon(false),
-      apostrophe(false), brightness(7) {
+      apostrophe(false) {
+  /**Initialize display structs. */
   memset(&(this->ht16k33), 0, sizeof(i2c_dev_t));
   memset(&(this->ht16k33_ram), 0, sizeof(ht16k33_ram));
 
+  /**I2C communication pin definitions. */
   gpio_num_t sda = static_cast<gpio_num_t>(CONFIG_I2C_MASTER_SDA);
   gpio_num_t scl = static_cast<gpio_num_t>(CONFIG_I2C_MASTER_SCL);
   i2c_port_t port = static_cast<i2c_port_t>(0);
 
+  /**Initialize I2C and ht16k33 display drivers. */
   ESP_ERROR_CHECK(i2cdev_init());
   ESP_ERROR_CHECK(ht16k33_init_desc(&(this->ht16k33), port, sda, scl,
                                     HT16K33_DEFAULT_ADDR));
   ESP_ERROR_CHECK(ht16k33_init(&(this->ht16k33)));
   ESP_ERROR_CHECK(ht16k33_display_setup(&(this->ht16k33), 1, HTK16K33_F_0HZ));
 
+  /**Pull GPIO2 high.
+   * https://learn.adafruit.com/adafruit-esp32-feather-v2/pinouts#stemma-qt-connector-3112257
+   */
+  gpio_config_t io_conf;
+  io_conf.intr_type = GPIO_INTR_DISABLE;
+  io_conf.mode = GPIO_MODE_OUTPUT;
+  io_conf.pin_bit_mask = (1ULL << GPIO_NUM_2);
+  io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+  gpio_config(&io_conf);
+  gpio_set_level(GPIO_NUM_2, 1);
+
   int brightness;
   esp_err_t err =
       this->nvs_manager.read_int("display", "brightness", brightness);
   if (err == ESP_OK) {
-    this->set_brightness(brightness);
     ESP_LOGI(TAG, "Brightness read from NVS: %d", brightness);
+    this->set_brightness(brightness);
   } else {
-    ESP_LOGW(TAG, "Error reading brightness from NVS: %s",
+    ESP_LOGW(TAG, "Error reading brightness from NVS: %s. Using default.",
              esp_err_to_name(err));
+    this->set_brightness(7);
   }
 }
 
 Display::~Display() {
   memset(&(this->ht16k33), 0, sizeof(i2c_dev_t));
   ht16k33_free_desc(&(this->ht16k33));
-  ESP_LOGI(TAG, "Destruct.");
 }
 
 void Display::set_brightness(uint8_t brightness) {
@@ -55,7 +70,9 @@ void Display::set_brightness(uint8_t brightness) {
   uint8_t cmd = 0xE0 | brightness;
   esp_err_t err = i2c_master_write_to_device(
       I2C_NUM_0, this->ht16k33.addr, &cmd, 1, 1000 / portTICK_PERIOD_MS);
-  if (err != ESP_OK) {
+  if (err == ESP_OK) {
+    ESP_LOGI(TAG, "Set brightness: %d", brightness);
+  } else {
     ESP_LOGE(TAG, "Setting brightness failed: %s", esp_err_to_name(err));
   }
 }
@@ -129,6 +146,8 @@ void Display::count_task(void *pvParameters) {
       }
     }
   }
+
+  vTaskDelete(NULL);
 }
 
 void Display::count() {
@@ -154,6 +173,8 @@ void Display::print_current_time_task(void *pvParameters) {
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }
+
+  vTaskDelete(NULL);
 }
 
 void Display::print_current_time() {
