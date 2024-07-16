@@ -39,6 +39,7 @@ Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
   }
 
   this->refresh();
+  this->keep_active();
 };
 
 Session::~Session() {}
@@ -95,4 +96,20 @@ void Session::refresh() {
                  "/auth/refresh", "", this->is_blocked);
   post_auth_refresh.send_request();
   xSemaphoreTake(this->is_blocked, portMAX_DELAY);
+}
+
+void Session::keep_active_task(void *pvParameters) {
+  Session *self = static_cast<Session *>(pvParameters);
+
+  while (true) {
+    self->refresh();
+    /**Tokens are valid for 1 hour. Refresh every 55 minutes. */
+    vTaskDelay(pdMS_TO_TICKS(3300000));
+  }
+
+  vTaskDelete(NULL);
+}
+
+void Session::keep_active() {
+  xTaskCreate(Session::keep_active_task, "keep_active", 8192, this, 5, NULL);
 }
