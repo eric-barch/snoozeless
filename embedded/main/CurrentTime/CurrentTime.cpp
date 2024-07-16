@@ -5,19 +5,24 @@
 #include "cJSON.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
+#include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
 #include <ctime>
 
 static const char *TAG = "CurrentTime";
 
 CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
     : nvs_manager(nvs_manager), session(session) {
+  this->is_blocked = xSemaphoreCreateBinary();
+  xSemaphoreGive(this->is_blocked);
+
   int unix_at_calibration;
   esp_err_t err = this->nvs_manager.read_int("current_time", "cal_unix",
                                              unix_at_calibration);
   if (err == ESP_OK) {
-    this->set_unix_at_calibration(unix_at_calibration);
     ESP_LOGI(TAG, "Initial Unix at Calibration read from NVS: %d",
              unix_at_calibration);
+    this->set_unix_at_calibration(unix_at_calibration);
   } else {
     ESP_LOGW(TAG, "Error reading initial Unix at Calibration from NVS: %s",
              esp_err_to_name(err));
@@ -26,9 +31,9 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
   int ms_at_calibration;
   err = this->nvs_manager.read_int("current_time", "cal_ms", ms_at_calibration);
   if (err == ESP_OK) {
-    this->set_ms_at_calibration(ms_at_calibration);
     ESP_LOGI(TAG, "Initial Milliseconds at Calibration read from NVS: %d",
              ms_at_calibration);
+    this->set_ms_at_calibration(ms_at_calibration);
   } else {
     ESP_LOGW(TAG,
              "Error reading initial Milliseconds at Calibration from NVS: %s",
@@ -38,8 +43,8 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
   std::string time_zone;
   err = this->nvs_manager.read_string("current_time", "time_zone", time_zone);
   if (err == ESP_OK) {
-    this->set_time_zone(time_zone);
     ESP_LOGI(TAG, "Time zone read from NVS: %s", time_zone.c_str());
+    this->set_time_zone(time_zone);
   } else {
     ESP_LOGW(TAG, "Error reading time zone from NVS: %s", esp_err_to_name(err));
   }
@@ -47,16 +52,17 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
   std::string format;
   err = this->nvs_manager.read_string("current_time", "format", format);
   if (err == ESP_OK) {
-    this->set_format(format);
     ESP_LOGI(TAG, "Format read from NVS: %s", format.c_str());
+    this->set_format(format);
   } else {
     ESP_LOGW(TAG, "Error reading format from NVS: %s", esp_err_to_name(err));
   }
 
   this->calibrate();
+  this->keep_calibrated();
 }
 
-CurrentTime::~CurrentTime() { ESP_LOGI(TAG, "Destruct."); }
+CurrentTime::~CurrentTime() {}
 
 void CurrentTime::set_unix_at_calibration(int unix_at_calibration) {
   this->unix_at_calibration = unix_at_calibration;
@@ -115,7 +121,27 @@ void CurrentTime::calibrate_on_data(void *current_time,
 }
 
 void CurrentTime::calibrate() {
-  ApiRequest get_unix_time = ApiRequest(session, this, calibrate_on_data,
-                                        HTTP_METHOD_GET, 60000, "/unix-time");
+  xSemaphoreTake(this->is_blocked, 0);
+  ApiRequest get_unix_time =
+      ApiRequest(session, this, calibrate_on_data, HTTP_METHOD_GET, 60000,
+                 "/unix-time", "", this->is_blocked);
   get_unix_time.send_request();
+  xSemaphoreTake(this->is_blocked, portMAX_DELAY);
+}
+
+void CurrentTime::keep_calibrated_task(void *pvParameters) {
+  CurrentTime *self = static_cast<CurrentTime *>(pvParameters);
+
+  while (true) {
+    self->calibrate();
+    /**Recalibrate every 24 hours. */
+    vTaskDelay(pdMS_TO_TICKS(86400000));
+  }
+
+  vTaskDelete(NULL);
+}
+
+void CurrentTime::keep_calibrated() {
+  xTaskCreate(CurrentTime::keep_calibrated_task, "keep_calibrated", 8192, this,
+              5, NULL);
 }

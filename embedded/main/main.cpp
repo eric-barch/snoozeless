@@ -24,10 +24,6 @@ extern "C" void app_main(void) {
 
   Device device(nvs_manager, session, current_time, display);
 
-  // session.keep_active();
-  // device.subscribe();
-  // current_time.subscribe();
-
   display.print_current_time();
 
   while (true) {
