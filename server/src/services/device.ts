@@ -2,8 +2,9 @@ import { createAuthenticatedClient } from "@/utils/supabase";
 import { SSEStreamingApi } from "hono/streaming";
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
+import { SupabaseClient } from "@supabase/supabase-js";
 
-export const registerDeviceService = async (c: Context) => {
+export const enrollDeviceService = async (c: Context) => {
   const supabaseClient = c.get("supabaseClient");
 
   const { data: sessionData, error: sessionError } =
@@ -24,7 +25,8 @@ export const registerDeviceService = async (c: Context) => {
   const { data: insertData, error: insertError } = await supabaseClient
     .from("devices")
     .insert({ user_id: userId })
-    .select();
+    .select()
+    .single();
 
   if (insertError) {
     throw new HTTPException(400, { message: insertError.message });
@@ -38,7 +40,7 @@ export const getDeviceStateService = async (
   stream: SSEStreamingApi,
   deviceId: string,
 ) => {
-  const supabaseClient = c.get("supabaseClient");
+  const supabaseClient: SupabaseClient = c.get("supabaseClient");
 
   const deviceStateChannel = supabaseClient
     .channel("device-state-updates")
@@ -53,7 +55,7 @@ export const getDeviceStateService = async (
       async (deviceStateChange) => {
         await stream.writeSSE({
           event: "device-state-update",
-          data: JSON.stringify(deviceStateChange),
+          data: JSON.stringify(deviceStateChange.new),
         });
       },
     )
@@ -74,7 +76,7 @@ export const getDeviceStateService = async (
           });
         } else {
           await stream.writeSSE({
-            event: "device-state",
+            event: "initial-device-state",
             data: JSON.stringify(data),
           });
         }

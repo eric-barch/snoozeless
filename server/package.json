@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "main": "out/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "start": "ts-node -r tsconfig-paths/register src/index.ts"
   },
   "author": "Eric Barch",
   "license": "ISC",
@@ -11,7 +12,9 @@
     "@hono/node-server": "^1.11.1",
     "@supabase/supabase-js": "^2.43.4",
     "dotenv": "^16.4.5",
-    "hono": "^4.4.0"
+    "hono": "^4.4.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
