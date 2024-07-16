@@ -30,6 +30,7 @@ WifiManager::WifiManager(NvsManager &nvs_manager)
   }
 
   this->wifi_event_group = xEventGroupCreate();
+  this->connect();
 }
 
 WifiManager::~WifiManager() {
