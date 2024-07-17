@@ -13,11 +13,10 @@ class ApiRequest {
 public:
   ApiRequest(Session &session, void *calling_object, OnDataCallback on_data,
              const esp_http_client_method_t method, const int timeout_ms,
-             const std::string &path, const std::string &query,
-             SemaphoreHandle_t calling_semaphore = nullptr);
+             const std::string &path, const std::string &query = "");
   ~ApiRequest();
 
-  void send_request();
+  esp_err_t send();
 
 private:
   Session &session;
@@ -27,10 +26,12 @@ private:
   int timeout_ms;
   std::string path;
   std::string query;
-  SemaphoreHandle_t calling_semaphore;
+  esp_http_client_handle_t client;
+  SemaphoreHandle_t is_connected;
+  SemaphoreHandle_t received_response;
 
   static esp_err_t handle_http_event(esp_http_client_event_t *event);
-  static void send_request_task(void *pvParameters);
+  static void send_task(void *pvParameters);
 };
 
 #endif // API_REQUEST_H
