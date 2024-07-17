@@ -6,14 +6,15 @@
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
 #include "sdkconfig.h"
 #include <string>
 
 static const char *TAG = "Session";
 
 Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
-  this->is_blocked = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->is_blocked);
+  this->is_refreshed = xSemaphoreCreateBinary();
+  xSemaphoreGive(this->is_refreshed);
 
   std::string access_token;
   esp_err_t err =
@@ -38,7 +39,6 @@ Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
     this->set_refresh_token(CONFIG_REFRESH_TOKEN);
   }
 
-  this->refresh();
   this->keep_refreshed();
 };
 
@@ -89,20 +89,29 @@ void Session::refresh_on_data(void *session, const std::string &response) {
   cJSON_Delete(json_response);
 }
 
-void Session::refresh() {
-  xSemaphoreTake(this->is_blocked, 0);
-  ApiRequest post_auth_refresh =
-      ApiRequest(*this, this, refresh_on_data, HTTP_METHOD_POST, 60000,
-                 "/auth/refresh", "", this->is_blocked);
-  post_auth_refresh.send_request();
-  xSemaphoreTake(this->is_blocked, portMAX_DELAY);
+esp_err_t Session::refresh() {
+  ApiRequest post_auth_refresh = ApiRequest(
+      *this, this, refresh_on_data, HTTP_METHOD_POST, 60000, "/auth/refresh");
+  esp_err_t err = post_auth_refresh.send();
+  return err;
 }
 
 void Session::keep_refreshed_task(void *pvParameters) {
   Session *self = static_cast<Session *>(pvParameters);
 
   while (true) {
-    self->refresh();
+    ESP_LOGI(TAG, "Refreshing.");
+    esp_err_t err = self->refresh();
+
+    while (err != ESP_OK) {
+      ESP_LOGI(TAG, "Refresh failed. Will try again in one minute.");
+      vTaskDelay(pdMS_TO_TICKS(60000));
+      err = self->refresh();
+    }
+
+    ESP_LOGI(TAG, "Refresh successful.");
+    xSemaphoreGive(self->is_refreshed);
+
     /**Tokens are valid for 1 hour. Refresh every 55 minutes. */
     vTaskDelay(pdMS_TO_TICKS(3300000));
   }
@@ -111,5 +120,8 @@ void Session::keep_refreshed_task(void *pvParameters) {
 }
 
 void Session::keep_refreshed() {
-  xTaskCreate(Session::keep_refreshed_task, "keep_active", 8192, this, 5, NULL);
+  xSemaphoreTake(this->is_refreshed, 0);
+  xTaskCreate(Session::keep_refreshed_task, "keep_refreshed", 8192, this, 5,
+              NULL);
+  xSemaphoreTake(this->is_refreshed, portMAX_DELAY);
 }
