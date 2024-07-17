@@ -3,6 +3,7 @@
 #include "NvsManager.h"
 #include "Session.h"
 #include "cJSON.h"
+#include "esp_err.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
@@ -13,8 +14,8 @@ static const char *TAG = "CurrentTime";
 
 CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
     : nvs_manager(nvs_manager), session(session) {
-  this->is_blocked = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->is_blocked);
+  this->is_calibrated = xSemaphoreCreateBinary();
+  xSemaphoreGive(this->is_calibrated);
 
   int unix_at_calibration;
   esp_err_t err = this->nvs_manager.read_int("current_time", "cal_unix",
@@ -58,7 +59,6 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
     ESP_LOGW(TAG, "Error reading format from NVS: %s", esp_err_to_name(err));
   }
 
-  this->calibrate();
   this->keep_calibrated();
 }
 
@@ -122,20 +122,29 @@ void CurrentTime::calibrate_on_data(void *current_time,
   self->set_ms_at_calibration(esp_log_timestamp());
 }
 
-void CurrentTime::calibrate() {
-  xSemaphoreTake(this->is_blocked, 0);
-  ApiRequest get_unix_time =
-      ApiRequest(session, this, calibrate_on_data, HTTP_METHOD_GET, 60000,
-                 "/unix-time", "", this->is_blocked);
-  get_unix_time.send_request();
-  xSemaphoreTake(this->is_blocked, portMAX_DELAY);
+esp_err_t CurrentTime::calibrate() {
+  ApiRequest get_unix_time = ApiRequest(session, this, calibrate_on_data,
+                                        HTTP_METHOD_GET, 60000, "/unix-time");
+  esp_err_t err = get_unix_time.send();
+  return err;
 }
 
 void CurrentTime::keep_calibrated_task(void *pvParameters) {
   CurrentTime *self = static_cast<CurrentTime *>(pvParameters);
 
   while (true) {
-    self->calibrate();
+    ESP_LOGI(TAG, "Calibrating.");
+    esp_err_t err = self->calibrate();
+
+    while (err != ESP_OK) {
+      ESP_LOGI(TAG, "Calibration failed. Will try again in one minute.");
+      vTaskDelay(pdMS_TO_TICKS(60000));
+      err = self->calibrate();
+    }
+
+    ESP_LOGI(TAG, "Calibration successful.");
+    xSemaphoreGive(self->is_calibrated);
+
     /**Recalibrate every 24 hours. */
     vTaskDelay(pdMS_TO_TICKS(86400000));
   }
@@ -144,6 +153,8 @@ void CurrentTime::keep_calibrated_task(void *pvParameters) {
 }
 
 void CurrentTime::keep_calibrated() {
+  xSemaphoreTake(this->is_calibrated, 0);
   xTaskCreate(CurrentTime::keep_calibrated_task, "keep_calibrated", 8192, this,
               5, NULL);
+  xSemaphoreTake(this->is_calibrated, portMAX_DELAY);
 }

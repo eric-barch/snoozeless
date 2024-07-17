@@ -17,10 +17,8 @@ extern "C" void app_main(void) {
   CurrentTime current_time(nvs_manager, session);
   Display display(nvs_manager, current_time);
   // Device device(nvs_manager, session, current_time, display);
-  //
-  // display.print_current_time();
 
-  ESP_LOGI(TAG, "end");
+  // display.print_current_time();
 
   while (true) {
     vTaskDelay(portMAX_DELAY);

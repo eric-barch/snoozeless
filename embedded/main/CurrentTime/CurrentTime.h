@@ -3,6 +3,7 @@
 
 #include "NvsManager.h"
 #include "Session.h"
+#include "esp_err.h"
 #include "freertos/idf_additions.h"
 #include <ctime>
 #include <string>
@@ -24,14 +25,14 @@ private:
   int ms_at_calibration;
   std::string time_zone;
   std::string format;
-  SemaphoreHandle_t is_blocked;
+  SemaphoreHandle_t is_calibrated;
 
   void set_unix_at_calibration(int unix_at_calibration);
   void set_ms_at_calibration(int ms_at_calibration);
 
   static void calibrate_on_data(void *current_time,
                                 const std::string &response);
-  void calibrate();
+  esp_err_t calibrate();
   static void keep_calibrated_task(void *pvParameters);
   void keep_calibrated();
 };
