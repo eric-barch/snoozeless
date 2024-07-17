@@ -91,6 +91,8 @@ void CurrentTime::set_format(const std::string &format) {
   ESP_LOGI(TAG, "Set format: %s", format.c_str());
 }
 
+std::string CurrentTime::get_format() { return this->format; }
+
 std::tm CurrentTime::get_time() {
   int seconds_since_calibration =
       (esp_log_timestamp() - this->ms_at_calibration) / 1000;

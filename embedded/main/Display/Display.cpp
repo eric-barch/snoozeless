@@ -6,6 +6,8 @@
 #include "i2cdev.h"
 #include <cstring>
 #include <ctime>
+#include <regex>
+#include <string>
 
 static const char *TAG = "Display";
 
@@ -29,7 +31,7 @@ Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
   ESP_ERROR_CHECK(ht16k33_init(&(this->ht16k33)));
   ESP_ERROR_CHECK(ht16k33_display_setup(&(this->ht16k33), 1, HTK16K33_F_0HZ));
 
-  /**Pull GPIO2 high.
+  /**Pull GPIO2 (I2C power) high.
    * https://learn.adafruit.com/adafruit-esp32-feather-v2/pinouts#stemma-qt-connector-3112257
    */
   gpio_config_t io_conf;
@@ -105,7 +107,7 @@ void Display::set_minor_interval(const std::string &minor_interval) {
 void Display::print() {
   memset(this->ht16k33_ram, 0, sizeof(this->ht16k33_ram));
 
-  if (major_interval[1] == '\0') {
+  if (this->major_interval[1] == '\0') {
     this->ht16k33_ram[0] = 0;
     this->ht16k33_ram[2] = this->value_to_segments[major_interval[0] - '0'];
   } else {
@@ -113,13 +115,38 @@ void Display::print() {
     this->ht16k33_ram[2] = this->value_to_segments[major_interval[1] - '0'];
   }
 
-  if (minor_interval[1] == '\0') {
+  if (this->minor_interval[1] == '\0') {
     this->ht16k33_ram[6] = 0;
     this->ht16k33_ram[8] = this->value_to_segments[minor_interval[0] - '0'];
   } else {
     this->ht16k33_ram[6] = this->value_to_segments[minor_interval[0] - '0'];
     this->ht16k33_ram[8] = this->value_to_segments[minor_interval[1] - '0'];
   }
+
+  uint8_t indicators = 0b00000;
+
+  /**Indicators correspond to the following bits:
+   * 0b00000
+   *   ││││└─ no effect
+   *   │││└── colon
+   *   ││└─── top_indicator
+   *   │└──── bottom_indicator
+   *   └───── apostrophe */
+
+  if (this->apostrophe) {
+    indicators += 0b10000;
+  }
+  if (this->bottom_indicator) {
+    indicators += 0b01000;
+  }
+  if (this->top_indicator) {
+    indicators += 0b00100;
+  }
+  if (this->colon) {
+    indicators += 0b00010;
+  }
+
+  this->ht16k33_ram[4] = indicators;
 
   ESP_ERROR_CHECK(ht16k33_ram_write(&(this->ht16k33), this->ht16k33_ram));
 }
@@ -128,17 +155,68 @@ void Display::print_current_time_task(void *pvParameters) {
   Display *self = static_cast<Display *>(pvParameters);
 
   std::tm time;
-  char hours_str[3];
-  char minutes_str[3];
+  std::string format;
+  std::smatch match;
+
+  const std::regex specifier_regex("%[a-zA-Z]");
+  const std::regex colon_regex(":");
+  const std::regex pm_regex("%p");
+
+  std::string hour_format, minute_format, pm_format;
 
   while (true) {
     time = self->current_time.get_time();
+    format = self->current_time.get_format();
 
-    snprintf(hours_str, sizeof(hours_str), "%d", time.tm_hour);
-    snprintf(minutes_str, sizeof(minutes_str), "%02d", time.tm_min);
+    /**Find hour format specifier. */
+    if (std::regex_search(format, match, specifier_regex)) {
+      hour_format = match.str();
+      format = match.suffix();
+    }
 
-    self->set_major_interval(hours_str);
-    self->set_minor_interval(minutes_str);
+    /**Check for colon. */
+    if (std::regex_search(format, match, colon_regex)) {
+      self->colon = true;
+      format = match.suffix();
+    } else {
+      self->colon = false;
+    }
+
+    /**Find minute format specifier. */
+    if (std::regex_search(format, match, specifier_regex)) {
+      minute_format = match.str();
+      format = match.suffix();
+    }
+
+    /**Check for PM indicator. */
+    pm_format.clear();
+    if (std::regex_search(format, match, pm_regex)) {
+      pm_format = match.str();
+      format = match.suffix();
+    }
+
+    char buffer[10];
+
+    /**Set major interval. */
+    if (!hour_format.empty()) {
+      strftime(buffer, sizeof(buffer), hour_format.c_str(), &time);
+      self->set_major_interval(buffer);
+    }
+
+    /**Set minor interval. */
+    if (!minute_format.empty()) {
+      strftime(buffer, sizeof(buffer), minute_format.c_str(), &time);
+      self->set_minor_interval(buffer);
+    }
+
+    /**Set bottom_indicator. */
+    if (!pm_format.empty()) {
+      strftime(buffer, sizeof(buffer), pm_format.c_str(), &time);
+      self->bottom_indicator = (std::string(buffer) == "PM");
+    } else {
+      self->bottom_indicator = false;
+    }
+
     self->print();
 
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -148,6 +226,6 @@ void Display::print_current_time_task(void *pvParameters) {
 }
 
 void Display::print_current_time() {
-  xTaskCreate(Display::print_current_time_task, "print_current_time_task", 2048,
+  xTaskCreate(Display::print_current_time_task, "print_current_time", 8192,
               this, 5, NULL);
 }

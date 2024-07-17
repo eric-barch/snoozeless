@@ -14,6 +14,7 @@ public:
 
   void set_time_zone(const std::string &time_zone);
   void set_format(const std::string &format);
+  std::string get_format();
   std::tm get_time();
 
 private:
