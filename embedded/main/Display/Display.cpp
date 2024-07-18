@@ -226,6 +226,6 @@ void Display::print_current_time_task(void *pvParameters) {
 }
 
 void Display::print_current_time() {
-  xTaskCreate(Display::print_current_time_task, "print_current_time", 8192,
+  xTaskCreate(Display::print_current_time_task, "print_current_time", 4096,
               this, 5, NULL);
 }

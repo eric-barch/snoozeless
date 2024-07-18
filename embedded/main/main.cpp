@@ -23,8 +23,3 @@ extern "C" void app_main(void) {
     vTaskDelay(portMAX_DELAY);
   }
 }
-
-// TODO:
-// 1. Make sure threaded tasks are allocated least amount of stack memory
-// possible.
-// 2. Refactor semaphores to direct-to-task notifications.

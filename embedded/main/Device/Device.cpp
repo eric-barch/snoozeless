@@ -68,7 +68,6 @@ esp_err_t Device::enroll() {
 }
 
 void Device::subscribe_on_data(void *device, const std::string &response) {
-  ESP_LOGI(TAG, "subscribe_on_data");
   std::string short_response = response.substr(0, response.length() - 2);
   ESP_LOGI(TAG, "%s", short_response.c_str());
 
@@ -147,6 +146,6 @@ void Device::subscribe_task(void *pvParameters) {
 
 void Device::keep_subscribed() {
   xSemaphoreTake(this->is_subscribed, 0);
-  xTaskCreate(Device::subscribe_task, "keep_subscribed", 8192, this, 5, NULL);
+  xTaskCreate(Device::subscribe_task, "keep_subscribed", 2048, this, 5, NULL);
   xSemaphoreTake(this->is_subscribed, portMAX_DELAY);
 }

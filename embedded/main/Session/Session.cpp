@@ -121,7 +121,7 @@ void Session::keep_refreshed_task(void *pvParameters) {
 
 void Session::keep_refreshed() {
   xSemaphoreTake(this->is_refreshed, 0);
-  xTaskCreate(Session::keep_refreshed_task, "keep_refreshed", 8192, this, 5,
+  xTaskCreate(Session::keep_refreshed_task, "keep_refreshed", 2048, this, 5,
               NULL);
   xSemaphoreTake(this->is_refreshed, portMAX_DELAY);
 }
