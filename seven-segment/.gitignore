@@ -1,6 +1,0 @@
-# Build directories.
-**/build/
-**/.cache/
-
-# ESP-IDF config files.
-sdkconfig*
