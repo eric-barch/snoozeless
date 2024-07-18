@@ -61,8 +61,6 @@ export const getDeviceStateService = async (
     )
     .subscribe(async (status, error) => {
       if (status === "SUBSCRIBED") {
-        console.log("Successfully subscribed to device state updates.");
-
         const { data, error } = await supabaseClient
           .from("devices")
           .select("*")
