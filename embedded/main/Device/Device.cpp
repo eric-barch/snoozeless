@@ -8,6 +8,7 @@
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
 
 static const char *TAG = "Device";
 
@@ -15,8 +16,8 @@ Device::Device(NvsManager &nvs_manager, Session &session,
                CurrentTime &current_time, Display &display)
     : nvs_manager(nvs_manager), session(session), current_time(current_time),
       display(display) {
-  this->is_blocked = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->is_blocked);
+  this->is_subscribed = xSemaphoreCreateBinary();
+  xSemaphoreGive(this->is_subscribed);
 
   std::string id;
   esp_err_t err = this->nvs_manager.read_string("device", "id", id);
@@ -28,7 +29,7 @@ Device::Device(NvsManager &nvs_manager, Session &session,
     this->enroll();
   }
 
-  this->subscribe();
+  this->keep_subscribed();
 }
 
 Device::~Device() {}
@@ -58,18 +59,18 @@ void Device::enroll_on_data(void *device, const std::string &response) {
   cJSON_Delete(json_response);
 }
 
-void Device::enroll() {
-  xSemaphoreTake(this->is_blocked, 0);
+esp_err_t Device::enroll() {
   ApiRequest post_device_enroll =
       ApiRequest(this->session, this, enroll_on_data, HTTP_METHOD_POST, 60000,
-                 "/device/enroll", "", this->is_blocked);
-  post_device_enroll.send_request();
-  xSemaphoreTake(this->is_blocked, portMAX_DELAY);
+                 "/device/enroll");
+  esp_err_t err = post_device_enroll.send();
+  return err;
 }
 
 void Device::subscribe_on_data(void *device, const std::string &response) {
+  ESP_LOGI(TAG, "subscribe_on_data");
   std::string short_response = response.substr(0, response.length() - 2);
-  ESP_LOGI(TAG, "subscribe_on_data\n%s", short_response.c_str());
+  ESP_LOGI(TAG, "%s", short_response.c_str());
 
   Device *self = static_cast<Device *>(device);
 
@@ -120,20 +121,32 @@ void Device::subscribe_on_data(void *device, const std::string &response) {
   cJSON_Delete(json_data);
 }
 
+void Device::subscribe() {
+  std::string query = "deviceId=" + this->id;
+  ApiRequest get_device_state =
+      ApiRequest(this->session, this, subscribe_on_data, HTTP_METHOD_GET,
+                 300000, "/device/state", query);
+  get_device_state.send();
+  ESP_LOGI(TAG, "Subscription successful.");
+  xSemaphoreGive(this->is_subscribed);
+}
+
 void Device::subscribe_task(void *pvParameters) {
   Device *self = static_cast<Device *>(pvParameters);
 
-  xSemaphoreTake(self->is_blocked, 0);
-  std::string query = "deviceId=" + self->id;
-  ApiRequest get_device_state =
-      ApiRequest(self->session, self, subscribe_on_data, HTTP_METHOD_GET,
-                 300000, "/device/state", query, self->is_blocked);
-  get_device_state.send_request();
-  xSemaphoreTake(self->is_blocked, portMAX_DELAY);
+  ESP_LOGI(TAG, "Subscribing.");
+
+  while (true) {
+    self->subscribe();
+    ESP_LOGI(TAG, "Subscription failed. Will try to reconnect in one minute.");
+    vTaskDelay(pdMS_TO_TICKS(60000));
+  }
 
   vTaskDelete(NULL);
 }
 
-void Device::subscribe() {
-  xTaskCreate(Device::subscribe_task, "subscribe", 8192, this, 5, NULL);
+void Device::keep_subscribed() {
+  xSemaphoreTake(this->is_subscribed, 0);
+  xTaskCreate(Device::subscribe_task, "keep_subscribed", 8192, this, 5, NULL);
+  xSemaphoreTake(this->is_subscribed, portMAX_DELAY);
 }
