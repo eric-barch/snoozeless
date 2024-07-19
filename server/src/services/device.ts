@@ -1,4 +1,3 @@
-import { createAuthenticatedClient } from "@/utils/supabase";
 import { SSEStreamingApi } from "hono/streaming";
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
@@ -79,37 +78,56 @@ export const getDeviceStateService = async (
           });
         }
       } else if (status === "CHANNEL_ERROR") {
-        console.error("Channel error:", error);
+        console.error("Device state channel error:", error);
       } else {
-        console.log("Subscription status:", status);
+        console.log("Device state subscription status:", status);
+      }
+    });
+
+  const deviceAlarmsChannel = supabaseClient
+    .channel("device-alarm-changes")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "alarms",
+        filter: `device_id=eq.${deviceId}`,
+      },
+      async (deviceAlarmsChange) => {
+        await stream.writeSSE({
+          event: "device-alarm-change",
+          data: JSON.stringify(deviceAlarmsChange.new),
+        });
+      },
+    )
+    .subscribe(async (status, error) => {
+      if (status === "SUBSCRIBED") {
+        const { data, error } = await supabaseClient
+          .from("alarms")
+          .select("*")
+          .eq("device_id", deviceId);
+
+        if (error) {
+          await stream.writeSSE({
+            event: "device-alarms-error",
+            data: JSON.stringify(error),
+          });
+        } else {
+          await stream.writeSSE({
+            event: "initial-device-alarms",
+            data: JSON.stringify(data),
+          });
+        }
+      } else if (status === "CHANNEL_ERROR") {
+        console.error("Device alarms channel error:", error);
+      } else {
+        console.log("Device alarms subscription status:", status);
       }
     });
 
   return () => {
     supabaseClient.removeChannel(deviceStateChannel);
+    supabaseClient.removeChannel(deviceAlarmsChannel);
   };
-};
-
-export const updateDeviceStateService = async (
-  accessToken: string,
-  refreshToken: string,
-  deviceId: string,
-  stateUpdate: any,
-) => {
-  const supabaseClient = await createAuthenticatedClient(
-    accessToken,
-    refreshToken,
-  );
-
-  const { data, error } = await supabaseClient
-    .from("devices")
-    .update(stateUpdate)
-    .eq("id", deviceId)
-    .select();
-
-  if (error) {
-    throw new HTTPException(400, { message: error.message });
-  }
-
-  return data;
 };

@@ -1,11 +1,6 @@
 import { Context } from "hono";
 import { streamSSE } from "hono/streaming";
-import {
-  enrollDeviceService,
-  getDeviceStateService,
-  updateDeviceStateService,
-} from "@/services/device";
-import { extractAuthTokens } from "@/utils/auth";
+import { enrollDeviceService, getDeviceStateService } from "@/services/device";
 import { HTTPException } from "hono/http-exception";
 
 export const enrollDeviceController = async (c: Context): Promise<Response> => {
@@ -52,21 +47,4 @@ export const getDeviceStateController = async (
   );
 
   return response;
-};
-
-export const updateDeviceStateController = async (
-  c: Context,
-): Promise<Response> => {
-  const { accessToken, refreshToken } = extractAuthTokens(c);
-
-  const { deviceId, stateUpdate } = await c.req.json();
-
-  const data = await updateDeviceStateService(
-    accessToken,
-    refreshToken,
-    deviceId,
-    stateUpdate,
-  );
-
-  return c.json(data, 204);
 };
