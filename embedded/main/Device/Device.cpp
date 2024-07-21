@@ -1,5 +1,6 @@
 #include "Device.h"
 #include "ApiRequest.h"
+#include "Buzzer.h"
 #include "CurrentTime.h"
 #include "NvsManager.h"
 #include "Session.h"
@@ -13,12 +14,9 @@
 static const char *TAG = "Device";
 
 Device::Device(NvsManager &nvs_manager, Session &session,
-               CurrentTime &current_time, Display &display)
+               CurrentTime &current_time, Display &display, Buzzer &buzzer)
     : nvs_manager(nvs_manager), session(session), current_time(current_time),
-      display(display) {
-  this->is_subscribed = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->is_subscribed);
-
+      display(display), buzzer(buzzer) {
   std::string id;
   esp_err_t err = this->nvs_manager.read_string("device", "id", id);
   if (err == ESP_OK) {
@@ -29,7 +27,11 @@ Device::Device(NvsManager &nvs_manager, Session &session,
     this->enroll();
   }
 
+  this->is_subscribed = xSemaphoreCreateBinary();
+  xSemaphoreGive(this->is_subscribed);
+
   this->keep_subscribed();
+  this->display.print_current_time();
 }
 
 Device::~Device() {}
