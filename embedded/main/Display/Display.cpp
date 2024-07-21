@@ -24,14 +24,7 @@ Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
   gpio_num_t scl = static_cast<gpio_num_t>(CONFIG_I2C_MASTER_SCL);
   i2c_port_t port = static_cast<i2c_port_t>(0);
 
-  /**Initialize I2C and ht16k33 display drivers. */
-  ESP_ERROR_CHECK(i2cdev_init());
-  ESP_ERROR_CHECK(ht16k33_init_desc(&(this->ht16k33), port, sda, scl,
-                                    HT16K33_DEFAULT_ADDR));
-  ESP_ERROR_CHECK(ht16k33_init(&(this->ht16k33)));
-  ESP_ERROR_CHECK(ht16k33_display_setup(&(this->ht16k33), 1, HTK16K33_F_0HZ));
-
-  /**Pull GPIO2 (I2C power) high.
+  /**Configure GPIO2 (I2C power) and set high.
    * https://learn.adafruit.com/adafruit-esp32-feather-v2/pinouts#stemma-qt-connector-3112257
    */
   gpio_config_t io_conf;
@@ -39,9 +32,16 @@ Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
   io_conf.mode = GPIO_MODE_OUTPUT;
   io_conf.pin_bit_mask = (1ULL << GPIO_NUM_2);
   io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-  io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+  io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
   gpio_config(&io_conf);
   gpio_set_level(GPIO_NUM_2, 1);
+
+  /**Initialize I2C and ht16k33 display drivers. */
+  ESP_ERROR_CHECK(i2cdev_init());
+  ESP_ERROR_CHECK(ht16k33_init_desc(&(this->ht16k33), port, sda, scl,
+                                    HT16K33_DEFAULT_ADDR));
+  ESP_ERROR_CHECK(ht16k33_init(&(this->ht16k33)));
+  ESP_ERROR_CHECK(ht16k33_display_setup(&(this->ht16k33), 1, HTK16K33_F_0HZ));
 
   int brightness;
   esp_err_t err =
