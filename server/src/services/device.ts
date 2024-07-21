@@ -42,7 +42,7 @@ export const getDeviceStateService = async (
   const supabaseClient: SupabaseClient = c.get("supabaseClient");
 
   const deviceStateChannel = supabaseClient
-    .channel("device-state-updates")
+    .channel("device-state")
     .on(
       "postgres_changes",
       {
@@ -51,41 +51,13 @@ export const getDeviceStateService = async (
         table: "devices",
         filter: `id=eq.${deviceId}`,
       },
-      async (deviceStateChange) => {
+      async (deviceUpdate) => {
         await stream.writeSSE({
-          event: "device-state-update",
-          data: JSON.stringify(deviceStateChange.new),
+          event: "device-update",
+          data: JSON.stringify(deviceUpdate.new),
         });
       },
     )
-    .subscribe(async (status, error) => {
-      if (status === "SUBSCRIBED") {
-        const { data, error } = await supabaseClient
-          .from("devices")
-          .select("*")
-          .eq("id", deviceId)
-          .single();
-
-        if (error) {
-          await stream.writeSSE({
-            event: "device-state-error",
-            data: JSON.stringify(error),
-          });
-        } else {
-          await stream.writeSSE({
-            event: "initial-device-state",
-            data: JSON.stringify(data),
-          });
-        }
-      } else if (status === "CHANNEL_ERROR") {
-        console.error("Device state channel error:", error);
-      } else {
-        console.log("Device state subscription status:", status);
-      }
-    });
-
-  const deviceAlarmsChannel = supabaseClient
-    .channel("device-alarm-changes")
     .on(
       "postgres_changes",
       {
@@ -94,40 +66,80 @@ export const getDeviceStateService = async (
         table: "alarms",
         filter: `device_id=eq.${deviceId}`,
       },
-      async (deviceAlarmsChange) => {
+      async (alarmChange) => {
+        let event;
+        let data;
+
+        switch (alarmChange.eventType) {
+          case "INSERT":
+            event = "alarm-insert";
+            data = JSON.stringify(alarmChange.new);
+            break;
+          case "DELETE":
+            event = "alarm-delete";
+            data = JSON.stringify(alarmChange.old);
+            break;
+          case "UPDATE":
+            event = "alarm-update";
+            data = JSON.stringify(alarmChange.new);
+            break;
+          default:
+            event = "alarm-change";
+            data = JSON.stringify(alarmChange);
+        }
+
         await stream.writeSSE({
-          event: "device-alarm-change",
-          data: JSON.stringify(deviceAlarmsChange.new),
+          event,
+          data,
         });
       },
     )
     .subscribe(async (status, error) => {
       if (status === "SUBSCRIBED") {
-        const { data, error } = await supabaseClient
+        const { data: deviceData, error: deviceError } = await supabaseClient
+          .from("devices")
+          .select("*")
+          .eq("id", deviceId)
+          .single();
+
+        if (deviceError) {
+          await stream.writeSSE({
+            event: "device-error",
+            data: JSON.stringify(deviceError),
+          });
+        } else if (deviceData) {
+          await stream.writeSSE({
+            event: "initial-device",
+            data: JSON.stringify(deviceData),
+          });
+        }
+
+        const { data: alarmData, error: alarmError } = await supabaseClient
           .from("alarms")
           .select("*")
           .eq("device_id", deviceId);
 
-        if (error) {
+        if (alarmError) {
           await stream.writeSSE({
-            event: "device-alarms-error",
-            data: JSON.stringify(error),
+            event: "alarm-error",
+            data: JSON.stringify(alarmError),
           });
-        } else {
+        } else if (alarmData) {
           await stream.writeSSE({
-            event: "initial-device-alarms",
-            data: JSON.stringify(data),
+            event: "initial-alarms",
+            data: JSON.stringify(alarmData),
           });
         }
+
+        console.log("Subscribed to device state.");
       } else if (status === "CHANNEL_ERROR") {
-        console.error("Device alarms channel error:", error);
+        console.error("Error subscribing to device state:", error);
       } else {
-        console.log("Device alarms subscription status:", status);
+        console.warn("Device state subscription status:", status);
       }
     });
 
   return () => {
     supabaseClient.removeChannel(deviceStateChannel);
-    supabaseClient.removeChannel(deviceAlarmsChannel);
   };
 };
