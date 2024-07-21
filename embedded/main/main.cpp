@@ -26,7 +26,5 @@ extern "C" void app_main(void) {
   vTaskDelay(pdMS_TO_TICKS(30000));
   buzzer.stop_buzzing();
 
-  while (true) {
-    vTaskDelay(portMAX_DELAY);
-  }
+  vTaskDelay(portMAX_DELAY);
 }
