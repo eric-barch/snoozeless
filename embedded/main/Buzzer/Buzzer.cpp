@@ -1,9 +1,8 @@
 #include "Buzzer.h"
-#include "driver/ledc.h"
-#include "esp_err.h"
-#include "esp_log.h"
-#include "freertos/idf_additions.h"
-#include "freertos/projdefs.h"
+#include <driver/ledc.h>
+#include <esp_err.h>
+#include <esp_log.h>
+#include <freertos/idf_additions.h>
 
 static const char *TAG = "Buzzer";
 

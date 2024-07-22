@@ -2,10 +2,9 @@
 #define WIFI_MANAGER_H
 
 #include "NvsManager.h"
-#include "esp_err.h"
-#include "esp_event_base.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
+#include <esp_err.h>
+#include <esp_event_base.h>
+#include <freertos/idf_additions.h>
 #include <string>
 
 #define WIFI_CONNECTED_BIT BIT0

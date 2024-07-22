@@ -1,8 +1,8 @@
 #ifndef NVS_MANAGER_H
 #define NVS_MANAGER_H
 
-#include "esp_err.h"
-#include "nvs.h"
+#include <esp_err.h>
+#include <nvs.h>
 #include <string>
 
 class NvsManager {

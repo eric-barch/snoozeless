@@ -3,8 +3,8 @@
 
 #include "CurrentTime.h"
 #include "NvsManager.h"
-#include "ht16k33.h"
-#include "i2cdev.h"
+#include <ht16k33.h>
+#include <i2cdev.h>
 
 class Display {
 public:

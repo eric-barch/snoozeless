@@ -5,7 +5,7 @@
 #include "NvsManager.h"
 #include "Session.h"
 #include "WifiManager.h"
-#include "freertos/idf_additions.h"
+#include <freertos/idf_additions.h>
 
 static const char *TAG = "main";
 

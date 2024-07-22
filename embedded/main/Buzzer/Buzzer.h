@@ -1,7 +1,8 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 
-#include "driver/ledc.h"
+#include <driver/ledc.h>
+
 class Buzzer {
 public:
   Buzzer();

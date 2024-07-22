@@ -6,8 +6,8 @@
 #include "Display.h"
 #include "NvsManager.h"
 #include "Session.h"
-#include "esp_err.h"
-#include "freertos/idf_additions.h"
+#include <esp_err.h>
+#include <freertos/idf_additions.h>
 
 class Device {
 public:

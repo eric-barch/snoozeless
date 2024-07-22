@@ -1,9 +1,14 @@
 #include "WifiManager.h"
-#include "esp_log.h"
-#include "esp_wifi.h"
-#include "esp_wifi_types.h"
-#include "sdkconfig.h"
-#include <string.h>
+#include "NvsManager.h"
+#include <cstring>
+#include <esp_err.h>
+#include <esp_event_base.h>
+#include <esp_log.h>
+#include <esp_wifi.h>
+#include <esp_wifi_types.h>
+#include <freertos/idf_additions.h>
+#include <sdkconfig.h>
+#include <string>
 
 static const char *TAG = "WifiManager";
 

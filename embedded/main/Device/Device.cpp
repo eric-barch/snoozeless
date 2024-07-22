@@ -4,12 +4,11 @@
 #include "CurrentTime.h"
 #include "NvsManager.h"
 #include "Session.h"
-#include "cJSON.h"
-#include "esp_err.h"
-#include "esp_http_client.h"
-#include "esp_log.h"
-#include "freertos/idf_additions.h"
-#include "freertos/projdefs.h"
+#include <cJSON.h>
+#include <esp_err.h>
+#include <esp_http_client.h>
+#include <esp_log.h>
+#include <freertos/idf_additions.h>
 
 static const char *TAG = "Device";
 
