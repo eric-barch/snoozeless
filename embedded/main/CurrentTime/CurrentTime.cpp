@@ -153,7 +153,7 @@ void CurrentTime::keep_calibrated_task(void *pvParameters) {
 
 void CurrentTime::keep_calibrated() {
   xSemaphoreTake(this->is_calibrated, 0);
-  xTaskCreate(CurrentTime::keep_calibrated_task, "keep_calibrated", 2048, this,
+  xTaskCreate(CurrentTime::keep_calibrated_task, "keep_calibrated", 4096, this,
               5, NULL);
   xSemaphoreTake(this->is_calibrated, portMAX_DELAY);
 }
