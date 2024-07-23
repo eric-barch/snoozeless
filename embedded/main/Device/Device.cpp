@@ -36,10 +36,17 @@ Device::Device(NvsManager &nvs_manager, Session &session,
     this->enroll();
   }
 
+  std::string alarm_ids;
+  err = this->nvs_manager.read_string("alarms", "ids", alarm_ids);
+  if (err == ESP_OK) {
+    ESP_LOGI(TAG, "Alarm IDs read from NVS: %s", alarm_ids.c_str());
+    this->set_alarms(alarm_ids);
+  } else {
+    ESP_LOGW(TAG, "Error reading alarm IDs from NVS: %s", esp_err_to_name(err));
+  }
+
   this->is_subscribed = xSemaphoreCreateBinary();
   xSemaphoreGive(this->is_subscribed);
-
-  this->initialize_alarms();
 
   this->keep_subscribed();
   this->display.print_current_time();
@@ -47,23 +54,14 @@ Device::Device(NvsManager &nvs_manager, Session &session,
 
 Device::~Device() {}
 
-void Device::set_id(std::string id) {
+void Device::set_id(std::string &id) {
   this->id = id;
   this->nvs_manager.write_string("device", "id", id);
   ESP_LOGI(TAG, "Set ID: %s", id.c_str());
 }
 
-void Device::initialize_alarms() {
+void Device::set_alarms(std::string &alarm_ids_string) {
   this->alarms = {};
-
-  std::string alarm_ids_string;
-  esp_err_t err =
-      this->nvs_manager.read_string("alarms", "ids", alarm_ids_string);
-  if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Error reading alarm IDs from NVS: %s.",
-             esp_err_to_name(err));
-    return;
-  }
 
   cJSON *alarm_ids_json = cJSON_Parse(alarm_ids_string.c_str());
   if (alarm_ids_json == nullptr) {
@@ -72,7 +70,7 @@ void Device::initialize_alarms() {
   }
 
   if (!cJSON_IsArray(alarm_ids_json)) {
-    ESP_LOGE(TAG, "JSON alarm IDs is not an array.");
+    ESP_LOGE(TAG, "Alarm IDs is not an array.");
     cJSON_Delete(alarm_ids_json);
     return;
   }
@@ -80,13 +78,16 @@ void Device::initialize_alarms() {
   cJSON *alarm_id_json = nullptr;
   cJSON_ArrayForEach(alarm_id_json, alarm_ids_json) {
     if (cJSON_IsString(alarm_id_json)) {
-      std::string id = cJSON_GetStringValue(alarm_id_json);
-      Alarm *alarm = new Alarm(this->nvs_manager, id);
+      std::string alarm_id = cJSON_GetStringValue(alarm_id_json);
+      Alarm *alarm = new Alarm(this->nvs_manager, alarm_id);
       this->alarms.push_back(alarm);
     } else {
-      ESP_LOGE(TAG, "Invalid alarm ID format.");
+      ESP_LOGE(TAG, "Alarm ID is not a string.");
     }
   }
+
+  this->nvs_manager.write_string("alarms", "ids", alarm_ids_string);
+  ESP_LOGI(TAG, "Set alarm IDs in NVS: %s", alarm_ids_string.c_str());
 
   cJSON_Delete(alarm_ids_json);
 }
@@ -104,7 +105,8 @@ void Device::enroll_on_data(void *device, const std::string &response) {
   if (!cJSON_IsString(id_item) || (id_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `id` from JSON response");
   } else {
-    self->set_id(id_item->valuestring);
+    std::string id = id_item->valuestring;
+    self->set_id(id);
   }
 
   cJSON_Delete(json_response);
@@ -121,13 +123,13 @@ esp_err_t Device::enroll() {
 void Device::parse_device(void *device, const std::string &data) {
   Device *self = static_cast<Device *>(device);
 
-  cJSON *json_data = cJSON_Parse(data.c_str());
-  if (!json_data) {
+  cJSON *data_json = cJSON_Parse(data.c_str());
+  if (!data_json) {
     ESP_LOGE(TAG, "Failed to parse JSON data.");
     return;
   }
 
-  cJSON *time_zone_item = cJSON_GetObjectItem(json_data, "time_zone");
+  cJSON *time_zone_item = cJSON_GetObjectItem(data_json, "time_zone");
   if (!cJSON_IsString(time_zone_item) ||
       (time_zone_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `time_zone` from JSON response.");
@@ -135,7 +137,7 @@ void Device::parse_device(void *device, const std::string &data) {
     self->current_time.set_time_zone(time_zone_item->valuestring);
   }
 
-  cJSON *time_format_item = cJSON_GetObjectItem(json_data, "time_format");
+  cJSON *time_format_item = cJSON_GetObjectItem(data_json, "time_format");
   if (!cJSON_IsString(time_format_item) ||
       (time_format_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
@@ -143,18 +145,51 @@ void Device::parse_device(void *device, const std::string &data) {
     self->current_time.set_format(time_format_item->valuestring);
   }
 
-  cJSON *brightness_item = cJSON_GetObjectItem(json_data, "brightness");
+  cJSON *brightness_item = cJSON_GetObjectItem(data_json, "brightness");
   if (!cJSON_IsNumber(brightness_item)) {
     ESP_LOGE(TAG, "Failed to extract `brightness` from JSON response.");
   } else {
     self->display.set_brightness(brightness_item->valueint);
   }
 
-  cJSON_Delete(json_data);
+  cJSON_Delete(data_json);
 }
 
 void Device::parse_initial_alarms(void *device, const std::string &data) {
-  ESP_LOGW(TAG, "Implement parse_initial_alarms.");
+  Device *self = static_cast<Device *>(device);
+
+  cJSON *data_json = cJSON_Parse(data.c_str());
+  if (!data_json) {
+    ESP_LOGE(TAG, "Failed to parse JSON data.");
+    return;
+  }
+
+  if (!cJSON_IsArray(data_json)) {
+    ESP_LOGE(TAG, "JSON initial alarms is not an array.");
+    cJSON_Delete(data_json);
+    return;
+  }
+
+  std::vector<std::string> alarm_ids;
+
+  cJSON *alarm_json = nullptr;
+  cJSON_ArrayForEach(alarm_json, data_json) {
+    if (cJSON_IsObject(alarm_json)) {
+      cJSON *id_item = cJSON_GetObjectItem(alarm_json, "id");
+      if (cJSON_IsString(id_item) && (id_item->valuestring != nullptr)) {
+        alarm_ids.push_back(id_item->valuestring);
+      } else {
+        ESP_LOGE(TAG, "Alarm ID is not a valid string.");
+      }
+    } else {
+      ESP_LOGE(TAG, "Alarm is not a JSON object.");
+    }
+  }
+
+  ESP_LOGI(TAG, "Alarm IDs:");
+  for (const std::string &alarm_id : alarm_ids) {
+    ESP_LOGI(TAG, "%s", alarm_id.c_str());
+  }
 }
 
 void Device::parse_alarm_insert(void *device, const std::string &data) {

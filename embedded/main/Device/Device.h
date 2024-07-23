@@ -34,13 +34,13 @@ private:
   CurrentTime &current_time;
   Display &display;
   Buzzer &buzzer;
-  std::vector<Alarm *> alarms;
   std::string id;
+  std::vector<Alarm *> alarms;
   SemaphoreHandle_t is_subscribed;
 
-  void set_id(std::string);
+  void set_id(std::string &id);
+  void set_alarms(std::string &alarm_ids);
 
-  void initialize_alarms();
   static void enroll_on_data(void *device, const std::string &response);
   esp_err_t enroll();
 
