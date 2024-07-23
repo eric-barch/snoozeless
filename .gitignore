@@ -1,2 +1,5 @@
 # Ignore chat logs.
 chats
+
+# Ignore shell scripts.
+cli
