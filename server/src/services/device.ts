@@ -83,9 +83,6 @@ export const getDeviceStateService = async (
             event = "alarm-update";
             data = JSON.stringify(alarmChange.new);
             break;
-          default:
-            event = "alarm-change";
-            data = JSON.stringify(alarmChange);
         }
 
         await stream.writeSSE({
