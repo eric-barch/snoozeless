@@ -2,8 +2,11 @@ import { SSEStreamingApi } from "hono/streaming";
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { nanoid } from "nanoid";
 
-export const enrollDeviceService = async (c: Context) => {
+export const postDeviceEnrollService = async (
+  c: Context,
+): Promise<Response> => {
   const supabaseClient = c.get("supabaseClient");
 
   const { data: sessionData, error: sessionError } =
@@ -36,8 +39,8 @@ export const enrollDeviceService = async (c: Context) => {
 
 export const getDeviceStateService = async (
   c: Context,
-  stream: SSEStreamingApi,
   deviceId: string,
+  stream: SSEStreamingApi,
 ) => {
   const supabaseClient: SupabaseClient = c.get("supabaseClient");
 
@@ -139,4 +142,44 @@ export const getDeviceStateService = async (
   return () => {
     supabaseClient.removeChannel(deviceStateChannel);
   };
+};
+
+export const postDeviceAlarmService = async (
+  c: Context,
+  deviceId: string,
+  alarm: any,
+): Promise<Response> => {
+  const supabaseClient = c.get("supabaseClient");
+
+  const { data: sessionData, error: sessionError } =
+    await supabaseClient.auth.getSession();
+
+  if (sessionError) {
+    throw new HTTPException(400, { message: sessionError.message });
+  }
+
+  const session = sessionData.session;
+
+  if (!session) {
+    throw new HTTPException(400, { message: "Session not found." });
+  }
+
+  const userId = session.user.id;
+
+  if (!alarm.id) {
+    alarm.id = nanoid(15);
+  }
+
+  const { data: insertData, error: insertError } = await supabaseClient
+    .from("alarms")
+    .insert({ user_id: userId, device_id: deviceId, ...alarm })
+    .select()
+    .single();
+
+  if (insertError) {
+    console.error("Error inserting alarm: ", insertError);
+    throw new HTTPException(400, { message: insertError.message });
+  }
+
+  return insertData;
 };

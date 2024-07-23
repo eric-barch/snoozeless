@@ -1,10 +1,16 @@
 import { Context } from "hono";
 import { streamSSE } from "hono/streaming";
-import { enrollDeviceService, getDeviceStateService } from "@/services/device";
+import {
+  postDeviceEnrollService,
+  getDeviceStateService,
+  postDeviceAlarmService,
+} from "@/services/device";
 import { HTTPException } from "hono/http-exception";
 
-export const enrollDeviceController = async (c: Context): Promise<Response> => {
-  const response = await enrollDeviceService(c);
+export const postDeviceEnrollController = async (
+  c: Context,
+): Promise<Response> => {
+  const response = await postDeviceEnrollService(c);
   return c.json(response, 201);
 };
 
@@ -24,8 +30,8 @@ export const getDeviceStateController = async (
 
     const unsubscribeFromDeviceState = await getDeviceStateService(
       c,
-      stream,
       deviceId,
+      stream,
     );
 
     stream.onAbort(() => {
@@ -47,4 +53,29 @@ export const getDeviceStateController = async (
   );
 
   return response;
+};
+
+export const postDeviceAlarmController = async (
+  c: Context,
+): Promise<Response> => {
+  const deviceId = c.req.query("deviceId");
+
+  if (!deviceId) {
+    throw new HTTPException(400, {
+      message: "Bad Request - Missing required query parameter: deviceId",
+    });
+  }
+
+  let alarm = {};
+  try {
+    const parsedBody = await c.req.json();
+    if (parsedBody) {
+      alarm = parsedBody;
+    }
+  } catch {
+    /**`alarm` remains an empty object. */
+  }
+
+  const response = await postDeviceAlarmService(c, deviceId, alarm);
+  return c.json(response, 201);
 };
