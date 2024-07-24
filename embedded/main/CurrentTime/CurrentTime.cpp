@@ -17,7 +17,7 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
   xSemaphoreGive(this->is_calibrated);
 
   int unix_at_calibration;
-  esp_err_t err = this->nvs_manager.read_int("current_time", "cal_unix",
+  esp_err_t err = this->nvs_manager.read_int("current_time", "unix_at_cal",
                                              unix_at_calibration);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Initial Unix at Calibration read from NVS: %d",
@@ -29,7 +29,8 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
   }
 
   int ms_at_calibration;
-  err = this->nvs_manager.read_int("current_time", "cal_ms", ms_at_calibration);
+  err = this->nvs_manager.read_int("current_time", "ms_at_cal",
+                                   ms_at_calibration);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Initial Milliseconds at Calibration read from NVS: %d",
              ms_at_calibration);
