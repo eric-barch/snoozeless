@@ -1,7 +1,7 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#include "Alarm.h"
+#include "Alarms.h"
 #include "Buzzer.h"
 #include "CurrentTime.h"
 #include "Display.h"
@@ -25,21 +25,20 @@ enum DeviceStateEvent {
 class Device {
 public:
   Device(NvsManager &nvs_manager, Session &session, CurrentTime &current_time,
-         Display &display, Buzzer &buzzer);
+         Alarms &alarms, Display &display, Buzzer &buzzer);
   ~Device();
 
 private:
   NvsManager &nvs_manager;
   Session &session;
   CurrentTime &current_time;
+  Alarms &alarms;
   Display &display;
   Buzzer &buzzer;
   std::string id;
-  std::vector<Alarm *> alarms;
   SemaphoreHandle_t is_subscribed;
 
   void set_id(std::string &id);
-  void set_alarms(std::string &alarm_ids);
 
   static void enroll_on_data(void *device, const std::string &response);
   esp_err_t enroll();

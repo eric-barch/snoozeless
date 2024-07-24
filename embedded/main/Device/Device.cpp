@@ -23,9 +23,10 @@ std::map<std::string, DeviceStateEvent> deviceStateEventMap = {
 };
 
 Device::Device(NvsManager &nvs_manager, Session &session,
-               CurrentTime &current_time, Display &display, Buzzer &buzzer)
+               CurrentTime &current_time, Alarms &alarms, Display &display,
+               Buzzer &buzzer)
     : nvs_manager(nvs_manager), session(session), current_time(current_time),
-      display(display), buzzer(buzzer) {
+      alarms(alarms), display(display), buzzer(buzzer) {
   std::string id;
   esp_err_t err = this->nvs_manager.read_string("device", "id", id);
   if (err == ESP_OK) {
@@ -34,15 +35,6 @@ Device::Device(NvsManager &nvs_manager, Session &session,
   } else {
     ESP_LOGW(TAG, "Error reading ID from NVS: %s.", esp_err_to_name(err));
     this->enroll();
-  }
-
-  std::string alarm_ids;
-  err = this->nvs_manager.read_string("alarms", "ids", alarm_ids);
-  if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Alarm IDs read from NVS: %s", alarm_ids.c_str());
-    this->set_alarms(alarm_ids);
-  } else {
-    ESP_LOGW(TAG, "Error reading alarm IDs from NVS: %s", esp_err_to_name(err));
   }
 
   this->is_subscribed = xSemaphoreCreateBinary();
@@ -58,38 +50,6 @@ void Device::set_id(std::string &id) {
   this->id = id;
   this->nvs_manager.write_string("device", "id", id);
   ESP_LOGI(TAG, "Set ID: %s", id.c_str());
-}
-
-void Device::set_alarms(std::string &alarm_ids_string) {
-  this->alarms = {};
-
-  cJSON *alarm_ids_json = cJSON_Parse(alarm_ids_string.c_str());
-  if (alarm_ids_json == nullptr) {
-    ESP_LOGE(TAG, "Error parsing JSON alarm IDs.");
-    return;
-  }
-
-  if (!cJSON_IsArray(alarm_ids_json)) {
-    ESP_LOGE(TAG, "Alarm IDs is not an array.");
-    cJSON_Delete(alarm_ids_json);
-    return;
-  }
-
-  cJSON *alarm_id_json = nullptr;
-  cJSON_ArrayForEach(alarm_id_json, alarm_ids_json) {
-    if (cJSON_IsString(alarm_id_json)) {
-      std::string alarm_id = cJSON_GetStringValue(alarm_id_json);
-      Alarm *alarm = new Alarm(this->nvs_manager, alarm_id);
-      this->alarms.push_back(alarm);
-    } else {
-      ESP_LOGE(TAG, "Alarm ID is not a string.");
-    }
-  }
-
-  this->nvs_manager.write_string("alarms", "ids", alarm_ids_string);
-  ESP_LOGI(TAG, "Set alarm IDs in NVS: %s", alarm_ids_string.c_str());
-
-  cJSON_Delete(alarm_ids_json);
 }
 
 void Device::enroll_on_data(void *device, const std::string &response) {
@@ -156,40 +116,7 @@ void Device::parse_device(void *device, const std::string &data) {
 }
 
 void Device::parse_initial_alarms(void *device, const std::string &data) {
-  Device *self = static_cast<Device *>(device);
-
-  cJSON *data_json = cJSON_Parse(data.c_str());
-  if (!data_json) {
-    ESP_LOGE(TAG, "Failed to parse JSON data.");
-    return;
-  }
-
-  if (!cJSON_IsArray(data_json)) {
-    ESP_LOGE(TAG, "JSON initial alarms is not an array.");
-    cJSON_Delete(data_json);
-    return;
-  }
-
-  std::vector<std::string> alarm_ids;
-
-  cJSON *alarm_json = nullptr;
-  cJSON_ArrayForEach(alarm_json, data_json) {
-    if (cJSON_IsObject(alarm_json)) {
-      cJSON *id_item = cJSON_GetObjectItem(alarm_json, "id");
-      if (cJSON_IsString(id_item) && (id_item->valuestring != nullptr)) {
-        alarm_ids.push_back(id_item->valuestring);
-      } else {
-        ESP_LOGE(TAG, "Alarm ID is not a valid string.");
-      }
-    } else {
-      ESP_LOGE(TAG, "Alarm is not a JSON object.");
-    }
-  }
-
-  ESP_LOGI(TAG, "Alarm IDs:");
-  for (const std::string &alarm_id : alarm_ids) {
-    ESP_LOGI(TAG, "%s", alarm_id.c_str());
-  }
+  ESP_LOGW(TAG, "Implement parse_initial_alarms.");
 }
 
 void Device::parse_alarm_insert(void *device, const std::string &data) {

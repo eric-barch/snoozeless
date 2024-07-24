@@ -1,3 +1,5 @@
+#include "Alarm.h"
+#include "Alarms.h"
 #include "Buzzer.h"
 #include "CurrentTime.h"
 #include "Device.h"
@@ -14,10 +16,11 @@ extern "C" void app_main(void) {
   WifiManager wifi_manager(nvs_manager);
   Session session(nvs_manager);
   CurrentTime current_time(nvs_manager, session);
+  Alarms alarms(nvs_manager);
   Display display(nvs_manager, current_time);
   Buzzer buzzer;
 
-  Device device(nvs_manager, session, current_time, display, buzzer);
+  Device device(nvs_manager, session, current_time, alarms, display, buzzer);
 
   vTaskDelay(portMAX_DELAY);
 }
