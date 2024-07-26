@@ -230,3 +230,11 @@ void Display::print_current_time() {
   xTaskCreate(Display::print_current_time_task, "print_current_time", 4096,
               this, 5, NULL);
 }
+
+void Display::print_9_41() {
+  this->set_major_interval("9");
+  this->colon = true;
+  this->set_minor_interval("41");
+  this->bottom_indicator = false;
+  this->print();
+}

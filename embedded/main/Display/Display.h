@@ -15,6 +15,7 @@ public:
 
   void count();
   void print_current_time();
+  void print_9_41();
 
 private:
   NvsManager &nvs_manager;
@@ -48,6 +49,7 @@ private:
   void set_minor_interval(const std::string &minor_interval);
 
   void print();
+
   static void count_task(void *pvParameters);
   static void print_current_time_task(void *pvParameters);
 };
