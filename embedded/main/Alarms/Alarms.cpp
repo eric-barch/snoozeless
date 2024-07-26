@@ -148,7 +148,30 @@ void Alarms::parse_alarm_insert(const std::string &data) {
 };
 
 void Alarms::parse_alarm_update(const std::string &data) {
-  ESP_LOGW(TAG, "Implement alarm update.");
+  cJSON *const alarm_json = cJSON_Parse(data.c_str());
+  if (!alarm_json) {
+    ESP_LOGE(TAG, "Error parsing JSON alarm.");
+    return;
+  }
+
+  if (!cJSON_IsObject(alarm_json)) {
+    ESP_LOGE(TAG, "Alarm is not an object.");
+    cJSON_Delete(alarm_json);
+    return;
+  }
+
+  const cJSON *const id_json = cJSON_GetObjectItem(alarm_json, "id");
+  if (!cJSON_IsString(id_json) || (id_json->valuestring == nullptr)) {
+    ESP_LOGE(TAG, "Alarm does not have a valid id.");
+    cJSON_Delete(alarm_json);
+    return;
+  }
+
+  std::string id = id_json->valuestring;
+  auto new_alarm = std::make_unique<Alarm>(this->nvs_manager, alarm_json);
+  alarms[id] = std::move(new_alarm);
+
+  cJSON_Delete(alarm_json);
 };
 
 void Alarms::parse_alarm_remove(const std::string &data) {
