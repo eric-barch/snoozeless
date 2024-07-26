@@ -175,5 +175,37 @@ void Alarms::parse_alarm_update(const std::string &data) {
 };
 
 void Alarms::parse_alarm_remove(const std::string &data) {
-  ESP_LOGW(TAG, "Implement alarm remove.");
+  cJSON *const alarm_json = cJSON_Parse(data.c_str());
+  if (!alarm_json) {
+    ESP_LOGE(TAG, "Error parsing JSON alarm.");
+    return;
+  }
+
+  if (!cJSON_IsObject(alarm_json)) {
+    ESP_LOGE(TAG, "Alarm is not an object.");
+    cJSON_Delete(alarm_json);
+    return;
+  }
+
+  const cJSON *const id_json = cJSON_GetObjectItem(alarm_json, "id");
+  if (!cJSON_IsString(id_json) || (id_json->valuestring == nullptr)) {
+    ESP_LOGE(TAG, "Alarm does not have a valid id.");
+    cJSON_Delete(alarm_json);
+    return;
+  }
+
+  std::string id = id_json->valuestring;
+  auto it = alarms.find(id);
+  if (it != alarms.end()) {
+    alarms.erase(it);
+    ESP_LOGI(TAG, "Alarm with id: %s removed.", id.c_str());
+  } else {
+    ESP_LOGW(TAG, "Alarm with id: %s not found.", id.c_str());
+  }
+
+  nvs_manager.erase_key(id, "name");
+  nvs_manager.erase_key(id, "schedule");
+  nvs_manager.erase_key(id, "time_to_abort");
+
+  cJSON_Delete(alarm_json);
 };
