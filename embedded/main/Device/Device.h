@@ -17,8 +17,8 @@ enum DeviceStateEvent {
   DEVICE_UPDATE,
   INITIAL_ALARMS,
   ALARM_INSERT,
-  ALARM_DELETE,
   ALARM_UPDATE,
+  ALARM_DELETE,
   UNKNOWN_EVENT
 };
 
@@ -26,7 +26,6 @@ class Device {
 public:
   Device(NvsManager &nvs_manager, Session &session, CurrentTime &current_time,
          Alarms &alarms, Display &display, Buzzer &buzzer);
-  ~Device();
 
 private:
   NvsManager &nvs_manager;
@@ -41,17 +40,12 @@ private:
   void set_id(std::string &id);
 
   static void enroll_on_data(void *device, const std::string &response);
-  esp_err_t enroll();
-
-  static void parse_device(void *device, const std::string &data);
-  static void parse_initial_alarms(void *device, const std::string &data);
-  static void parse_alarm_insert(void *device, const std::string &data);
-  static void parse_alarm_delete(void *device, const std::string &data);
-  static void parse_alarm_update(void *device, const std::string &data);
-
   static void subscribe_on_data(void *device, const std::string &response);
-  void subscribe();
   static void subscribe_task(void *pvParameters);
+
+  void parse_device_state(const std::string &data);
+  esp_err_t enroll();
+  void subscribe();
   void keep_subscribed();
 };
 

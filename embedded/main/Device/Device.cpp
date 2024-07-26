@@ -19,7 +19,7 @@ static const char *TAG = "Device";
 std::map<std::string, DeviceStateEvent> deviceStateEventMap = {
     {"initial-device", INITIAL_DEVICE}, {"device-update", DEVICE_UPDATE},
     {"initial-alarms", INITIAL_ALARMS}, {"alarm-insert", ALARM_INSERT},
-    {"alarm-delete", ALARM_DELETE},     {"alarm-update", ALARM_UPDATE},
+    {"alarm-update", ALARM_UPDATE},     {"alarm-delete", ALARM_DELETE},
 };
 
 Device::Device(NvsManager &nvs_manager, Session &session,
@@ -27,28 +27,25 @@ Device::Device(NvsManager &nvs_manager, Session &session,
                Buzzer &buzzer)
     : nvs_manager(nvs_manager), session(session), current_time(current_time),
       alarms(alarms), display(display), buzzer(buzzer) {
-  std::string id;
-  esp_err_t err = this->nvs_manager.read_string("device", "id", id);
+  esp_err_t err = nvs_manager.read_string("device", "id", id);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
-    this->set_id(id);
+    set_id(id);
   } else {
     ESP_LOGW(TAG, "Error reading ID from NVS: %s.", esp_err_to_name(err));
-    this->enroll();
+    enroll();
   }
 
-  this->is_subscribed = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->is_subscribed);
+  is_subscribed = xSemaphoreCreateBinary();
+  xSemaphoreGive(is_subscribed);
 
-  this->keep_subscribed();
-  this->display.print_current_time();
+  keep_subscribed();
+  display.print_current_time();
 }
-
-Device::~Device() {}
 
 void Device::set_id(std::string &id) {
   this->id = id;
-  this->nvs_manager.write_string("device", "id", id);
+  nvs_manager.write_string("device", "id", id);
   ESP_LOGI(TAG, "Set ID: %s", id.c_str());
 }
 
@@ -73,16 +70,13 @@ void Device::enroll_on_data(void *device, const std::string &response) {
 }
 
 esp_err_t Device::enroll() {
-  ApiRequest post_device_enroll =
-      ApiRequest(this->session, this, enroll_on_data, HTTP_METHOD_POST, 60000,
-                 "/device/enroll");
+  ApiRequest post_device_enroll = ApiRequest(
+      session, this, enroll_on_data, HTTP_METHOD_POST, 60000, "/device/enroll");
   esp_err_t err = post_device_enroll.send();
   return err;
 }
 
-void Device::parse_device(void *device, const std::string &data) {
-  Device *self = static_cast<Device *>(device);
-
+void Device::parse_device_state(const std::string &data) {
   cJSON *data_json = cJSON_Parse(data.c_str());
   if (!data_json) {
     ESP_LOGE(TAG, "Failed to parse JSON data.");
@@ -94,7 +88,7 @@ void Device::parse_device(void *device, const std::string &data) {
       (time_zone_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `time_zone` from JSON response.");
   } else {
-    self->current_time.set_time_zone(time_zone_item->valuestring);
+    current_time.set_time_zone(time_zone_item->valuestring);
   }
 
   cJSON *time_format_item = cJSON_GetObjectItem(data_json, "time_format");
@@ -102,33 +96,17 @@ void Device::parse_device(void *device, const std::string &data) {
       (time_format_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
   } else {
-    self->current_time.set_format(time_format_item->valuestring);
+    current_time.set_format(time_format_item->valuestring);
   }
 
   cJSON *brightness_item = cJSON_GetObjectItem(data_json, "brightness");
   if (!cJSON_IsNumber(brightness_item)) {
     ESP_LOGE(TAG, "Failed to extract `brightness` from JSON response.");
   } else {
-    self->display.set_brightness(brightness_item->valueint);
+    display.set_brightness(brightness_item->valueint);
   }
 
   cJSON_Delete(data_json);
-}
-
-void Device::parse_initial_alarms(void *device, const std::string &data) {
-  ESP_LOGW(TAG, "Implement parse_initial_alarms.");
-}
-
-void Device::parse_alarm_insert(void *device, const std::string &data) {
-  ESP_LOGW(TAG, "Implement parse_alarm_insert.");
-}
-
-void Device::parse_alarm_delete(void *device, const std::string &data) {
-  ESP_LOGW(TAG, "Implement parse_alarm_delete.");
-}
-
-void Device::parse_alarm_update(void *device, const std::string &data) {
-  ESP_LOGW(TAG, "Implement parse_alarm_update.");
 }
 
 void Device::subscribe_on_data(void *device, const std::string &response) {
@@ -173,22 +151,22 @@ void Device::subscribe_on_data(void *device, const std::string &response) {
 
   switch (event) {
   case INITIAL_DEVICE:
-    self->parse_device(self, data);
+    self->parse_device_state(data);
     break;
   case DEVICE_UPDATE:
-    self->parse_device(self, data);
+    self->parse_device_state(data);
     break;
   case INITIAL_ALARMS:
-    self->parse_initial_alarms(self, data);
+    self->alarms.parse_initial_alarms(data);
     break;
   case ALARM_INSERT:
-    self->parse_alarm_insert(self, data);
-    break;
-  case ALARM_DELETE:
-    self->parse_alarm_delete(self, data);
+    self->alarms.parse_alarm_insert(data);
     break;
   case ALARM_UPDATE:
-    self->parse_alarm_update(self, data);
+    self->alarms.parse_alarm_update(data);
+    break;
+  case ALARM_DELETE:
+    self->alarms.parse_alarm_remove(data);
     break;
   default:
     ESP_LOGE(TAG, "Unknown device state event: %s", data.c_str());
@@ -197,13 +175,13 @@ void Device::subscribe_on_data(void *device, const std::string &response) {
 }
 
 void Device::subscribe() {
-  std::string query = "deviceId=" + this->id;
+  std::string query = "deviceId=" + id;
   ApiRequest get_device_state =
-      ApiRequest(this->session, this, subscribe_on_data, HTTP_METHOD_GET,
-                 300000, "/device/state", query);
+      ApiRequest(session, this, subscribe_on_data, HTTP_METHOD_GET, 300000,
+                 "/device/state", query);
   get_device_state.send();
   ESP_LOGI(TAG, "Subscription successful.");
-  xSemaphoreGive(this->is_subscribed);
+  xSemaphoreGive(is_subscribed);
 }
 
 void Device::subscribe_task(void *pvParameters) {
@@ -221,7 +199,7 @@ void Device::subscribe_task(void *pvParameters) {
 }
 
 void Device::keep_subscribed() {
-  xSemaphoreTake(this->is_subscribed, 0);
+  xSemaphoreTake(is_subscribed, 0);
   xTaskCreate(Device::subscribe_task, "keep_subscribed", 2048, this, 5, NULL);
-  xSemaphoreTake(this->is_subscribed, portMAX_DELAY);
+  xSemaphoreTake(is_subscribed, portMAX_DELAY);
 }
