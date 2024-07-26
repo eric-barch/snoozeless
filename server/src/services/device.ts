@@ -130,8 +130,6 @@ export const getDeviceStateService = async (
             data: JSON.stringify(alarmData),
           });
         }
-
-        console.log("Subscribed to device state.");
       } else if (status === "CHANNEL_ERROR") {
         console.error("Error subscribing to device state:", error);
       } else {
