@@ -1,5 +1,5 @@
-#ifndef WIFI_MANAGER_H
-#define WIFI_MANAGER_H
+#ifndef WIFI_CONNECTION_H
+#define WIFI_CONNECTION_H
 
 #include "NonVolatileStorage.h"
 #include <esp_err.h>
@@ -7,30 +7,29 @@
 #include <freertos/idf_additions.h>
 #include <string>
 
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT BIT1
-#define MAX_RETRY 5
-
-class WifiManager {
+class WifiConnection {
 public:
-  WifiManager(NonVolatileStorage &non_volatile_storage);
-  ~WifiManager();
-
-  esp_err_t connect();
-  esp_err_t disconnect();
+  WifiConnection(NonVolatileStorage &non_volatile_storage);
+  ~WifiConnection();
 
 private:
+  static const char *const TAG;
+  static const int WIFI_CONNECTED_BIT;
+  static const int WIFI_FAIL_BIT;
+  static const int MAX_RETRY;
   NonVolatileStorage &non_volatile_storage;
-  EventGroupHandle_t wifi_event_group;
-  int retry_count;
   std::string ssid;
   std::string password;
+  EventGroupHandle_t wifi_event_group;
+  int retry_count;
 
   void set_ssid(std::string ssid);
   void set_password(std::string password);
 
   static void handle_wifi_event(void *arg, esp_event_base_t event_base,
                                 int32_t event_id, void *event_data);
+  esp_err_t connect();
+  esp_err_t disconnect();
 };
 
-#endif // WIFI_MANAGER_H
+#endif // WIFI_CONNECTION_H
