@@ -5,7 +5,7 @@
 #include "Buzzer.h"
 #include "CurrentTime.h"
 #include "Display.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include <esp_err.h>
 #include <freertos/idf_additions.h>
@@ -24,11 +24,12 @@ enum DeviceStateEvent {
 
 class Device {
 public:
-  Device(NvsManager &nvs_manager, Session &session, CurrentTime &current_time,
-         Alarms &alarms, Display &display, Buzzer &buzzer);
+  Device(NonVolatileStorage &non_volatile_storage, Session &session,
+         CurrentTime &current_time, Alarms &alarms, Display &display,
+         Buzzer &buzzer);
 
 private:
-  NvsManager &nvs_manager;
+  NonVolatileStorage &non_volatile_storage;
   Session &session;
   CurrentTime &current_time;
   Alarms &alarms;

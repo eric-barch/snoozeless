@@ -1,6 +1,6 @@
 #include "Session.h"
 #include "ApiRequest.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <cJSON.h>
 #include <esp_err.h>
 #include <esp_http_client.h>
@@ -11,13 +11,14 @@
 
 static const char *TAG = "Session";
 
-Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
+Session::Session(NonVolatileStorage &non_volatile_storage)
+    : non_volatile_storage(non_volatile_storage) {
   this->is_refreshed = xSemaphoreCreateBinary();
   xSemaphoreGive(this->is_refreshed);
 
   std::string access_token;
   esp_err_t err =
-      this->nvs_manager.read_string("session", "access", access_token);
+      this->non_volatile_storage.read_key("session", "access", access_token);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Access token read from NVS.");
     this->set_access_token(access_token);
@@ -28,7 +29,8 @@ Session::Session(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
   }
 
   std::string refresh_token;
-  err = this->nvs_manager.read_string("session", "refresh", refresh_token);
+  err =
+      this->non_volatile_storage.read_key("session", "refresh", refresh_token);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Refresh token read from NVS.");
     this->set_refresh_token(refresh_token);
@@ -45,7 +47,7 @@ Session::~Session() {}
 
 void Session::set_access_token(std::string access_token) {
   this->access_token = access_token;
-  this->nvs_manager.write_string("session", "access", access_token);
+  this->non_volatile_storage.write_key("session", "access", access_token);
   ESP_LOGI(TAG, "Set Access Token: %s", access_token.c_str());
 }
 
@@ -53,7 +55,7 @@ std::string Session::get_access_token() { return this->access_token; }
 
 void Session::set_refresh_token(std::string refresh_token) {
   this->refresh_token = refresh_token;
-  this->nvs_manager.write_string("session", "refresh", refresh_token);
+  this->non_volatile_storage.write_key("session", "refresh", refresh_token);
   ESP_LOGI(TAG, "Set Refresh Token: %s", refresh_token.c_str());
 }
 

@@ -1,6 +1,6 @@
 #include "CurrentTime.h"
 #include "ApiRequest.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include <cJSON.h>
 #include <ctime>
@@ -11,14 +11,15 @@
 
 static const char *TAG = "CurrentTime";
 
-CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
-    : nvs_manager(nvs_manager), session(session) {
+CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
+                         Session &session)
+    : non_volatile_storage(non_volatile_storage), session(session) {
   this->is_calibrated = xSemaphoreCreateBinary();
   xSemaphoreGive(this->is_calibrated);
 
   int unix_at_calibration;
-  esp_err_t err = this->nvs_manager.read_int("current_time", "unix_at_cal",
-                                             unix_at_calibration);
+  esp_err_t err = this->non_volatile_storage.read_key(
+      "current_time", "unix_at_cal", unix_at_calibration);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Initial Unix at Calibration read from NVS: %d",
              unix_at_calibration);
@@ -29,8 +30,8 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
   }
 
   int ms_at_calibration;
-  err = this->nvs_manager.read_int("current_time", "ms_at_cal",
-                                   ms_at_calibration);
+  err = this->non_volatile_storage.read_key("current_time", "ms_at_cal",
+                                            ms_at_calibration);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Initial Milliseconds at Calibration read from NVS: %d",
              ms_at_calibration);
@@ -42,7 +43,8 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
   }
 
   std::string time_zone;
-  err = this->nvs_manager.read_string("current_time", "time_zone", time_zone);
+  err = this->non_volatile_storage.read_key("current_time", "time_zone",
+                                            time_zone);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Time zone read from NVS: %s", time_zone.c_str());
     this->set_time_zone(time_zone);
@@ -51,7 +53,7 @@ CurrentTime::CurrentTime(NvsManager &nvs_manager, Session &session)
   }
 
   std::string format;
-  err = this->nvs_manager.read_string("current_time", "format", format);
+  err = this->non_volatile_storage.read_key("current_time", "format", format);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Format read from NVS: %s", format.c_str());
     this->set_format(format);
@@ -66,20 +68,21 @@ CurrentTime::~CurrentTime() {}
 
 void CurrentTime::set_unix_at_calibration(int unix_at_calibration) {
   this->unix_at_calibration = unix_at_calibration;
-  this->nvs_manager.write_int("current_time", "unix_at_cal",
-                              unix_at_calibration);
+  this->non_volatile_storage.write_key("current_time", "unix_at_cal",
+                                       unix_at_calibration);
   ESP_LOGI(TAG, "Set Unix at Calibration: %d", unix_at_calibration);
 }
 
 void CurrentTime::set_ms_at_calibration(int ms_at_calibration) {
   this->ms_at_calibration = ms_at_calibration;
-  this->nvs_manager.write_int("current_time", "ms_at_cal", ms_at_calibration);
+  this->non_volatile_storage.write_key("current_time", "ms_at_cal",
+                                       ms_at_calibration);
   ESP_LOGI(TAG, "Set Milliseconds at Calibration: %d", ms_at_calibration);
 }
 
 void CurrentTime::set_time_zone(const std::string &time_zone) {
   this->time_zone = time_zone;
-  this->nvs_manager.write_string("current_time", "time_zone", time_zone);
+  this->non_volatile_storage.write_key("current_time", "time_zone", time_zone);
   setenv("TZ", time_zone.c_str(), 1);
   tzset();
   ESP_LOGI(TAG, "Set time zone: %s", time_zone.c_str());
@@ -87,7 +90,7 @@ void CurrentTime::set_time_zone(const std::string &time_zone) {
 
 void CurrentTime::set_format(const std::string &format) {
   this->format = format;
-  this->nvs_manager.write_string("current_time", "format", format);
+  this->non_volatile_storage.write_key("current_time", "format", format);
   ESP_LOGI(TAG, "Set format: %s", format.c_str());
 }
 

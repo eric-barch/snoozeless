@@ -1,7 +1,7 @@
 #ifndef CURRENT_TIME_H
 #define CURRENT_TIME_H
 
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include <ctime>
 #include <esp_err.h>
@@ -10,7 +10,7 @@
 
 class CurrentTime {
 public:
-  CurrentTime(NvsManager &nvs_manager, Session &session);
+  CurrentTime(NonVolatileStorage &non_volatile_storage, Session &session);
   ~CurrentTime();
 
   void set_time_zone(const std::string &time_zone);
@@ -19,7 +19,7 @@ public:
   std::tm get_time();
 
 private:
-  NvsManager &nvs_manager;
+  NonVolatileStorage &non_volatile_storage;
   Session &session;
   int unix_at_calibration;
   int ms_at_calibration;

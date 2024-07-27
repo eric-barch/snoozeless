@@ -4,7 +4,7 @@
 #include "CurrentTime.h"
 #include "Device.h"
 #include "Display.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include "WifiManager.h"
 #include <freertos/idf_additions.h>
@@ -12,15 +12,16 @@
 static const char *TAG = "main";
 
 extern "C" void app_main(void) {
-  NvsManager nvs_manager;
-  WifiManager wifi_manager(nvs_manager);
-  Session session(nvs_manager);
-  CurrentTime current_time(nvs_manager, session);
-  Alarms alarms(nvs_manager);
-  Display display(nvs_manager, current_time);
+  NonVolatileStorage non_volatile_storage;
+  WifiManager wifi_manager(non_volatile_storage);
+  Session session(non_volatile_storage);
+  CurrentTime current_time(non_volatile_storage, session);
+  Alarms alarms(non_volatile_storage);
+  Display display(non_volatile_storage, current_time);
   Buzzer buzzer;
 
-  Device device(nvs_manager, session, current_time, alarms, display, buzzer);
+  Device device(non_volatile_storage, session, current_time, alarms, display,
+                buzzer);
 
   vTaskDelay(portMAX_DELAY);
 }

@@ -1,5 +1,5 @@
 #include "Alarm.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <cJSON.h>
 #include <esp_err.h>
 #include <esp_log.h>
@@ -7,9 +7,10 @@
 
 static const char *TAG = "Alarm";
 
-Alarm::Alarm(NvsManager &nvs_manager, const std::string &id)
-    : nvs_manager(nvs_manager), id(id), name(), schedule(), time_to_abort() {
-  esp_err_t err = nvs_manager.read_string(id, "name", name);
+Alarm::Alarm(NonVolatileStorage &non_volatile_storage, const std::string &id)
+    : non_volatile_storage(non_volatile_storage), id(id), name(), schedule(),
+      time_to_abort() {
+  esp_err_t err = non_volatile_storage.read_key(id, "name", name);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Name read from NVS: %s", name.c_str());
     set_name(name);
@@ -17,7 +18,7 @@ Alarm::Alarm(NvsManager &nvs_manager, const std::string &id)
     ESP_LOGW(TAG, "Error reading name from NVS: %s", esp_err_to_name(err));
   }
 
-  err = nvs_manager.read_string(id, "schedule", schedule);
+  err = non_volatile_storage.read_key(id, "schedule", schedule);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Schedule read from NVS: %s", schedule.c_str());
     set_schedule(schedule);
@@ -25,7 +26,7 @@ Alarm::Alarm(NvsManager &nvs_manager, const std::string &id)
     ESP_LOGW(TAG, "Error reading schedule from NVS: %s", esp_err_to_name(err));
   }
 
-  err = nvs_manager.read_int(id, "time_to_abort", time_to_abort);
+  err = non_volatile_storage.read_key(id, "time_to_abort", time_to_abort);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Time to abort read from NVS: %d", time_to_abort);
     set_time_to_abort(time_to_abort);
@@ -35,8 +36,10 @@ Alarm::Alarm(NvsManager &nvs_manager, const std::string &id)
   }
 };
 
-Alarm::Alarm(NvsManager &nvs_manager, const cJSON *const alarm_json)
-    : nvs_manager(nvs_manager), id(), name(), schedule(), time_to_abort() {
+Alarm::Alarm(NonVolatileStorage &non_volatile_storage,
+             const cJSON *const alarm_json)
+    : non_volatile_storage(non_volatile_storage), id(), name(), schedule(),
+      time_to_abort() {
   const cJSON *const id_item = cJSON_GetObjectItem(alarm_json, "id");
   if (!cJSON_IsString(id_item) || (id_item->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `id` from JSON response");
@@ -75,18 +78,19 @@ void Alarm::set_id(const std::string &id) {
 
 void Alarm::set_name(const std::string &name) {
   this->name = name;
-  this->nvs_manager.write_string(this->id, "name", name);
+  this->non_volatile_storage.write_key(this->id, "name", name);
   ESP_LOGI(TAG, "Set name: %s", name.c_str());
 }
 
 void Alarm::set_schedule(const std::string &schedule) {
   this->schedule = schedule;
-  this->nvs_manager.write_string(this->id, "schedule", schedule);
+  this->non_volatile_storage.write_key(this->id, "schedule", schedule);
   ESP_LOGI(TAG, "Set schedule: %s", schedule.c_str());
 }
 
 void Alarm::set_time_to_abort(const int time_to_abort) {
   this->time_to_abort = time_to_abort;
-  this->nvs_manager.write_int(this->id, "time_to_abort", time_to_abort);
+  this->non_volatile_storage.write_key(this->id, "time_to_abort",
+                                       time_to_abort);
   ESP_LOGI(TAG, "Set time to abort: %d", time_to_abort);
 }

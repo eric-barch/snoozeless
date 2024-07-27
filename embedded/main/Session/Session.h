@@ -1,20 +1,20 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <esp_err.h>
 #include <freertos/idf_additions.h>
 
 class Session {
 public:
-  Session(NvsManager &nvs_manager);
+  Session(NonVolatileStorage &non_volatile_storage);
   ~Session();
 
   std::string get_access_token();
   std::string get_refresh_token();
 
 private:
-  NvsManager &nvs_manager;
+  NonVolatileStorage &non_volatile_storage;
   std::string access_token;
   std::string refresh_token;
   SemaphoreHandle_t is_refreshed;

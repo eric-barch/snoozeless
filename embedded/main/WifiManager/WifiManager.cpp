@@ -1,5 +1,5 @@
 #include "WifiManager.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <cstring>
 #include <esp_err.h>
 #include <esp_event_base.h>
@@ -12,10 +12,12 @@
 
 static const char *TAG = "WifiManager";
 
-WifiManager::WifiManager(NvsManager &nvs_manager)
-    : nvs_manager(nvs_manager), wifi_event_group(nullptr), retry_count(0) {
+WifiManager::WifiManager(NonVolatileStorage &non_volatile_storage)
+    : non_volatile_storage(non_volatile_storage), wifi_event_group(nullptr),
+      retry_count(0) {
   std::string ssid;
-  esp_err_t err = this->nvs_manager.read_string("wifi_cred", "ssid", ssid);
+  esp_err_t err =
+      this->non_volatile_storage.read_key("wifi_cred", "ssid", ssid);
   if (err == ESP_OK) {
     this->set_ssid(ssid);
     ESP_LOGI(TAG, "SSID read from NVS: %s", ssid.c_str());
@@ -25,7 +27,7 @@ WifiManager::WifiManager(NvsManager &nvs_manager)
   }
 
   std::string password;
-  err = this->nvs_manager.read_string("wifi_cred", "password", password);
+  err = this->non_volatile_storage.read_key("wifi_cred", "password", password);
   if (err == ESP_OK) {
     this->set_password(password);
     ESP_LOGI(TAG, "Password read from NVS: %s", password.c_str());
@@ -47,13 +49,13 @@ WifiManager::~WifiManager() {
 
 void WifiManager::set_ssid(std::string ssid) {
   this->ssid = ssid;
-  this->nvs_manager.write_string("wifi_cred", "ssid", ssid);
+  this->non_volatile_storage.write_key("wifi_cred", "ssid", ssid);
   ESP_LOGI(TAG, "Set SSID: %s", ssid.c_str());
 }
 
 void WifiManager::set_password(std::string password) {
   this->password = password;
-  this->nvs_manager.write_string("wifi_cred", "password", password);
+  this->non_volatile_storage.write_key("wifi_cred", "password", password);
   ESP_LOGI(TAG, "Set Password: %s", ssid.c_str());
 }
 

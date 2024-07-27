@@ -3,7 +3,7 @@
 #include "ApiRequest.h"
 #include "Buzzer.h"
 #include "CurrentTime.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include <cJSON.h>
 #include <esp_err.h>
@@ -22,12 +22,13 @@ std::map<std::string, DeviceStateEvent> deviceStateEventMap = {
     {"alarm-update", ALARM_UPDATE},     {"alarm-delete", ALARM_DELETE},
 };
 
-Device::Device(NvsManager &nvs_manager, Session &session,
+Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
                CurrentTime &current_time, Alarms &alarms, Display &display,
                Buzzer &buzzer)
-    : nvs_manager(nvs_manager), session(session), current_time(current_time),
-      alarms(alarms), display(display), buzzer(buzzer) {
-  esp_err_t err = nvs_manager.read_string("device", "id", id);
+    : non_volatile_storage(non_volatile_storage), session(session),
+      current_time(current_time), alarms(alarms), display(display),
+      buzzer(buzzer) {
+  esp_err_t err = non_volatile_storage.read_key("device", "id", id);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
     set_id(id);
@@ -45,7 +46,7 @@ Device::Device(NvsManager &nvs_manager, Session &session,
 
 void Device::set_id(std::string &id) {
   this->id = id;
-  nvs_manager.write_string("device", "id", id);
+  non_volatile_storage.write_key("device", "id", id);
   ESP_LOGI(TAG, "Set ID: %s", id.c_str());
 }
 

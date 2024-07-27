@@ -1,7 +1,7 @@
 #ifndef WIFI_MANAGER_H
 #define WIFI_MANAGER_H
 
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <esp_err.h>
 #include <esp_event_base.h>
 #include <freertos/idf_additions.h>
@@ -13,14 +13,14 @@
 
 class WifiManager {
 public:
-  WifiManager(NvsManager &nvs_manager);
+  WifiManager(NonVolatileStorage &non_volatile_storage);
   ~WifiManager();
 
   esp_err_t connect();
   esp_err_t disconnect();
 
 private:
-  NvsManager &nvs_manager;
+  NonVolatileStorage &non_volatile_storage;
   EventGroupHandle_t wifi_event_group;
   int retry_count;
   std::string ssid;

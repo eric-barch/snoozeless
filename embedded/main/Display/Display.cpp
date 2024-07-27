@@ -1,6 +1,6 @@
 #include "Display.h"
 #include "CurrentTime.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <cstring>
 #include <ctime>
 #include <esp_log.h>
@@ -12,8 +12,9 @@
 
 static const char *TAG = "Display";
 
-Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
-    : nvs_manager(nvs_manager), current_time(current_time),
+Display::Display(NonVolatileStorage &non_volatile_storage,
+                 CurrentTime &current_time)
+    : non_volatile_storage(non_volatile_storage), current_time(current_time),
       top_indicator(false), bottom_indicator(false), colon(false),
       apostrophe(false) {
   /**Initialize display structs. */
@@ -46,7 +47,7 @@ Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
 
   int brightness;
   esp_err_t err =
-      this->nvs_manager.read_int("display", "brightness", brightness);
+      this->non_volatile_storage.read_key("display", "brightness", brightness);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Brightness read from NVS: %d", brightness);
     this->set_brightness(brightness);
@@ -68,7 +69,7 @@ void Display::set_brightness(uint8_t brightness) {
   }
 
   this->brightness = brightness;
-  this->nvs_manager.write_int("display", "brightness", brightness);
+  this->non_volatile_storage.write_key("display", "brightness", brightness);
 
   uint8_t cmd = 0xE0 | brightness;
   esp_err_t err = i2c_master_write_to_device(

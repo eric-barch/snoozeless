@@ -1,6 +1,6 @@
 #include "Alarms.h"
 #include "Alarm.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include <cJSON.h>
 #include <esp_log.h>
@@ -8,12 +8,13 @@
 
 static const char *TAG = "Alarms";
 
-Alarms::Alarms(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
+Alarms::Alarms(NonVolatileStorage &non_volatile_storage)
+    : non_volatile_storage(non_volatile_storage) {
   alarms = std::map<std::string, std::unique_ptr<Alarm>>();
 
   std::string alarm_ids_string;
   esp_err_t err =
-      this->nvs_manager.read_string("alarms", "ids", alarm_ids_string);
+      this->non_volatile_storage.read_key("alarms", "ids", alarm_ids_string);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Alarm IDs read from NVS: %s", alarm_ids_string.c_str());
   } else {
@@ -38,7 +39,7 @@ Alarms::Alarms(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
   cJSON_ArrayForEach(alarm_id_json, alarm_ids_json) {
     if (cJSON_IsString(alarm_id_json)) {
       std::string alarm_id = alarm_id_json->valuestring;
-      Alarm *alarm = new Alarm(this->nvs_manager, alarm_id);
+      Alarm *alarm = new Alarm(this->non_volatile_storage, alarm_id);
       this->alarms.emplace(alarm_id, alarm);
     } else {
       ESP_LOGE(TAG, "Alarm ID is not a string.");
@@ -71,7 +72,8 @@ void Alarms::parse_initial_alarms(const std::string &data) {
     }
 
     std::string id = id_json->valuestring;
-    auto new_alarm = std::make_unique<Alarm>(this->nvs_manager, alarm_json);
+    auto new_alarm =
+        std::make_unique<Alarm>(this->non_volatile_storage, alarm_json);
     alarms[id] = std::move(new_alarm);
   }
 
@@ -87,7 +89,7 @@ void Alarms::parse_initial_alarms(const std::string &data) {
 
   if (alarm_ids_string) {
     esp_err_t err =
-        this->nvs_manager.write_string("alarms", "ids", alarm_ids_string);
+        this->non_volatile_storage.write_key("alarms", "ids", alarm_ids_string);
     if (err == ESP_OK) {
       ESP_LOGI(TAG, "Alarm IDs written to NVS: %s", alarm_ids_string);
     } else {
@@ -121,7 +123,8 @@ void Alarms::parse_alarm_insert(const std::string &data) {
   }
 
   std::string id = id_json->valuestring;
-  auto new_alarm = std::make_unique<Alarm>(this->nvs_manager, alarm_json);
+  auto new_alarm =
+      std::make_unique<Alarm>(this->non_volatile_storage, alarm_json);
   alarms[id] = std::move(new_alarm);
 
   cJSON *alarm_ids_array = cJSON_CreateArray();
@@ -134,7 +137,7 @@ void Alarms::parse_alarm_insert(const std::string &data) {
 
   if (alarm_ids_string) {
     esp_err_t err =
-        this->nvs_manager.write_string("alarms", "ids", alarm_ids_string);
+        this->non_volatile_storage.write_key("alarms", "ids", alarm_ids_string);
     if (err == ESP_OK) {
       ESP_LOGI(TAG, "Alarm IDs written to NVS: %s", alarm_ids_string);
     } else {
@@ -168,7 +171,8 @@ void Alarms::parse_alarm_update(const std::string &data) {
   }
 
   std::string id = id_json->valuestring;
-  auto new_alarm = std::make_unique<Alarm>(this->nvs_manager, alarm_json);
+  auto new_alarm =
+      std::make_unique<Alarm>(this->non_volatile_storage, alarm_json);
   alarms[id] = std::move(new_alarm);
 
   cJSON_Delete(alarm_json);
@@ -203,9 +207,9 @@ void Alarms::parse_alarm_remove(const std::string &data) {
     ESP_LOGW(TAG, "Alarm with id: %s not found.", id.c_str());
   }
 
-  nvs_manager.erase_key(id, "name");
-  nvs_manager.erase_key(id, "schedule");
-  nvs_manager.erase_key(id, "time_to_abort");
+  non_volatile_storage.erase_key(id, "name");
+  non_volatile_storage.erase_key(id, "schedule");
+  non_volatile_storage.erase_key(id, "time_to_abort");
 
   cJSON_Delete(alarm_json);
 };

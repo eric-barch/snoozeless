@@ -1,17 +1,17 @@
 #ifndef ALARM_H
 #define ALARM_H
 
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <cJSON.h>
 #include <string>
 
 class Alarm {
 public:
-  Alarm(NvsManager &nvs_manager, const std::string &id);
-  Alarm(NvsManager &nvs_manager, const cJSON *alarm_json);
+  Alarm(NonVolatileStorage &non_volatile_storage, const std::string &id);
+  Alarm(NonVolatileStorage &non_volatile_storage, const cJSON *alarm_json);
 
 private:
-  NvsManager &nvs_manager;
+  NonVolatileStorage &non_volatile_storage;
   std::string id;
   std::string name;
   std::string schedule;

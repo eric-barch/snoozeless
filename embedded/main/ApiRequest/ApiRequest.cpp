@@ -102,7 +102,7 @@ void ApiRequest::send_task(void *pvParameters) {
   ApiRequest *self = static_cast<ApiRequest *>(pvParameters);
 
   esp_http_client_config_t config = {
-      .host = "192.168.1.8",
+      .host = "192.168.1.4",
       .port = 3000,
       .path = self->path.c_str(),
       .query = self->query.c_str(),

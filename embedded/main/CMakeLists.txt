@@ -9,7 +9,7 @@ idf_component_register(
                  "CurrentTime"
                  "Device"
                  "Display"
-                 "NvsManager"
+                 "NonVolatileStorage"
                  "Session"
                  "WifiManager"
     EMBED_TXTFILES server_cert.pem

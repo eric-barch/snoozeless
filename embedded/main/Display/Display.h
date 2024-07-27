@@ -2,13 +2,13 @@
 #define DISPLAY_H
 
 #include "CurrentTime.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <ht16k33.h>
 #include <i2cdev.h>
 
 class Display {
 public:
-  Display(NvsManager &nvs_manager, CurrentTime &current_time);
+  Display(NonVolatileStorage &non_volatile_storage, CurrentTime &current_time);
   ~Display();
 
   void set_brightness(uint8_t brightness);
@@ -18,7 +18,7 @@ public:
   void print_9_41();
 
 private:
-  NvsManager &nvs_manager;
+  NonVolatileStorage &non_volatile_storage;
   CurrentTime &current_time;
   i2c_dev_t ht16k33;
   uint8_t ht16k33_ram[HT16K33_RAM_SIZE_BYTES];
