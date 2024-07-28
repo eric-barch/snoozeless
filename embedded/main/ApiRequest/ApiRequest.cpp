@@ -1,43 +1,43 @@
+#ifndef API_REQUEST_CPP
+#define API_REQUEST_CPP
+
 #include "ApiRequest.h"
 #include "Session.h"
-#include "esp_crt_bundle.h"
-#include "esp_err.h"
-#include "esp_http_client.h"
-#include "esp_log.h"
-#include "freertos/idf_additions.h"
-#include "freertos/projdefs.h"
-#include "freertos/task.h"
+#include <esp_crt_bundle.h>
+#include <esp_err.h>
+#include <esp_http_client.h>
+#include <esp_log.h>
+#include <freertos/idf_additions.h>
+#include <freertos/projdefs.h>
+#include <freertos/task.h>
 #include <string>
 
 #define MAX_HTTP_RX_BUFFER 1024
 #define MAX_HTTP_TX_BUFFER 1024
 
-static const char *TAG = "ApiRequest";
-
-ApiRequest::ApiRequest(Session &session, void *calling_object,
-                       OnDataCallback on_data,
-                       const esp_http_client_method_t method,
-                       const int timeout_ms, const std::string &path,
-                       const std::string &query)
-    : session(session), calling_object(calling_object), on_data(on_data),
-      method(method), timeout_ms(timeout_ms), path(path), query(query) {
-  this->is_connected = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->is_connected);
-
-  this->received_response = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->received_response);
+template <typename CallerType>
+ApiRequest<CallerType>::ApiRequest(Session &session, CallerType &caller,
+                                   const esp_http_client_method_t method,
+                                   const int timeout_ms,
+                                   const std::string &path,
+                                   const std::string &query)
+    : session(session), caller(caller), method(method), timeout_ms(timeout_ms),
+      path(path), query(query), client(),
+      is_connected(xSemaphoreCreateBinary()),
+      received_response(xSemaphoreCreateBinary()) {
+  xSemaphoreGive(is_connected);
+  xSemaphoreGive(received_response);
 }
 
-ApiRequest::~ApiRequest() {
-  xSemaphoreTake(this->is_connected, portMAX_DELAY);
-  ESP_LOGI(TAG, "Destroy %s.", this->path.c_str());
+template <typename CallerType> ApiRequest<CallerType>::~ApiRequest() {
+  xSemaphoreTake(is_connected, portMAX_DELAY);
 }
 
-esp_err_t ApiRequest::handle_http_event(esp_http_client_event_t *event) {
+template <typename CallerType>
+esp_err_t
+ApiRequest<CallerType>::handle_http_event(esp_http_client_event_t *event) {
   ApiRequest *self = static_cast<ApiRequest *>(event->user_data);
-
-  void *calling_object = self->calling_object;
-  OnDataCallback on_data = self->on_data;
+  CallerType &caller = self->caller;
 
   std::string output_buffer;
   int status_code = esp_http_client_get_status_code(event->client);
@@ -78,7 +78,7 @@ esp_err_t ApiRequest::handle_http_event(esp_http_client_event_t *event) {
       break;
     }
 
-    on_data(calling_object, output_buffer);
+    caller.on_data(output_buffer);
 
     xSemaphoreGive(self->received_response);
     break;
@@ -98,7 +98,8 @@ esp_err_t ApiRequest::handle_http_event(esp_http_client_event_t *event) {
   return ESP_OK;
 }
 
-void ApiRequest::send_task(void *pvParameters) {
+template <typename ClientType>
+void ApiRequest<ClientType>::send_task(void *pvParameters) {
   ApiRequest *self = static_cast<ApiRequest *>(pvParameters);
 
   esp_http_client_config_t config = {
@@ -143,11 +144,11 @@ void ApiRequest::send_task(void *pvParameters) {
   vTaskDelete(NULL);
 }
 
-esp_err_t ApiRequest::send() {
-  xSemaphoreTake(this->received_response, 0);
+template <typename ClientType> esp_err_t ApiRequest<ClientType>::send() {
+  xSemaphoreTake(received_response, 0);
   xTaskCreate(&ApiRequest::send_task, "send_request_task", 8192, this, 5,
               nullptr);
-  xSemaphoreTake(this->received_response, portMAX_DELAY);
+  xSemaphoreTake(received_response, portMAX_DELAY);
 
   int status_code = esp_http_client_get_status_code(this->client);
   if (status_code < 200 || status_code >= 300) {
@@ -156,3 +157,5 @@ esp_err_t ApiRequest::send() {
     return ESP_OK;
   }
 }
+
+#endif // API_REQUEST_CPP

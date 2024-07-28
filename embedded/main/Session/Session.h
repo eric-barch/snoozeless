@@ -13,6 +13,8 @@ public:
   std::string get_access_token();
   std::string get_refresh_token();
 
+  void on_data(const std::string &response);
+
 private:
   NonVolatileStorage &non_volatile_storage;
   std::string access_token;
@@ -22,7 +24,6 @@ private:
   void set_access_token(std::string access_token);
   void set_refresh_token(std::string refresh_token);
 
-  static void refresh_on_data(void *session, const std::string &response);
   esp_err_t refresh();
   static void keep_refreshed_task(void *pvParameters);
   void keep_refreshed();

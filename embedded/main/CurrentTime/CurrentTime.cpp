@@ -105,10 +105,7 @@ std::tm CurrentTime::get_time() {
   return time;
 }
 
-void CurrentTime::calibrate_on_data(void *current_time,
-                                    const std::string &response) {
-  CurrentTime *self = static_cast<CurrentTime *>(current_time);
-
+void CurrentTime::on_data(const std::string &response) {
   cJSON *json_response = cJSON_Parse(response.c_str());
   if (!json_response) {
     ESP_LOGE(TAG, "Failed to parse JSON response.");
@@ -126,8 +123,8 @@ void CurrentTime::calibrate_on_data(void *current_time,
 }
 
 esp_err_t CurrentTime::calibrate() {
-  ApiRequest get_unix_time = ApiRequest(session, this, calibrate_on_data,
-                                        HTTP_METHOD_GET, 60000, "/unix-time");
+  ApiRequest get_unix_time = ApiRequest<CurrentTime>(
+      session, *this, HTTP_METHOD_GET, 60000, "/unix-time", "");
   esp_err_t err = get_unix_time.send();
   return err;
 }

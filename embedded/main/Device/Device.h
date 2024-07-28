@@ -28,6 +28,8 @@ public:
          CurrentTime &current_time, Alarms &alarms, Display &display,
          Buzzer &buzzer);
 
+  void on_data(const std::string &response);
+
 private:
   NonVolatileStorage &non_volatile_storage;
   Session &session;
@@ -40,8 +42,6 @@ private:
 
   void set_id(std::string &id);
 
-  static void enroll_on_data(void *device, const std::string &response);
-  static void subscribe_on_data(void *device, const std::string &response);
   static void subscribe_task(void *pvParameters);
 
   void parse_device_state(const std::string &data);

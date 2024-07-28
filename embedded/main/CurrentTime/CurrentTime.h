@@ -18,6 +18,8 @@ public:
   std::string get_format();
   std::tm get_time();
 
+  void on_data(const std::string &response);
+
 private:
   NonVolatileStorage &non_volatile_storage;
   Session &session;
@@ -30,8 +32,6 @@ private:
   void set_unix_at_calibration(int unix_at_calibration);
   void set_ms_at_calibration(int ms_at_calibration);
 
-  static void calibrate_on_data(void *current_time,
-                                const std::string &response);
   esp_err_t calibrate();
   static void keep_calibrated_task(void *pvParameters);
   void keep_calibrated();

@@ -61,9 +61,8 @@ void Session::set_refresh_token(std::string refresh_token) {
 
 std::string Session::get_refresh_token() { return this->refresh_token; }
 
-void Session::refresh_on_data(void *session, const std::string &response) {
-  Session *self = static_cast<Session *>(session);
 
+void Session::on_data(const std::string &response) {
   cJSON *json_response = cJSON_Parse(response.c_str());
   if (!json_response) {
     ESP_LOGE(TAG, "Failed to parse JSON response.");
@@ -91,8 +90,8 @@ void Session::refresh_on_data(void *session, const std::string &response) {
 }
 
 esp_err_t Session::refresh() {
-  ApiRequest post_auth_refresh = ApiRequest(
-      *this, this, refresh_on_data, HTTP_METHOD_POST, 60000, "/auth/refresh");
+  ApiRequest post_auth_refresh = ApiRequest<Session>(
+      *this, *this, HTTP_METHOD_POST, 60000, "/auth/refresh", "");
   esp_err_t err = post_auth_refresh.send();
   return err;
 }

@@ -50,29 +50,9 @@ void Device::set_id(std::string &id) {
   ESP_LOGI(TAG, "Set ID: %s", id.c_str());
 }
 
-void Device::enroll_on_data(void *device, const std::string &response) {
-  Device *self = static_cast<Device *>(device);
-
-  cJSON *json_response = cJSON_Parse(response.c_str());
-  if (!json_response) {
-    ESP_LOGE(TAG, "Failed to parse JSON response.");
-    return;
-  }
-
-  cJSON *id_item = cJSON_GetObjectItem(json_response, "id");
-  if (!cJSON_IsString(id_item) || (id_item->valuestring == NULL)) {
-    ESP_LOGE(TAG, "Failed to extract `id` from JSON response");
-  } else {
-    std::string id = id_item->valuestring;
-    self->set_id(id);
-  }
-
-  cJSON_Delete(json_response);
-}
-
 esp_err_t Device::enroll() {
-  ApiRequest post_device_enroll = ApiRequest(
-      session, this, enroll_on_data, HTTP_METHOD_POST, 60000, "/device/enroll");
+  ApiRequest post_device_enroll = ApiRequest<Device>(
+      session, *this, HTTP_METHOD_POST, 60000, "/device/enroll", "");
   esp_err_t err = post_device_enroll.send();
   return err;
 }
@@ -110,7 +90,7 @@ void Device::parse_device_state(const std::string &data) {
   cJSON_Delete(data_json);
 }
 
-void Device::subscribe_on_data(void *device, const std::string &response) {
+void Device::on_data(const std::string &response) {
   std::string response_without_line_breaks =
       response.substr(0, response.length() - 2);
   ESP_LOGI(TAG, "%s", response_without_line_breaks.c_str());
@@ -144,8 +124,6 @@ void Device::subscribe_on_data(void *device, const std::string &response) {
   std::string data =
       response.substr(data_start_pos, data_end_pos - data_start_pos);
 
-  Device *self = static_cast<Device *>(device);
-
   DeviceStateEvent event = deviceStateEventMap.count(sse_event)
                                ? deviceStateEventMap[sse_event]
                                : UNKNOWN_EVENT;
@@ -177,9 +155,8 @@ void Device::subscribe_on_data(void *device, const std::string &response) {
 
 void Device::subscribe() {
   std::string query = "deviceId=" + id;
-  ApiRequest get_device_state =
-      ApiRequest(session, this, subscribe_on_data, HTTP_METHOD_GET, 300000,
-                 "/device/state", query);
+  ApiRequest get_device_state = ApiRequest<Device>(
+      session, *this, HTTP_METHOD_GET, 300000, "/device/state", query);
   get_device_state.send();
   ESP_LOGI(TAG, "Subscription successful.");
   xSemaphoreGive(is_subscribed);
