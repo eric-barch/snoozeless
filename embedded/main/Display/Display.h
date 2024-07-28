@@ -13,11 +13,12 @@ public:
 
   void set_brightness(uint8_t brightness);
 
-  void count();
   void print_current_time();
   void print_9_41();
 
 private:
+  static const char *const TAG;
+  static const std::unordered_map<char, uint8_t> alphabet;
   NonVolatileStorage &non_volatile_storage;
   CurrentTime &current_time;
   i2c_dev_t ht16k33;
@@ -32,26 +33,11 @@ private:
   char major_interval[3];
   char minor_interval[3];
 
-  const uint8_t value_to_segments[10] = {
-      0x3F, // 0
-      0x06, // 1
-      0x5B, // 2
-      0x4F, // 3
-      0x66, // 4
-      0x6D, // 5
-      0x7D, // 6
-      0x07, // 7
-      0x7F, // 8
-      0x6F  // 9
-  };
-
   void set_major_interval(const std::string &major_interval);
   void set_minor_interval(const std::string &minor_interval);
 
   void print();
-
-  static void count_task(void *pvParameters);
   static void print_current_time_task(void *pvParameters);
 };
 
-#endif
+#endif // DISPLAY_H
