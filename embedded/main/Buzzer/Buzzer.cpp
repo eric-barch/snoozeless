@@ -4,62 +4,58 @@
 #include <esp_log.h>
 #include <freertos/idf_additions.h>
 
-static const char *TAG = "Buzzer";
+const char *const Buzzer::TAG = "Buzzer";
 
-#define BUZZER_TIMER LEDC_TIMER_0
-#define BUZZER_CHANNEL LEDC_CHANNEL_0
-#define BUZZER_MODE LEDC_LOW_SPEED_MODE
-#define BUZZER_DUTY (4096)
-#define BUZZER_FREQUENCY (440)
-#define BUZZER_OUTPUT_IO (26)
-
-Buzzer::Buzzer() : is_buzzing(false) {
-  this->buzzer_timer = {
-      .speed_mode = BUZZER_MODE,
+Buzzer::Buzzer()
+    : TIMER_NUM(LEDC_TIMER_0), CHANNEL(LEDC_CHANNEL_0),
+      SPEED_MODE(LEDC_LOW_SPEED_MODE), DUTY(4096), FREQ_HZ(440), GPIO_NUM(26),
+      timer_config(), channel_config(), alarm_is_on(false) {
+  timer_config = {
+      .speed_mode = SPEED_MODE,
       .duty_resolution = LEDC_TIMER_13_BIT,
-      .timer_num = BUZZER_TIMER,
-      .freq_hz = BUZZER_FREQUENCY,
+      .timer_num = TIMER_NUM,
+      .freq_hz = FREQ_HZ,
       .clk_cfg = LEDC_AUTO_CLK,
   };
-  ESP_ERROR_CHECK(ledc_timer_config(&buzzer_timer));
+  ESP_ERROR_CHECK(ledc_timer_config(&timer_config));
 
-  this->buzzer_channel = {
-      .gpio_num = BUZZER_OUTPUT_IO,
-      .speed_mode = BUZZER_MODE,
-      .channel = BUZZER_CHANNEL,
+  channel_config = {
+      .gpio_num = GPIO_NUM,
+      .speed_mode = SPEED_MODE,
+      .channel = CHANNEL,
       .intr_type = LEDC_INTR_DISABLE,
-      .timer_sel = BUZZER_TIMER,
+      .timer_sel = TIMER_NUM,
       .duty = 0,
       .hpoint = 0,
   };
-  ESP_ERROR_CHECK(ledc_channel_config(&buzzer_channel));
+  ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
 };
 
 Buzzer::~Buzzer() {}
 
-void Buzzer::buzz_task(void *pvParameters) {
+void Buzzer::alarm_task(void *pvParameters) {
   Buzzer *self = static_cast<Buzzer *>(pvParameters);
 
-  while (self->is_buzzing) {
-    ESP_ERROR_CHECK(ledc_set_duty(BUZZER_MODE, BUZZER_CHANNEL, BUZZER_DUTY));
-    ESP_ERROR_CHECK(ledc_update_duty(BUZZER_MODE, BUZZER_CHANNEL));
+  while (self->alarm_is_on) {
+    ESP_ERROR_CHECK(ledc_set_duty(self->SPEED_MODE, self->CHANNEL, self->DUTY));
+    ESP_ERROR_CHECK(ledc_update_duty(self->SPEED_MODE, self->CHANNEL));
     vTaskDelay(pdMS_TO_TICKS(500));
 
-    ESP_ERROR_CHECK(ledc_set_duty(BUZZER_MODE, BUZZER_CHANNEL, 0));
-    ESP_ERROR_CHECK(ledc_update_duty(BUZZER_MODE, BUZZER_CHANNEL));
+    ESP_ERROR_CHECK(ledc_set_duty(self->SPEED_MODE, self->CHANNEL, 0));
+    ESP_ERROR_CHECK(ledc_update_duty(self->SPEED_MODE, self->CHANNEL));
     vTaskDelay(pdMS_TO_TICKS(500));
   }
 
   vTaskDelete(NULL);
 }
 
-void Buzzer::start_buzzing() {
-  this->is_buzzing = true;
-  xTaskCreate(buzz_task, "buzz", 2048, this, 5, NULL);
-  ESP_LOGI(TAG, "Started buzzing.");
+void Buzzer::start_alarm() {
+  alarm_is_on = true;
+  xTaskCreate(alarm_task, "alarm", 2048, this, 5, NULL);
+  ESP_LOGI(TAG, "Started alarm.");
 }
 
-void Buzzer::stop_buzzing() {
-  this->is_buzzing = false;
-  ESP_LOGI(TAG, "Stopped buzzing.");
+void Buzzer::stop_alarm() {
+  alarm_is_on = false;
+  ESP_LOGI(TAG, "Stopped alarm.");
 }

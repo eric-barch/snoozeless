@@ -22,7 +22,7 @@ extern "C" void app_main(void) {
   CurrentTime current_time(non_volatile_storage, session);
   // Alarms alarms(non_volatile_storage);
   Display display(non_volatile_storage, current_time);
-  // Buzzer buzzer;
+  Buzzer buzzer;
 
   // Device device(non_volatile_storage, session, current_time, alarms, display,
   //               buzzer);
