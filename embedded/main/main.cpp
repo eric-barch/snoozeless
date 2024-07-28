@@ -21,7 +21,7 @@ extern "C" void app_main(void) {
   WifiConnection wifi_connection(non_volatile_storage);
 
   Session session(non_volatile_storage);
-  // CurrentTime current_time(non_volatile_storage, session);
+  CurrentTime current_time(non_volatile_storage, session);
   // Alarms alarms(non_volatile_storage);
   // Display display(non_volatile_storage, current_time);
   // Buzzer buzzer;
