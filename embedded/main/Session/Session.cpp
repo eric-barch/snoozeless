@@ -9,84 +9,83 @@
 #include <sdkconfig.h>
 #include <string>
 
-static const char *TAG = "Session";
+const char *const Session::TAG = "Session";
 
 Session::Session(NonVolatileStorage &non_volatile_storage)
-    : non_volatile_storage(non_volatile_storage) {
-  this->is_refreshed = xSemaphoreCreateBinary();
-  xSemaphoreGive(this->is_refreshed);
+    : non_volatile_storage(non_volatile_storage), access_token(),
+      refresh_token(), is_refreshed(xSemaphoreCreateBinary()) {
+  xSemaphoreGive(is_refreshed);
 
-  std::string access_token;
   esp_err_t err =
-      this->non_volatile_storage.read_key("session", "access", access_token);
+      non_volatile_storage.read_key("session", "access", access_token);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Access token read from NVS.");
-    this->set_access_token(access_token);
+    ESP_LOGD(TAG, "Access token read from NVS.");
+    set_access_token(access_token);
   } else {
     ESP_LOGW(TAG, "Error reading access token from NVS: %s. Using config.",
              esp_err_to_name(err));
-    this->set_access_token(CONFIG_ACCESS_TOKEN);
+    set_access_token(CONFIG_ACCESS_TOKEN);
   }
 
-  std::string refresh_token;
-  err =
-      this->non_volatile_storage.read_key("session", "refresh", refresh_token);
+  err = non_volatile_storage.read_key("session", "refresh", refresh_token);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Refresh token read from NVS.");
-    this->set_refresh_token(refresh_token);
+    ESP_LOGD(TAG, "Refresh token read from NVS.");
+    set_refresh_token(refresh_token);
   } else {
     ESP_LOGW(TAG, "Error reading refresh token from NVS: %s. Using config.",
              esp_err_to_name(err));
-    this->set_refresh_token(CONFIG_REFRESH_TOKEN);
+    set_refresh_token(CONFIG_REFRESH_TOKEN);
   }
 
-  this->keep_refreshed();
+  xSemaphoreTake(is_refreshed, 0);
+  xTaskCreate(keep_refreshed, "keep_refreshed", 2048, this, 5, NULL);
+  xSemaphoreTake(is_refreshed, portMAX_DELAY);
 };
 
 Session::~Session() {}
 
-void Session::set_access_token(std::string access_token) {
-  this->access_token = access_token;
-  this->non_volatile_storage.write_key("session", "access", access_token);
-  ESP_LOGI(TAG, "Set Access Token: %s", access_token.c_str());
-}
+std::string Session::get_access_token() { return access_token; }
 
-std::string Session::get_access_token() { return this->access_token; }
-
-void Session::set_refresh_token(std::string refresh_token) {
-  this->refresh_token = refresh_token;
-  this->non_volatile_storage.write_key("session", "refresh", refresh_token);
-  ESP_LOGI(TAG, "Set Refresh Token: %s", refresh_token.c_str());
-}
-
-std::string Session::get_refresh_token() { return this->refresh_token; }
-
+std::string Session::get_refresh_token() { return refresh_token; }
 
 void Session::on_data(const std::string &response) {
-  cJSON *json_response = cJSON_Parse(response.c_str());
+  cJSON *const json_response = cJSON_Parse(response.c_str());
   if (!json_response) {
     ESP_LOGE(TAG, "Failed to parse JSON response.");
     return;
   }
 
-  cJSON *access_token_item = cJSON_GetObjectItem(json_response, "access_token");
-  if (!cJSON_IsString(access_token_item) ||
-      (access_token_item->valuestring == NULL)) {
+  const cJSON *const access_token_json =
+      cJSON_GetObjectItem(json_response, "access_token");
+  if (!cJSON_IsString(access_token_json) ||
+      (access_token_json->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `access_token` from JSON response.");
   } else {
-    self->set_access_token(access_token_item->valuestring);
+    set_access_token(access_token_json->valuestring);
   }
 
-  cJSON *refresh_token_item =
+  const cJSON *const refresh_token_json =
       cJSON_GetObjectItem(json_response, "refresh_token");
-  if (!cJSON_IsString(refresh_token_item) ||
-      (refresh_token_item->valuestring == NULL)) {
+  if (!cJSON_IsString(refresh_token_json) ||
+      (refresh_token_json->valuestring == NULL)) {
     ESP_LOGE(TAG, "Failed to extract `refresh_token` from JSON response.");
   } else {
-    self->set_refresh_token(refresh_token_item->valuestring);
+    set_refresh_token(refresh_token_json->valuestring);
   }
 
   cJSON_Delete(json_response);
+}
+
+void Session::set_access_token(const std::string &access_token) {
+  this->access_token = access_token;
+  non_volatile_storage.write_key("session", "access", access_token);
+  ESP_LOGI(TAG, "Set Access Token: %s", access_token.c_str());
+}
+
+void Session::set_refresh_token(const std::string &refresh_token) {
+  this->refresh_token = refresh_token;
+  non_volatile_storage.write_key("session", "refresh", refresh_token);
+  ESP_LOGI(TAG, "Set Refresh Token: %s", refresh_token.c_str());
 }
 
 esp_err_t Session::refresh() {
@@ -96,7 +95,7 @@ esp_err_t Session::refresh() {
   return err;
 }
 
-void Session::keep_refreshed_task(void *pvParameters) {
+void Session::keep_refreshed(void *pvParameters) {
   Session *self = static_cast<Session *>(pvParameters);
 
   while (true) {
@@ -117,11 +116,4 @@ void Session::keep_refreshed_task(void *pvParameters) {
   }
 
   vTaskDelete(NULL);
-}
-
-void Session::keep_refreshed() {
-  xSemaphoreTake(this->is_refreshed, 0);
-  xTaskCreate(Session::keep_refreshed_task, "keep_refreshed", 2048, this, 5,
-              NULL);
-  xSemaphoreTake(this->is_refreshed, portMAX_DELAY);
 }

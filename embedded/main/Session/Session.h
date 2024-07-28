@@ -4,6 +4,8 @@
 #include "NonVolatileStorage.h"
 #include <esp_err.h>
 #include <freertos/idf_additions.h>
+#include <stdint.h>
+#include <unordered_map>
 
 class Session {
 public:
@@ -16,17 +18,17 @@ public:
   void on_data(const std::string &response);
 
 private:
+  static const char *const TAG;
   NonVolatileStorage &non_volatile_storage;
   std::string access_token;
   std::string refresh_token;
   SemaphoreHandle_t is_refreshed;
 
-  void set_access_token(std::string access_token);
-  void set_refresh_token(std::string refresh_token);
+  void set_access_token(const std::string &access_token);
+  void set_refresh_token(const std::string &refresh_token);
 
   esp_err_t refresh();
-  static void keep_refreshed_task(void *pvParameters);
-  void keep_refreshed();
+  static void keep_refreshed(void *const pvParameters);
 };
 
 #endif // SESSION_H
