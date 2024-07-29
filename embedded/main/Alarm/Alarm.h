@@ -8,9 +8,11 @@
 class Alarm {
 public:
   Alarm(NonVolatileStorage &non_volatile_storage, const std::string &id);
-  Alarm(NonVolatileStorage &non_volatile_storage, const cJSON *alarm_json);
+  Alarm(NonVolatileStorage &non_volatile_storage,
+        const cJSON *const alarm_json);
 
 private:
+  static const char *const TAG;
   NonVolatileStorage &non_volatile_storage;
   std::string id;
   std::string name;
