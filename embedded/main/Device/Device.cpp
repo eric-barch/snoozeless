@@ -130,22 +130,22 @@ void Device::on_data(const std::string &response) {
 
   switch (event) {
   case INITIAL_DEVICE:
-    self->parse_device_state(data);
+    parse_device_state(data);
     break;
   case DEVICE_UPDATE:
-    self->parse_device_state(data);
+    parse_device_state(data);
     break;
   case INITIAL_ALARMS:
-    self->alarms.parse_initial_alarms(data);
+    alarms.parse_initial(data);
     break;
   case ALARM_INSERT:
-    self->alarms.parse_alarm_insert(data);
+    alarms.parse_insert(data);
     break;
   case ALARM_UPDATE:
-    self->alarms.parse_alarm_update(data);
+    alarms.parse_update(data);
     break;
   case ALARM_DELETE:
-    self->alarms.parse_alarm_remove(data);
+    alarms.parse_remove(data);
     break;
   default:
     ESP_LOGE(TAG, "Unknown device state event: %s", data.c_str());

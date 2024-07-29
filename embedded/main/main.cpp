@@ -10,8 +10,6 @@
 #include <freertos/idf_additions.h>
 
 /**TODO:
- * - Decide whether to keep alarms in `Alarms` object or make them belong to
- *   `Device` directly.
  * - Refactor semaphores to direct-to-task notifications. */
 
 extern "C" void app_main(void) {
@@ -20,7 +18,7 @@ extern "C" void app_main(void) {
 
   Session session(non_volatile_storage);
   CurrentTime current_time(non_volatile_storage, session);
-  // Alarms alarms(non_volatile_storage);
+  Alarms alarms(non_volatile_storage);
   Display display(non_volatile_storage, current_time);
   Buzzer buzzer;
 
