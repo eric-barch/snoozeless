@@ -12,11 +12,14 @@
 #include <freertos/task.h>
 #include <string>
 
-#define MAX_HTTP_RX_BUFFER 1024
-#define MAX_HTTP_TX_BUFFER 1024
 template <typename CallerType>
 const char *const ApiRequest<CallerType>::TAG = "api_req";
 
+template <typename CallerType>
+const int ApiRequest<CallerType>::MAX_HTTP_RX_BUFFER = 1024;
+
+template <typename CallerType>
+const int ApiRequest<CallerType>::MAX_HTTP_TX_BUFFER = 1024;
 
 template <typename CallerType>
 ApiRequest<CallerType>::ApiRequest(Session &session, CallerType &caller,
@@ -60,7 +63,7 @@ ApiRequest<CallerType>::handle_http_event(esp_http_client_event_t *event) {
     ESP_LOGI(TAG, "HTTP_EVENT_HEADER_SENT");
     break;
   case HTTP_EVENT_ON_HEADER:
-    ESP_LOGI(TAG, "HTTP_EVENT_ON_HEADER");
+    ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER");
     break;
   case HTTP_EVENT_ON_DATA:
     ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA");
@@ -81,8 +84,6 @@ ApiRequest<CallerType>::handle_http_event(esp_http_client_event_t *event) {
       xSemaphoreGive(self->received_response);
       break;
     }
-
-    ESP_LOGI(TAG, "output_buffer: %s", output_buffer.c_str());
 
     caller.on_data(output_buffer);
 

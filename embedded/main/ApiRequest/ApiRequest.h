@@ -18,6 +18,8 @@ public:
 
 private:
   static const char *const TAG;
+  static const int MAX_HTTP_RX_BUFFER;
+  static const int MAX_HTTP_TX_BUFFER;
   Session &session;
   CallerType &caller;
   esp_http_client_method_t method;
