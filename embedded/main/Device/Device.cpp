@@ -28,7 +28,7 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
     : non_volatile_storage(non_volatile_storage), session(session),
       current_time(current_time), alarms(alarms), display(display),
       buzzer(buzzer) {
-  esp_err_t err = non_volatile_storage.read_key("device", "id", id);
+  esp_err_t err = non_volatile_storage.read("device", "id", id);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
     set_id(id);
@@ -46,7 +46,7 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
 
 void Device::set_id(std::string &id) {
   this->id = id;
-  non_volatile_storage.write_key("device", "id", id);
+  non_volatile_storage.write("device", "id", id);
   ESP_LOGI(TAG, "Set ID: %s", id.c_str());
 }
 

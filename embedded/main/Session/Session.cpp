@@ -16,8 +16,7 @@ Session::Session(NonVolatileStorage &non_volatile_storage)
       refresh_token(), is_refreshed(xSemaphoreCreateBinary()) {
   xSemaphoreGive(is_refreshed);
 
-  esp_err_t err =
-      non_volatile_storage.read_key("session", "access", access_token);
+  esp_err_t err = non_volatile_storage.read("session", "access", access_token);
   if (err == ESP_OK) {
     ESP_LOGD(TAG, "Access token read from NVS.");
     set_access_token(access_token);
@@ -27,7 +26,7 @@ Session::Session(NonVolatileStorage &non_volatile_storage)
     set_access_token(CONFIG_ACCESS_TOKEN);
   }
 
-  err = non_volatile_storage.read_key("session", "refresh", refresh_token);
+  err = non_volatile_storage.read("session", "refresh", refresh_token);
   if (err == ESP_OK) {
     ESP_LOGD(TAG, "Refresh token read from NVS.");
     set_refresh_token(refresh_token);
@@ -78,13 +77,13 @@ void Session::on_data(const std::string &response) {
 
 void Session::set_access_token(const std::string &access_token) {
   this->access_token = access_token;
-  non_volatile_storage.write_key("session", "access", access_token);
+  non_volatile_storage.write("session", "access", access_token);
   ESP_LOGI(TAG, "Set Access Token: %s", access_token.c_str());
 }
 
 void Session::set_refresh_token(const std::string &refresh_token) {
   this->refresh_token = refresh_token;
-  non_volatile_storage.write_key("session", "refresh", refresh_token);
+  non_volatile_storage.write("session", "refresh", refresh_token);
   ESP_LOGI(TAG, "Set Refresh Token: %s", refresh_token.c_str());
 }
 

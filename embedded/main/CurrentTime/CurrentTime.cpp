@@ -18,8 +18,8 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
       is_calibrated(xSemaphoreCreateBinary()) {
   xSemaphoreGive(is_calibrated);
 
-  esp_err_t err = non_volatile_storage.read_key("current_time", "unix_at_cal",
-                                                unix_at_calibration);
+  esp_err_t err = non_volatile_storage.read("current_time", "unix_at_cal",
+                                            unix_at_calibration);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Initial Unix at Calibration read from NVS: %d",
              unix_at_calibration);
@@ -29,8 +29,8 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
              esp_err_to_name(err));
   }
 
-  err = non_volatile_storage.read_key("current_time", "ms_at_cal",
-                                      ms_at_calibration);
+  err =
+      non_volatile_storage.read("current_time", "ms_at_cal", ms_at_calibration);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Initial Milliseconds at Calibration read from NVS: %d",
              ms_at_calibration);
@@ -41,7 +41,7 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
              esp_err_to_name(err));
   }
 
-  err = non_volatile_storage.read_key("current_time", "time_zone", time_zone);
+  err = non_volatile_storage.read("current_time", "time_zone", time_zone);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Time zone read from NVS: %s", time_zone.c_str());
     set_time_zone(time_zone);
@@ -49,7 +49,7 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
     ESP_LOGW(TAG, "Error reading time zone from NVS: %s", esp_err_to_name(err));
   }
 
-  err = non_volatile_storage.read_key("current_time", "format", format);
+  err = non_volatile_storage.read("current_time", "format", format);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Format read from NVS: %s", format.c_str());
     set_format(format);
@@ -67,7 +67,7 @@ CurrentTime::~CurrentTime() {}
 
 void CurrentTime::set_time_zone(const std::string &time_zone) {
   this->time_zone = time_zone;
-  non_volatile_storage.write_key("current_time", "time_zone", time_zone);
+  non_volatile_storage.write("current_time", "time_zone", time_zone);
   setenv("TZ", time_zone.c_str(), 1);
   tzset();
   ESP_LOGI(TAG, "Set time zone: %s", time_zone.c_str());
@@ -75,7 +75,7 @@ void CurrentTime::set_time_zone(const std::string &time_zone) {
 
 void CurrentTime::set_format(const std::string &format) {
   this->format = format;
-  non_volatile_storage.write_key("current_time", "format", format);
+  non_volatile_storage.write("current_time", "format", format);
   ESP_LOGI(TAG, "Set format: %s", format.c_str());
 }
 
@@ -114,15 +114,14 @@ void CurrentTime::on_data(const std::string &response) {
 
 void CurrentTime::set_unix_at_calibration(int unix_at_calibration) {
   this->unix_at_calibration = unix_at_calibration;
-  non_volatile_storage.write_key("current_time", "unix_at_cal",
-                                 unix_at_calibration);
+  non_volatile_storage.write("current_time", "unix_at_cal",
+                             unix_at_calibration);
   ESP_LOGI(TAG, "Set Unix at Calibration: %d", unix_at_calibration);
 }
 
 void CurrentTime::set_ms_at_calibration(int ms_at_calibration) {
   this->ms_at_calibration = ms_at_calibration;
-  non_volatile_storage.write_key("current_time", "ms_at_cal",
-                                 ms_at_calibration);
+  non_volatile_storage.write("current_time", "ms_at_cal", ms_at_calibration);
   ESP_LOGI(TAG, "Set Milliseconds at Calibration: %d", ms_at_calibration);
 }
 

@@ -21,7 +21,7 @@ const int WifiConnection::MAX_RETRY = 5;
 WifiConnection::WifiConnection(NonVolatileStorage &non_volatile_storage)
     : non_volatile_storage(non_volatile_storage), ssid(), password(),
       wifi_event_group(xEventGroupCreate()), retry_count(0) {
-  esp_err_t err = non_volatile_storage.read_key("wifi_cred", "ssid", ssid);
+  esp_err_t err = non_volatile_storage.read("wifi_cred", "ssid", ssid);
   if (err == ESP_OK) {
     ESP_LOGD(TAG, "SSID read from NVS: %s", ssid.c_str());
     set_ssid(ssid);
@@ -30,7 +30,7 @@ WifiConnection::WifiConnection(NonVolatileStorage &non_volatile_storage)
     set_ssid(CONFIG_WIFI_SSID);
   }
 
-  err = non_volatile_storage.read_key("wifi_cred", "password", password);
+  err = non_volatile_storage.read("wifi_cred", "password", password);
   if (err == ESP_OK) {
     ESP_LOGD(TAG, "Password read from NVS: %s", password.c_str());
     set_password(password);
@@ -52,13 +52,13 @@ WifiConnection::~WifiConnection() {
 
 void WifiConnection::set_ssid(std::string ssid) {
   this->ssid = ssid;
-  non_volatile_storage.write_key("wifi_cred", "ssid", ssid);
+  non_volatile_storage.write("wifi_cred", "ssid", ssid);
   ESP_LOGI(TAG, "Set SSID: %s", ssid.c_str());
 }
 
 void WifiConnection::set_password(std::string password) {
   this->password = password;
-  non_volatile_storage.write_key("wifi_cred", "password", password);
+  non_volatile_storage.write("wifi_cred", "password", password);
   ESP_LOGI(TAG, "Set Password: %s", ssid.c_str());
 }
 

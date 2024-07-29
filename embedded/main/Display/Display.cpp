@@ -56,7 +56,7 @@ Display::Display(NonVolatileStorage &non_volatile_storage,
   ESP_ERROR_CHECK(ht16k33_display_setup(&ht16k33, 1, HTK16K33_F_0HZ));
 
   esp_err_t err =
-      non_volatile_storage.read_key("display", "brightness", brightness);
+      non_volatile_storage.read("display", "brightness", brightness);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Brightness read from NVS: %d", brightness);
     set_brightness(brightness);
@@ -77,7 +77,7 @@ void Display::set_brightness(uint8_t brightness) {
   }
 
   this->brightness = brightness;
-  non_volatile_storage.write_key("display", "brightness", brightness);
+  non_volatile_storage.write("display", "brightness", brightness);
 
   uint8_t cmd = 0xE0 | brightness;
   esp_err_t err = i2c_master_write_to_device(I2C_NUM_0, ht16k33.addr, &cmd, 1,

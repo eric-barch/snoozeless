@@ -23,9 +23,9 @@ NonVolatileStorage::~NonVolatileStorage() {
   }
 }
 
-esp_err_t NonVolatileStorage::write_key(const std::string &space,
-                                        const std::string &key,
-                                        const std::string &in_value) {
+esp_err_t NonVolatileStorage::write(const std::string &space,
+                                    const std::string &key,
+                                    const std::string &in_value) {
   esp_err_t err = open_namespace(space);
 
   err = nvs_set_str(nvs_handle, key.c_str(), in_value.c_str());
@@ -46,9 +46,9 @@ esp_err_t NonVolatileStorage::write_key(const std::string &space,
   return err;
 }
 
-esp_err_t NonVolatileStorage::read_key(const std::string &space,
-                                       const std::string &key,
-                                       std::string &out_value) {
+esp_err_t NonVolatileStorage::read(const std::string &space,
+                                   const std::string &key,
+                                   std::string &out_value) {
   esp_err_t err = open_namespace(space);
 
   size_t required_size = 0;
@@ -74,9 +74,9 @@ esp_err_t NonVolatileStorage::read_key(const std::string &space,
   return err;
 }
 
-esp_err_t NonVolatileStorage::write_key(const std::string &space,
-                                        const std::string &key,
-                                        const int &in_value) {
+esp_err_t NonVolatileStorage::write(const std::string &space,
+                                    const std::string &key,
+                                    const int &in_value) {
   esp_err_t err = open_namespace(space);
 
   int32_t temp_value = static_cast<int32_t>(in_value);
@@ -98,8 +98,8 @@ esp_err_t NonVolatileStorage::write_key(const std::string &space,
   return err;
 }
 
-esp_err_t NonVolatileStorage::read_key(const std::string &space,
-                                       const std::string &key, int &out_value) {
+esp_err_t NonVolatileStorage::read(const std::string &space,
+                                   const std::string &key, int &out_value) {
   esp_err_t err = open_namespace(space);
 
   int32_t temp_value;
@@ -115,8 +115,8 @@ esp_err_t NonVolatileStorage::read_key(const std::string &space,
   return err;
 }
 
-esp_err_t NonVolatileStorage::erase_key(const std::string &space,
-                                        const std::string &key) {
+esp_err_t NonVolatileStorage::erase(const std::string &space,
+                                    const std::string &key) {
   esp_err_t err = open_namespace(space);
 
   err = nvs_erase_key(nvs_handle, key.c_str());
