@@ -42,12 +42,12 @@ private:
   std::string id;
   SemaphoreHandle_t is_subscribed;
 
-  void set_id(std::string &id);
+  void set_id(const std::string &id);
 
-  esp_err_t extract_response_field(const std::string &response,
-                                   const std::string &field,
-                                   std::string &out_value);
-  void parse(const std::string &data);
+  void parse(const std::string &device_string);
+  void extract_response_field(const std::string &response,
+                              const std::string &field, std::string &out_value);
+  void parse_sse(const std::string &response);
 
   esp_err_t enroll();
   void subscribe();
