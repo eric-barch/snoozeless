@@ -60,8 +60,9 @@ void Alarms::parse_initial(const std::string &data) {
     }
 
     const std::string id_string = id_json->valuestring;
-    Alarm *alarm = new Alarm(non_volatile_storage, alarm_json);
-    alarms.emplace(id_string, alarm);
+    std::unique_ptr<Alarm> alarm =
+        std::make_unique<Alarm>(non_volatile_storage, alarm_json);
+    alarms.emplace(id_string, std::move(alarm));
   }
 
   this->alarms = std::move(alarms);
