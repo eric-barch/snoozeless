@@ -10,6 +10,7 @@ public:
   Alarm(NonVolatileStorage &non_volatile_storage, const std::string &id);
   Alarm(NonVolatileStorage &non_volatile_storage,
         const cJSON *const alarm_json);
+  ~Alarm();
 
 private:
   static const char *const TAG;

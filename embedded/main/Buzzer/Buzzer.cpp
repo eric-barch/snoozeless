@@ -31,7 +31,7 @@ Buzzer::Buzzer()
   ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
 };
 
-Buzzer::~Buzzer() {}
+Buzzer::~Buzzer() { ESP_LOGI(TAG, "Destroy."); }
 
 void Buzzer::alarm_task(void *pvParameters) {
   Buzzer *self = static_cast<Buzzer *>(pvParameters);

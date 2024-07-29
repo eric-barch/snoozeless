@@ -41,7 +41,7 @@ Session::Session(NonVolatileStorage &non_volatile_storage)
   xSemaphoreTake(is_refreshed, portMAX_DELAY);
 };
 
-Session::~Session() {}
+Session::~Session() { ESP_LOGI(TAG, "Destroy."); }
 
 std::string Session::get_access_token() { return access_token; }
 

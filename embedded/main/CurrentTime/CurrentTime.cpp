@@ -63,7 +63,7 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
   xSemaphoreTake(is_calibrated, portMAX_DELAY);
 }
 
-CurrentTime::~CurrentTime() {}
+CurrentTime::~CurrentTime() { ESP_LOGI(TAG, "Destroy."); }
 
 void CurrentTime::set_time_zone(const std::string &time_zone) {
   this->time_zone = time_zone;

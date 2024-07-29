@@ -48,6 +48,8 @@ WifiConnection::~WifiConnection() {
   if (wifi_event_group) {
     vEventGroupDelete(wifi_event_group);
   }
+
+  ESP_LOGI(TAG, "Destroy.");
 }
 
 void WifiConnection::set_ssid(std::string ssid) {

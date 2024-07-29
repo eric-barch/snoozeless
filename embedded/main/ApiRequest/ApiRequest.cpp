@@ -31,6 +31,7 @@ ApiRequest<CallerType>::ApiRequest(Session &session, CallerType &caller,
 
 template <typename CallerType> ApiRequest<CallerType>::~ApiRequest() {
   xSemaphoreTake(is_connected, portMAX_DELAY);
+  ESP_LOGI(TAG, "Destroy.");
 }
 
 template <typename CallerType>

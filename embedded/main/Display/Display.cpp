@@ -69,6 +69,7 @@ Display::Display(NonVolatileStorage &non_volatile_storage,
 Display::~Display() {
   memset(&ht16k33, 0, sizeof(i2c_dev_t));
   ht16k33_free_desc(&ht16k33);
+  ESP_LOGI(TAG, "Destroy.");
 }
 
 void Display::set_brightness(uint8_t brightness) {

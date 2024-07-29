@@ -71,6 +71,8 @@ Alarm::Alarm(NonVolatileStorage &non_volatile_storage,
   }
 }
 
+Alarm::~Alarm() { ESP_LOGI(TAG, "Destroy."); }
+
 void Alarm::set_id(const std::string &id) {
   this->id = id;
   ESP_LOGI(TAG, "Set id: %s", id.c_str());

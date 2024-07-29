@@ -39,6 +39,8 @@ Alarms::Alarms(NonVolatileStorage &non_volatile_storage)
   cJSON_Delete(ids_json);
 }
 
+Alarms::~Alarms() { ESP_LOGI(TAG, "Destroy."); }
+
 void Alarms::parse_initial(const std::string &data) {
   cJSON *const alarms_json = cJSON_Parse(data.c_str());
   if (alarms_json == nullptr || !cJSON_IsArray(alarms_json)) {

@@ -46,7 +46,7 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
   display.print_current_time();
 }
 
-Device::~Device() {}
+Device::~Device() { ESP_LOGI(TAG, "Destroy."); }
 
 void Device::on_data(const std::string &response) {
   /**Trim trailing newlines from SSE response. */

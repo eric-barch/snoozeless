@@ -21,6 +21,7 @@ NonVolatileStorage::~NonVolatileStorage() {
   if (nvs_handle) {
     nvs_close(nvs_handle);
   }
+  ESP_LOGI(TAG, "Destroy.");
 }
 
 esp_err_t NonVolatileStorage::write(const std::string &space,

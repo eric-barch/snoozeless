@@ -9,6 +9,7 @@
 class Alarms {
 public:
   Alarms(NonVolatileStorage &non_volatile_storage);
+  ~Alarms();
 
   void parse_initial(const std::string &data);
   void parse_insert(const std::string &data);
