@@ -12,14 +12,13 @@
 #include <map>
 #include <vector>
 
-enum DeviceStateEvent {
+enum DeviceEvent {
   INITIAL_DEVICE,
   DEVICE_UPDATE,
   INITIAL_ALARMS,
   ALARM_INSERT,
   ALARM_UPDATE,
   ALARM_DELETE,
-  UNKNOWN_EVENT
 };
 
 class Device {
@@ -27,10 +26,13 @@ public:
   Device(NonVolatileStorage &non_volatile_storage, Session &session,
          CurrentTime &current_time, Alarms &alarms, Display &display,
          Buzzer &buzzer);
+  ~Device();
 
   void on_data(const std::string &response);
 
 private:
+  static const char *const TAG;
+  static const std::map<const std::string, const DeviceEvent> events;
   NonVolatileStorage &non_volatile_storage;
   Session &session;
   CurrentTime &current_time;
@@ -42,12 +44,14 @@ private:
 
   void set_id(std::string &id);
 
-  static void subscribe_task(void *pvParameters);
+  esp_err_t extract_response_field(const std::string &response,
+                                   const std::string &field,
+                                   std::string &out_value);
+  void parse(const std::string &data);
 
-  void parse_device_state(const std::string &data);
   esp_err_t enroll();
   void subscribe();
-  void keep_subscribed();
+  static void keep_subscribed(void *pvParameters);
 };
 
 #endif // DEVICE_H

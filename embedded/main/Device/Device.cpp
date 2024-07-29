@@ -14,9 +14,9 @@
 #include <string>
 #include <vector>
 
-static const char *TAG = "Device";
+const char *const Device::TAG = "Device";
 
-std::map<std::string, DeviceStateEvent> deviceStateEventMap = {
+const std::map<const std::string, const DeviceEvent> Device::events = {
     {"initial-device", INITIAL_DEVICE}, {"device-update", DEVICE_UPDATE},
     {"initial-alarms", INITIAL_ALARMS}, {"alarm-insert", ALARM_INSERT},
     {"alarm-update", ALARM_UPDATE},     {"alarm-delete", ALARM_DELETE},
@@ -27,7 +27,9 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
                Buzzer &buzzer)
     : non_volatile_storage(non_volatile_storage), session(session),
       current_time(current_time), alarms(alarms), display(display),
-      buzzer(buzzer) {
+      buzzer(buzzer), id(), is_subscribed(xSemaphoreCreateBinary()) {
+  xSemaphoreGive(is_subscribed);
+
   esp_err_t err = non_volatile_storage.read("device", "id", id);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
@@ -37,103 +39,47 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
     enroll();
   }
 
-  is_subscribed = xSemaphoreCreateBinary();
-  xSemaphoreGive(is_subscribed);
+  xSemaphoreTake(is_subscribed, 0);
+  xTaskCreate(Device::keep_subscribed, "keep_subscribed", 2048, this, 5, NULL);
+  xSemaphoreTake(is_subscribed, portMAX_DELAY);
 
-  keep_subscribed();
   display.print_current_time();
 }
 
-void Device::set_id(std::string &id) {
-  this->id = id;
-  non_volatile_storage.write("device", "id", id);
-  ESP_LOGI(TAG, "Set ID: %s", id.c_str());
-}
-
-esp_err_t Device::enroll() {
-  ApiRequest post_device_enroll = ApiRequest<Device>(
-      session, *this, HTTP_METHOD_POST, 60000, "/device/enroll", "");
-  esp_err_t err = post_device_enroll.send();
-  return err;
-}
-
-void Device::parse_device_state(const std::string &data) {
-  cJSON *data_json = cJSON_Parse(data.c_str());
-  if (!data_json) {
-    ESP_LOGE(TAG, "Failed to parse JSON data.");
-    return;
-  }
-
-  cJSON *time_zone_item = cJSON_GetObjectItem(data_json, "time_zone");
-  if (!cJSON_IsString(time_zone_item) ||
-      (time_zone_item->valuestring == NULL)) {
-    ESP_LOGE(TAG, "Failed to extract `time_zone` from JSON response.");
-  } else {
-    current_time.set_time_zone(time_zone_item->valuestring);
-  }
-
-  cJSON *time_format_item = cJSON_GetObjectItem(data_json, "time_format");
-  if (!cJSON_IsString(time_format_item) ||
-      (time_format_item->valuestring == NULL)) {
-    ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
-  } else {
-    current_time.set_format(time_format_item->valuestring);
-  }
-
-  cJSON *brightness_item = cJSON_GetObjectItem(data_json, "brightness");
-  if (!cJSON_IsNumber(brightness_item)) {
-    ESP_LOGE(TAG, "Failed to extract `brightness` from JSON response.");
-  } else {
-    display.set_brightness(brightness_item->valueint);
-  }
-
-  cJSON_Delete(data_json);
-}
+Device::~Device() {}
 
 void Device::on_data(const std::string &response) {
-  std::string response_without_line_breaks =
+  /**Trim trailing newlines from SSE response. */
+  const std::string trimmed_response =
       response.substr(0, response.length() - 2);
-  ESP_LOGI(TAG, "%s", response_without_line_breaks.c_str());
+  ESP_LOGI(TAG, "%s", trimmed_response.c_str());
 
-  std::string event_label = "event: ";
-  std::string data_label = "data: ";
-
-  size_t event_pos = response.find(event_label);
-  if (event_pos == std::string::npos) {
-    ESP_LOGE(TAG, "No valid event field found in Server Sent Event.");
+  std::string event;
+  esp_err_t err = extract_response_field(trimmed_response, "event: ", event);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Did not find valid event field.");
     return;
   }
 
-  size_t event_start_pos = event_pos + event_label.length();
-  size_t event_end_pos = response.find('\n', event_start_pos);
-  std::string sse_event =
-      response.substr(event_start_pos, event_end_pos - event_start_pos);
-
-  if (sse_event == "keep-alive") {
+  if (event == "keep-alive") {
     return;
   }
 
-  size_t data_pos = response.find(data_label);
-  if (data_pos == std::string::npos) {
-    ESP_LOGE(TAG, "No valid data field found in Server Sent Event.");
+  std::string data;
+  err = extract_response_field(trimmed_response, "data: ", data);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Did not find valid data field.");
     return;
   }
 
-  size_t data_start_pos = data_pos + data_label.length();
-  size_t data_end_pos = response.find('\n', data_start_pos);
-  std::string data =
-      response.substr(data_start_pos, data_end_pos - data_start_pos);
+  DeviceEvent device_event = events.at(event);
 
-  DeviceStateEvent event = deviceStateEventMap.count(sse_event)
-                               ? deviceStateEventMap[sse_event]
-                               : UNKNOWN_EVENT;
-
-  switch (event) {
+  switch (device_event) {
   case INITIAL_DEVICE:
-    parse_device_state(data);
+    parse(data);
     break;
   case DEVICE_UPDATE:
-    parse_device_state(data);
+    parse(data);
     break;
   case INITIAL_ALARMS:
     alarms.parse_initial(data);
@@ -153,8 +99,74 @@ void Device::on_data(const std::string &response) {
   }
 }
 
+void Device::set_id(std::string &id) {
+  this->id = id;
+  non_volatile_storage.write("device", "id", id);
+  ESP_LOGI(TAG, "Set ID: %s", id.c_str());
+}
+
+esp_err_t Device::extract_response_field(const std::string &response,
+                                         const std::string &field,
+                                         std::string &out_value) {
+  const size_t pos = response.find(field);
+  if (pos == std::string::npos) {
+    return ESP_FAIL;
+  }
+
+  const size_t start_pos = pos + field.length();
+  const size_t end_pos = response.find('\n', start_pos);
+
+  out_value = response.substr(start_pos, end_pos - start_pos);
+  return ESP_OK;
+}
+
+void Device::parse(const std::string &data) {
+  cJSON *const data_json = cJSON_Parse(data.c_str());
+  if (data_json == nullptr) {
+    ESP_LOGE(TAG, "Failed to parse JSON data.");
+    cJSON_Delete(data_json);
+    return;
+  }
+
+  const cJSON *const time_zone_json =
+      cJSON_GetObjectItem(data_json, "time_zone");
+  if (!cJSON_IsString(time_zone_json) ||
+      (time_zone_json->valuestring == NULL)) {
+    ESP_LOGE(TAG, "Failed to extract `time_zone` from JSON response.");
+  } else {
+    current_time.set_time_zone(time_zone_json->valuestring);
+  }
+
+  const cJSON *const time_format_json =
+      cJSON_GetObjectItem(data_json, "time_format");
+  if (!cJSON_IsString(time_format_json) ||
+      (time_format_json->valuestring == NULL)) {
+    ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
+  } else {
+    current_time.set_format(time_format_json->valuestring);
+  }
+
+  const cJSON *const brightness_json =
+      cJSON_GetObjectItem(data_json, "brightness");
+  if (!cJSON_IsNumber(brightness_json)) {
+    ESP_LOGE(TAG, "Failed to extract `brightness` from JSON response.");
+  } else {
+    display.set_brightness(brightness_json->valueint);
+  }
+
+  cJSON_Delete(data_json);
+}
+
+esp_err_t Device::enroll() {
+  ApiRequest post_device_enroll = ApiRequest<Device>(
+      session, *this, HTTP_METHOD_POST, 60000, "/device/enroll", "");
+  esp_err_t err = post_device_enroll.send();
+  ESP_LOGI(TAG, "Enroll successful.");
+  return err;
+}
+
 void Device::subscribe() {
-  std::string query = "deviceId=" + id;
+  const std::string query = "deviceId=" + id;
   ApiRequest get_device_state = ApiRequest<Device>(
       session, *this, HTTP_METHOD_GET, 300000, "/device/state", query);
   get_device_state.send();
@@ -162,7 +174,7 @@ void Device::subscribe() {
   xSemaphoreGive(is_subscribed);
 }
 
-void Device::subscribe_task(void *pvParameters) {
+void Device::keep_subscribed(void *pvParameters) {
   Device *self = static_cast<Device *>(pvParameters);
 
   ESP_LOGI(TAG, "Subscribing.");
@@ -174,10 +186,4 @@ void Device::subscribe_task(void *pvParameters) {
   }
 
   vTaskDelete(NULL);
-}
-
-void Device::keep_subscribed() {
-  xSemaphoreTake(is_subscribed, 0);
-  xTaskCreate(Device::subscribe_task, "keep_subscribed", 2048, this, 5, NULL);
-  xSemaphoreTake(is_subscribed, portMAX_DELAY);
 }
