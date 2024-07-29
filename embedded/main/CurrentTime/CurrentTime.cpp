@@ -14,7 +14,8 @@ const char *const CurrentTime::TAG = "curr_time";
 CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
                          Session &session)
     : non_volatile_storage(non_volatile_storage), session(session),
-      unix_at_calibration(0), ms_at_calibration(0), time_zone(), format(),
+      unix_at_calibration(0), ms_at_calibration(0),
+      time_zone("EST5EDT,M3.2.0/2,M11.1.0/2"), format("%H:%M"),
       is_calibrated(xSemaphoreCreateBinary()) {
   xSemaphoreGive(is_calibrated);
 
