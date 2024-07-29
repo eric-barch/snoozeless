@@ -10,7 +10,7 @@
 #include <regex>
 #include <string>
 
-const char *const Display::TAG = "Display";
+const char *const Display::TAG = "display";
 
 const std::unordered_map<char, uint8_t> Display::alphabet = {
     {'0', 0x3F}, {'1', 0x06}, {'2', 0x5B}, {'3', 0x4F}, {'4', 0x66},
@@ -55,8 +55,7 @@ Display::Display(NonVolatileStorage &non_volatile_storage,
   ESP_ERROR_CHECK(ht16k33_init(&ht16k33));
   ESP_ERROR_CHECK(ht16k33_display_setup(&ht16k33, 1, HTK16K33_F_0HZ));
 
-  esp_err_t err =
-      non_volatile_storage.read("display", "brightness", brightness);
+  esp_err_t err = non_volatile_storage.read(TAG, "brightness", brightness);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Brightness read from NVS: %d", brightness);
     set_brightness(brightness);
@@ -78,7 +77,7 @@ void Display::set_brightness(uint8_t brightness) {
   }
 
   this->brightness = brightness;
-  non_volatile_storage.write("display", "brightness", brightness);
+  non_volatile_storage.write(TAG, "brightness", brightness);
 
   uint8_t cmd = 0xE0 | brightness;
   esp_err_t err = i2c_master_write_to_device(I2C_NUM_0, ht16k33.addr, &cmd, 1,

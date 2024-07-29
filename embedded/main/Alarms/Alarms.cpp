@@ -8,13 +8,13 @@
 #include <memory>
 #include <sys/unistd.h>
 
-const char *const Alarms::TAG = "Alarms";
+const char *const Alarms::TAG = "alarms";
 
 Alarms::Alarms(NonVolatileStorage &non_volatile_storage)
     : non_volatile_storage(non_volatile_storage),
       alarms(std::map<std::string, std::unique_ptr<Alarm>>()) {
   std::string ids_string;
-  esp_err_t err = non_volatile_storage.read("alarm", "ids", ids_string);
+  esp_err_t err = non_volatile_storage.read(TAG, "ids", ids_string);
   if (err == ESP_OK) {
     ESP_LOGD(TAG, "Alarm IDs read from NVS: %s", ids_string.c_str());
   } else {
@@ -153,7 +153,7 @@ void Alarms::write_ids_to_nvs() {
 
   const std::string ids_string = cJSON_PrintUnformatted(ids_json);
 
-  esp_err_t err = non_volatile_storage.write("alarm", "ids", ids_string);
+  esp_err_t err = non_volatile_storage.write(TAG, "ids", ids_string);
   if (err == ESP_OK) {
     ESP_LOGD(TAG, "Alarm IDs written to NVS: %s", ids_string.c_str());
   } else {

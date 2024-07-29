@@ -4,7 +4,7 @@
 #include <esp_log.h>
 #include <freertos/idf_additions.h>
 
-const char *const Buzzer::TAG = "Buzzer";
+const char *const Buzzer::TAG = "buzzer";
 
 Buzzer::Buzzer()
     : TIMER_NUM(LEDC_TIMER_0), CHANNEL(LEDC_CHANNEL_0),

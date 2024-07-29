@@ -17,7 +17,7 @@ public:
   esp_err_t send();
 
 private:
-  static constexpr const char *const TAG = "ApiRequest";
+  static const char *const TAG;
   Session &session;
   CallerType &caller;
   esp_http_client_method_t method;

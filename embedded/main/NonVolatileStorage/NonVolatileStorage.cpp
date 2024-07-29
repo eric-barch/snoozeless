@@ -5,7 +5,7 @@
 #include <nvs_flash.h>
 #include <string>
 
-const char *const NonVolatileStorage::TAG = "NonVolatileStorage";
+const char *const NonVolatileStorage::TAG = "non_vol_stor";
 
 NonVolatileStorage::NonVolatileStorage() {
   esp_err_t err = nvs_flash_init();
@@ -55,7 +55,7 @@ esp_err_t NonVolatileStorage::read(const std::string &space,
   size_t required_size = 0;
   err = nvs_get_str(nvs_handle, key.c_str(), nullptr, &required_size);
   if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Error getting string size from NVS: %s",
+    ESP_LOGD(TAG, "Error getting string size from NVS: %s",
              esp_err_to_name(err));
     nvs_close(nvs_handle);
     return err;
@@ -64,7 +64,7 @@ esp_err_t NonVolatileStorage::read(const std::string &space,
   char *buffer = new char[required_size];
   err = nvs_get_str(nvs_handle, key.c_str(), buffer, &required_size);
   if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Error reading string from NVS: %s", esp_err_to_name(err));
+    ESP_LOGD(TAG, "Error reading string from NVS: %s", esp_err_to_name(err));
   } else {
     out_value.assign(buffer);
     ESP_LOGD(TAG, "Read string from NVS: %s", out_value.c_str());
@@ -106,7 +106,7 @@ esp_err_t NonVolatileStorage::read(const std::string &space,
   int32_t temp_value;
   err = nvs_get_i32(nvs_handle, key.c_str(), &temp_value);
   if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Error reading int from NVS: %s", esp_err_to_name(err));
+    ESP_LOGD(TAG, "Error reading int from NVS: %s", esp_err_to_name(err));
   } else {
     out_value = static_cast<int>(temp_value);
     ESP_LOGD(TAG, "Read int from NVS: %d", out_value);

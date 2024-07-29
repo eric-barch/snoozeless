@@ -80,18 +80,18 @@ void Alarm::set_id(const std::string &id) {
 
 void Alarm::set_name(const std::string &name) {
   this->name = name;
-  non_volatile_storage.write(this->id, "name", name);
+  non_volatile_storage.write(id, "name", name);
   ESP_LOGI(TAG, "Set name: %s", name.c_str());
 }
 
 void Alarm::set_schedule(const std::string &schedule) {
   this->schedule = schedule;
-  non_volatile_storage.write(this->id, "schedule", schedule);
+  non_volatile_storage.write(id, "schedule", schedule);
   ESP_LOGI(TAG, "Set schedule: %s", schedule.c_str());
 }
 
 void Alarm::set_time_to_abort(const int time_to_abort) {
   this->time_to_abort = time_to_abort;
-  non_volatile_storage.write(this->id, "time_to_abort", time_to_abort);
+  non_volatile_storage.write(id, "time_to_abort", time_to_abort);
   ESP_LOGI(TAG, "Set time to abort: %d", time_to_abort);
 }

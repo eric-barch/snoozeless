@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-const char *const Device::TAG = "Device";
+const char *const Device::TAG = "device";
 
 const std::map<const std::string, const DeviceEvent> Device::events = {
     {"initial-device", INITIAL_DEVICE}, {"device-update", DEVICE_UPDATE},
@@ -30,7 +30,7 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
       buzzer(buzzer), id(), is_subscribed(xSemaphoreCreateBinary()) {
   xSemaphoreGive(is_subscribed);
 
-  esp_err_t err = non_volatile_storage.read("device", "id", id);
+  esp_err_t err = non_volatile_storage.read(TAG, "id", id);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
     set_id(id);
