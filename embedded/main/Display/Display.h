@@ -5,6 +5,7 @@
 #include "NonVolatileStorage.h"
 #include <ht16k33.h>
 #include <i2cdev.h>
+#include <map>
 
 class Display {
 public:
@@ -18,7 +19,7 @@ public:
 
 private:
   static const char *const TAG;
-  static const std::unordered_map<char, uint8_t> alphabet;
+  static const std::map<char, uint8_t> alphabet;
   NonVolatileStorage &non_volatile_storage;
   CurrentTime &current_time;
   i2c_dev_t ht16k33;
@@ -30,8 +31,8 @@ private:
   int brightness;
   /** Each interval (e.g. hours "place", minutes "place") is two characters
    * plus a null terminator. */
-  char major_interval[3];
-  char minor_interval[3];
+  std::string major_interval;
+  std::string minor_interval;
 
   void set_major_interval(const std::string &major_interval);
   void set_minor_interval(const std::string &minor_interval);

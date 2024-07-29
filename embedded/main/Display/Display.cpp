@@ -12,7 +12,7 @@
 
 const char *const Display::TAG = "display";
 
-const std::unordered_map<char, uint8_t> Display::alphabet = {
+const std::map<char, uint8_t> Display::alphabet = {
     {'0', 0x3F}, {'1', 0x06}, {'2', 0x5B}, {'3', 0x4F}, {'4', 0x66},
     {'5', 0x6D}, {'6', 0x7D}, {'7', 0x07}, {'8', 0x7F}, {'9', 0x6F},
     {' ', 0x00}, {'A', 0x77}, {'B', 0x7C}, {'C', 0x39}, {'D', 0x5E},
@@ -110,8 +110,7 @@ void Display::set_major_interval(const std::string &major_interval) {
              "Did not set major interval. Must be one or two characters long.");
     return;
   }
-  strncpy(this->major_interval, major_interval.c_str(), length);
-  this->major_interval[length] = '\0';
+  this->major_interval = major_interval;
 }
 
 void Display::set_minor_interval(const std::string &minor_interval) {
@@ -121,27 +120,30 @@ void Display::set_minor_interval(const std::string &minor_interval) {
              "Did not set minor interval. Must be one or two characters long.");
     return;
   }
-  strncpy(this->minor_interval, minor_interval.c_str(), length);
-  this->minor_interval[length] = '\0';
+  this->minor_interval = minor_interval;
 }
 
 void Display::print() {
   memset(ht16k33_ram, 0, sizeof(ht16k33_ram));
 
-  if (major_interval[1] == '\0') {
-    ht16k33_ram[0] = alphabet.at(' ');
-    ht16k33_ram[2] = alphabet.at(major_interval[0]);
-  } else {
-    ht16k33_ram[0] = alphabet.at(major_interval[0]);
-    ht16k33_ram[2] = alphabet.at(major_interval[1]);
+  if (major_interval.length() > 0) {
+    if (major_interval[1] == '\0') {
+      ht16k33_ram[0] = alphabet.at(' ');
+      ht16k33_ram[2] = alphabet.at(major_interval[0]);
+    } else {
+      ht16k33_ram[0] = alphabet.at(major_interval[0]);
+      ht16k33_ram[2] = alphabet.at(major_interval[1]);
+    }
   }
 
-  if (minor_interval[1] == '\0') {
-    ht16k33_ram[6] = alphabet.at(' ');
-    ht16k33_ram[8] = alphabet.at(minor_interval[0]);
-  } else {
-    ht16k33_ram[6] = alphabet.at(minor_interval[0]);
-    ht16k33_ram[8] = alphabet.at(minor_interval[1]);
+  if (minor_interval.length() > 0) {
+    if (minor_interval[1] == '\0') {
+      ht16k33_ram[6] = alphabet.at(' ');
+      ht16k33_ram[8] = alphabet.at(minor_interval[0]);
+    } else {
+      ht16k33_ram[6] = alphabet.at(minor_interval[0]);
+      ht16k33_ram[8] = alphabet.at(minor_interval[1]);
+    }
   }
 
   uint8_t indicators = 0b00000;
