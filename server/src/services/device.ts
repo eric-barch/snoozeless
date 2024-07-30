@@ -4,9 +4,7 @@ import { Context } from "hono";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 
-export const postDeviceEnrollService = async (
-  c: Context,
-): Promise<Response> => {
+export const postDeviceEnrollService = async (c: Context) => {
   const supabaseClient = c.get("supabaseClient");
 
   const { data: sessionData, error: sessionError } =

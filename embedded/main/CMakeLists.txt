@@ -3,14 +3,15 @@ file(GLOB_RECURSE MAIN_SRCS "*.c" "*.cpp")
 idf_component_register(
     SRCS ${MAIN_SRCS}
     INCLUDE_DIRS "."
+                 "Alarm"
                  "Alarms"
                  "ApiRequest"
                  "Buzzer"
                  "CurrentTime"
                  "Device"
                  "Display"
-                 "NvsManager"
+                 "NonVolatileStorage"
                  "Session"
-                 "WifiManager"
+                 "WifiConnection"
     EMBED_TXTFILES server_cert.pem
 )

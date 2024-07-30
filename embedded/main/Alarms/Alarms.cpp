@@ -1,183 +1,124 @@
 #include "Alarms.h"
 #include "Alarm.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include <cJSON.h>
 #include <esp_log.h>
+#include <map>
 #include <memory>
 
-static const char *TAG = "Alarms";
-
-Alarms::Alarms(NvsManager &nvs_manager) : nvs_manager(nvs_manager) {
-  alarms = std::map<std::string, std::unique_ptr<Alarm>>();
-
-  std::string alarm_ids_string;
-  esp_err_t err =
-      this->nvs_manager.read_string("alarms", "ids", alarm_ids_string);
+Alarms::Alarms(NonVolatileStorage &non_volatile_storage)
+    : non_volatile_storage(non_volatile_storage),
+      alarms(std::map<const std::string, const std::unique_ptr<Alarm>>()) {
+  std::string ids_string;
+  esp_err_t err = non_volatile_storage.read(TAG, "ids", ids_string);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Alarm IDs read from NVS: %s", alarm_ids_string.c_str());
+    ESP_LOGD(TAG, "Alarm IDs read from NVS: %s", ids_string.c_str());
   } else {
     ESP_LOGW(TAG, "Error reading alarm IDs from NVS: %s", esp_err_to_name(err));
     return;
   }
 
-  cJSON *alarm_ids_json = cJSON_Parse(alarm_ids_string.c_str());
-  if (alarm_ids_json == nullptr) {
+  cJSON *const ids_json = cJSON_Parse(ids_string.c_str());
+  if (ids_json == nullptr || !cJSON_IsArray(ids_json)) {
     ESP_LOGE(TAG, "Error parsing JSON alarm IDs.");
-    cJSON_Delete(alarm_ids_json);
+    cJSON_Delete(ids_json);
     return;
   }
 
-  if (!cJSON_IsArray(alarm_ids_json)) {
-    ESP_LOGE(TAG, "Alarm IDs is not an array.");
-    cJSON_Delete(alarm_ids_json);
-    return;
+  const cJSON *id_json = nullptr;
+  cJSON_ArrayForEach(id_json, ids_json) {
+    const std::string id_string = id_json->valuestring;
+    Alarm *alarm = new Alarm(non_volatile_storage, id_string);
+    alarms.emplace(id_string, alarm);
   }
 
-  cJSON *alarm_id_json = nullptr;
-  cJSON_ArrayForEach(alarm_id_json, alarm_ids_json) {
-    if (cJSON_IsString(alarm_id_json)) {
-      std::string alarm_id = alarm_id_json->valuestring;
-      Alarm *alarm = new Alarm(this->nvs_manager, alarm_id);
-      this->alarms.emplace(alarm_id, alarm);
-    } else {
-      ESP_LOGE(TAG, "Alarm ID is not a string.");
-    }
-  }
-
-  cJSON_Delete(alarm_id_json);
+  cJSON_Delete(ids_json);
 }
 
-void Alarms::parse_initial_alarms(const std::string &data) {
-  cJSON *alarms_json = cJSON_Parse(data.c_str());
-  if (!alarms_json) {
-    ESP_LOGE(TAG, "Error parsing JSON alarms.");
-    return;
-  }
+Alarms::~Alarms() { ESP_LOGI(TAG, "Destroy."); }
 
-  if (!cJSON_IsArray(alarms_json)) {
-    ESP_LOGE(TAG, "Alarms is not an array.");
+void Alarms::parse_initial(const std::string &data) {
+  cJSON *const alarms_json = cJSON_Parse(data.c_str());
+  if (alarms_json == nullptr || !cJSON_IsArray(alarms_json)) {
+    ESP_LOGE(TAG, "Error parsing JSON alarms.");
     cJSON_Delete(alarms_json);
     return;
   }
 
-  std::map<std::string, std::unique_ptr<Alarm>> alarms;
+  std::map<const std::string, const std::unique_ptr<Alarm>> alarms;
+
   const cJSON *alarm_json = nullptr;
   cJSON_ArrayForEach(alarm_json, alarms_json) {
     const cJSON *const id_json = cJSON_GetObjectItem(alarm_json, "id");
     if (!cJSON_IsString(id_json) || (id_json->valuestring == nullptr)) {
-      ESP_LOGE(TAG, "Alarm does not have a valid id.");
+      ESP_LOGE(TAG, "Did not find valid alarm ID.");
       continue;
     }
 
-    std::string id = id_json->valuestring;
-    auto new_alarm = std::make_unique<Alarm>(this->nvs_manager, alarm_json);
-    alarms[id] = std::move(new_alarm);
+    const std::string id_string = id_json->valuestring;
+    std::unique_ptr<Alarm> alarm =
+        std::make_unique<Alarm>(non_volatile_storage, alarm_json);
+    alarms.emplace(id_string, std::move(alarm));
   }
 
   this->alarms = std::move(alarms);
-
-  cJSON *alarm_ids_array = cJSON_CreateArray();
-  for (const auto &pair : this->alarms) {
-    cJSON_AddItemToArray(alarm_ids_array,
-                         cJSON_CreateString(pair.first.c_str()));
-  }
-
-  char *alarm_ids_string = cJSON_PrintUnformatted(alarm_ids_array);
-
-  if (alarm_ids_string) {
-    esp_err_t err =
-        this->nvs_manager.write_string("alarms", "ids", alarm_ids_string);
-    if (err == ESP_OK) {
-      ESP_LOGI(TAG, "Alarm IDs written to NVS: %s", alarm_ids_string);
-    } else {
-      ESP_LOGE(TAG, "Error writing alarm IDs to NVS: %s", esp_err_to_name(err));
-    }
-    free(alarm_ids_string);
-  }
+  write_ids_to_nvs();
 
   cJSON_Delete(alarms_json);
-  cJSON_Delete(alarm_ids_array);
 }
 
-void Alarms::parse_alarm_insert(const std::string &data) {
+void Alarms::parse_insert(const std::string &data) {
   cJSON *const alarm_json = cJSON_Parse(data.c_str());
-  if (!alarm_json) {
+  if (alarm_json == nullptr || !cJSON_IsObject(alarm_json)) {
     ESP_LOGE(TAG, "Error parsing JSON alarm.");
-    return;
-  }
-
-  if (!cJSON_IsObject(alarm_json)) {
-    ESP_LOGE(TAG, "Alarm is not an object.");
     cJSON_Delete(alarm_json);
     return;
   }
 
   const cJSON *const id_json = cJSON_GetObjectItem(alarm_json, "id");
   if (!cJSON_IsString(id_json) || (id_json->valuestring == nullptr)) {
-    ESP_LOGE(TAG, "Alarm does not have a valid id.");
+    ESP_LOGE(TAG, "Did not find valid alarm ID.");
     cJSON_Delete(alarm_json);
     return;
   }
 
-  std::string id = id_json->valuestring;
-  auto new_alarm = std::make_unique<Alarm>(this->nvs_manager, alarm_json);
-  alarms[id] = std::move(new_alarm);
-
-  cJSON *alarm_ids_array = cJSON_CreateArray();
-  for (const auto &pair : this->alarms) {
-    cJSON_AddItemToArray(alarm_ids_array,
-                         cJSON_CreateString(pair.first.c_str()));
-  }
-
-  char *alarm_ids_string = cJSON_PrintUnformatted(alarm_ids_array);
-
-  if (alarm_ids_string) {
-    esp_err_t err =
-        this->nvs_manager.write_string("alarms", "ids", alarm_ids_string);
-    if (err == ESP_OK) {
-      ESP_LOGI(TAG, "Alarm IDs written to NVS: %s", alarm_ids_string);
-    } else {
-      ESP_LOGE(TAG, "Error writing alarm IDs to NVS: %s", esp_err_to_name(err));
-    }
-    free(alarm_ids_string);
-  }
-
-  cJSON_Delete(alarm_json);
-  cJSON_Delete(alarm_ids_array);
-};
-
-void Alarms::parse_alarm_update(const std::string &data) {
-  cJSON *const alarm_json = cJSON_Parse(data.c_str());
-  if (!alarm_json) {
-    ESP_LOGE(TAG, "Error parsing JSON alarm.");
-    return;
-  }
-
-  if (!cJSON_IsObject(alarm_json)) {
-    ESP_LOGE(TAG, "Alarm is not an object.");
-    cJSON_Delete(alarm_json);
-    return;
-  }
-
-  const cJSON *const id_json = cJSON_GetObjectItem(alarm_json, "id");
-  if (!cJSON_IsString(id_json) || (id_json->valuestring == nullptr)) {
-    ESP_LOGE(TAG, "Alarm does not have a valid id.");
-    cJSON_Delete(alarm_json);
-    return;
-  }
-
-  std::string id = id_json->valuestring;
-  auto new_alarm = std::make_unique<Alarm>(this->nvs_manager, alarm_json);
-  alarms[id] = std::move(new_alarm);
+  const std::string id_string = id_json->valuestring;
+  Alarm *alarm = new Alarm(non_volatile_storage, alarm_json);
+  alarms.emplace(id_string, alarm);
+  write_ids_to_nvs();
 
   cJSON_Delete(alarm_json);
 };
 
-void Alarms::parse_alarm_remove(const std::string &data) {
+void Alarms::parse_update(const std::string &data) {
+  cJSON *const alarm_json = cJSON_Parse(data.c_str());
+  if (alarm_json == nullptr || !cJSON_IsObject(alarm_json)) {
+    ESP_LOGE(TAG, "Error parsing JSON alarm.");
+    cJSON_Delete(alarm_json);
+    return;
+  }
+
+  const cJSON *const id_json = cJSON_GetObjectItem(alarm_json, "id");
+  if (!cJSON_IsString(id_json) || (id_json->valuestring == nullptr)) {
+    ESP_LOGE(TAG, "Did not find valid alarm ID.");
+    cJSON_Delete(alarm_json);
+    return;
+  }
+
+  const std::string id_string = id_json->valuestring;
+
+  Alarm *alarm = new Alarm(non_volatile_storage, alarm_json);
+  alarms.emplace(id_string, alarm);
+
+  cJSON_Delete(alarm_json);
+};
+
+void Alarms::parse_remove(const std::string &data) {
   cJSON *const alarm_json = cJSON_Parse(data.c_str());
   if (!alarm_json) {
     ESP_LOGE(TAG, "Error parsing JSON alarm.");
+    cJSON_Delete(alarm_json);
     return;
   }
 
@@ -189,23 +130,35 @@ void Alarms::parse_alarm_remove(const std::string &data) {
 
   const cJSON *const id_json = cJSON_GetObjectItem(alarm_json, "id");
   if (!cJSON_IsString(id_json) || (id_json->valuestring == nullptr)) {
-    ESP_LOGE(TAG, "Alarm does not have a valid id.");
+    ESP_LOGE(TAG, "Did not find a valid alarm ID.");
     cJSON_Delete(alarm_json);
     return;
   }
 
-  std::string id = id_json->valuestring;
-  auto it = alarms.find(id);
-  if (it != alarms.end()) {
-    alarms.erase(it);
-    ESP_LOGI(TAG, "Alarm with id: %s removed.", id.c_str());
+  const std::string id_string = id_json->valuestring;
+  alarms.erase(id_string);
+  write_ids_to_nvs();
+
+  cJSON_Delete(alarm_json);
+};
+
+const char *const Alarms::TAG = "alarms";
+
+void Alarms::write_ids_to_nvs() {
+  cJSON *const ids_json = cJSON_CreateArray();
+  for (const auto &pair : alarms) {
+    cJSON *id_json = cJSON_CreateString(pair.first.c_str());
+    cJSON_AddItemToArray(ids_json, id_json);
+  }
+
+  const std::string ids_string = cJSON_PrintUnformatted(ids_json);
+
+  esp_err_t err = non_volatile_storage.write(TAG, "ids", ids_string);
+  if (err == ESP_OK) {
+    ESP_LOGD(TAG, "Alarm IDs written to NVS: %s", ids_string.c_str());
   } else {
-    ESP_LOGW(TAG, "Alarm with id: %s not found.", id.c_str());
+    ESP_LOGE(TAG, "Error writing alarm IDs to NVS: %s", esp_err_to_name(err));
   }
 
-  nvs_manager.erase_key(id, "name");
-  nvs_manager.erase_key(id, "schedule");
-  nvs_manager.erase_key(id, "time_to_abort");
-
-  cJSON_Delete(alarm_json);
-};
+  cJSON_Delete(ids_json);
+}

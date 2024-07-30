@@ -5,30 +5,36 @@
 #include "Buzzer.h"
 #include "CurrentTime.h"
 #include "Display.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include <esp_err.h>
 #include <freertos/idf_additions.h>
 #include <map>
-#include <vector>
 
-enum DeviceStateEvent {
+enum DeviceEvent {
   INITIAL_DEVICE,
   DEVICE_UPDATE,
   INITIAL_ALARMS,
   ALARM_INSERT,
   ALARM_UPDATE,
   ALARM_DELETE,
-  UNKNOWN_EVENT
 };
 
 class Device {
 public:
-  Device(NvsManager &nvs_manager, Session &session, CurrentTime &current_time,
-         Alarms &alarms, Display &display, Buzzer &buzzer);
+  Device(NonVolatileStorage &non_volatile_storage, Session &session,
+         CurrentTime &current_time, Alarms &alarms, Display &display,
+         Buzzer &buzzer);
+
+  ~Device();
+
+  void on_data(const std::string &response);
 
 private:
-  NvsManager &nvs_manager;
+  static const char *const TAG;
+  static const std::map<const std::string, const DeviceEvent> events;
+
+  NonVolatileStorage &non_volatile_storage;
   Session &session;
   CurrentTime &current_time;
   Alarms &alarms;
@@ -37,16 +43,16 @@ private:
   std::string id;
   SemaphoreHandle_t is_subscribed;
 
-  void set_id(std::string &id);
+  void set_id(const std::string &id);
 
-  static void enroll_on_data(void *device, const std::string &response);
-  static void subscribe_on_data(void *device, const std::string &response);
-  static void subscribe_task(void *pvParameters);
+  static void handle_subscribe(void *const pvParameters);
 
-  void parse_device_state(const std::string &data);
   esp_err_t enroll();
   void subscribe();
-  void keep_subscribed();
+  void parse(const std::string &device_string);
+  void extract_sse_field(const std::string &response, const std::string &field,
+                         std::string &out_value);
+  void parse_sse(const std::string &response);
 };
 
 #endif // DEVICE_H

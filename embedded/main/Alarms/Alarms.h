@@ -2,23 +2,28 @@
 #define ALARMS_H
 
 #include "Alarm.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include <map>
 #include <memory>
-#include <vector>
 
 class Alarms {
 public:
-  Alarms(NvsManager &nvs_manager);
+  Alarms(NonVolatileStorage &non_volatile_storage);
 
-  void parse_initial_alarms(const std::string &data);
-  void parse_alarm_insert(const std::string &data);
-  void parse_alarm_update(const std::string &data);
-  void parse_alarm_remove(const std::string &data);
+  ~Alarms();
+
+  void parse_initial(const std::string &data);
+  void parse_insert(const std::string &data);
+  void parse_update(const std::string &data);
+  void parse_remove(const std::string &data);
 
 private:
-  NvsManager &nvs_manager;
-  std::map<std::string, std::unique_ptr<Alarm>> alarms;
+  static const char *const TAG;
+
+  NonVolatileStorage &non_volatile_storage;
+  std::map<const std::string, const std::unique_ptr<Alarm>> alarms;
+
+  void write_ids_to_nvs();
 };
 
-#endif
+#endif // ALARMS_H

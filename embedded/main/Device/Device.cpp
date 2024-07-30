@@ -3,7 +3,7 @@
 #include "ApiRequest.h"
 #include "Buzzer.h"
 #include "CurrentTime.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
 #include "Session.h"
 #include <cJSON.h>
 #include <esp_err.h>
@@ -12,22 +12,16 @@
 #include <freertos/idf_additions.h>
 #include <map>
 #include <string>
-#include <vector>
 
-static const char *TAG = "Device";
-
-std::map<std::string, DeviceStateEvent> deviceStateEventMap = {
-    {"initial-device", INITIAL_DEVICE}, {"device-update", DEVICE_UPDATE},
-    {"initial-alarms", INITIAL_ALARMS}, {"alarm-insert", ALARM_INSERT},
-    {"alarm-update", ALARM_UPDATE},     {"alarm-delete", ALARM_DELETE},
-};
-
-Device::Device(NvsManager &nvs_manager, Session &session,
+Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
                CurrentTime &current_time, Alarms &alarms, Display &display,
                Buzzer &buzzer)
-    : nvs_manager(nvs_manager), session(session), current_time(current_time),
-      alarms(alarms), display(display), buzzer(buzzer) {
-  esp_err_t err = nvs_manager.read_string("device", "id", id);
+    : non_volatile_storage(non_volatile_storage), session(session),
+      current_time(current_time), alarms(alarms), display(display),
+      buzzer(buzzer), id(), is_subscribed(xSemaphoreCreateBinary()) {
+  xSemaphoreGive(is_subscribed);
+
+  esp_err_t err = non_volatile_storage.read(TAG, "id", id);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
     set_id(id);
@@ -36,158 +30,39 @@ Device::Device(NvsManager &nvs_manager, Session &session,
     enroll();
   }
 
-  is_subscribed = xSemaphoreCreateBinary();
-  xSemaphoreGive(is_subscribed);
+  xSemaphoreTake(is_subscribed, 0);
+  xTaskCreate(Device::handle_subscribe, "keep_subscribed", 8192, this, 5, NULL);
+  xSemaphoreTake(is_subscribed, portMAX_DELAY);
 
-  keep_subscribed();
   display.print_current_time();
 }
 
-void Device::set_id(std::string &id) {
+Device::~Device() { ESP_LOGI(TAG, "Destroy."); }
+
+void Device::on_data(const std::string &response) {
+  if (response.find("event:") != std::string::npos) {
+    parse_sse(response);
+  } else {
+    parse(response);
+  }
+}
+
+const char *const Device::TAG = "device";
+
+const std::map<const std::string, const DeviceEvent> Device::events = {
+    {"initial-device", INITIAL_DEVICE}, {"device-update", DEVICE_UPDATE},
+    {"initial-alarms", INITIAL_ALARMS}, {"alarm-insert", ALARM_INSERT},
+    {"alarm-update", ALARM_UPDATE},     {"alarm-delete", ALARM_DELETE},
+};
+
+void Device::set_id(const std::string &id) {
   this->id = id;
-  nvs_manager.write_string("device", "id", id);
+  non_volatile_storage.write(TAG, "id", id);
   ESP_LOGI(TAG, "Set ID: %s", id.c_str());
 }
 
-void Device::enroll_on_data(void *device, const std::string &response) {
-  Device *self = static_cast<Device *>(device);
-
-  cJSON *json_response = cJSON_Parse(response.c_str());
-  if (!json_response) {
-    ESP_LOGE(TAG, "Failed to parse JSON response.");
-    return;
-  }
-
-  cJSON *id_item = cJSON_GetObjectItem(json_response, "id");
-  if (!cJSON_IsString(id_item) || (id_item->valuestring == NULL)) {
-    ESP_LOGE(TAG, "Failed to extract `id` from JSON response");
-  } else {
-    std::string id = id_item->valuestring;
-    self->set_id(id);
-  }
-
-  cJSON_Delete(json_response);
-}
-
-esp_err_t Device::enroll() {
-  ApiRequest post_device_enroll = ApiRequest(
-      session, this, enroll_on_data, HTTP_METHOD_POST, 60000, "/device/enroll");
-  esp_err_t err = post_device_enroll.send();
-  return err;
-}
-
-void Device::parse_device_state(const std::string &data) {
-  cJSON *data_json = cJSON_Parse(data.c_str());
-  if (!data_json) {
-    ESP_LOGE(TAG, "Failed to parse JSON data.");
-    return;
-  }
-
-  cJSON *time_zone_item = cJSON_GetObjectItem(data_json, "time_zone");
-  if (!cJSON_IsString(time_zone_item) ||
-      (time_zone_item->valuestring == NULL)) {
-    ESP_LOGE(TAG, "Failed to extract `time_zone` from JSON response.");
-  } else {
-    current_time.set_time_zone(time_zone_item->valuestring);
-  }
-
-  cJSON *time_format_item = cJSON_GetObjectItem(data_json, "time_format");
-  if (!cJSON_IsString(time_format_item) ||
-      (time_format_item->valuestring == NULL)) {
-    ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
-  } else {
-    current_time.set_format(time_format_item->valuestring);
-  }
-
-  cJSON *brightness_item = cJSON_GetObjectItem(data_json, "brightness");
-  if (!cJSON_IsNumber(brightness_item)) {
-    ESP_LOGE(TAG, "Failed to extract `brightness` from JSON response.");
-  } else {
-    display.set_brightness(brightness_item->valueint);
-  }
-
-  cJSON_Delete(data_json);
-}
-
-void Device::subscribe_on_data(void *device, const std::string &response) {
-  std::string response_without_line_breaks =
-      response.substr(0, response.length() - 2);
-  ESP_LOGI(TAG, "%s", response_without_line_breaks.c_str());
-
-  std::string event_label = "event: ";
-  std::string data_label = "data: ";
-
-  size_t event_pos = response.find(event_label);
-  if (event_pos == std::string::npos) {
-    ESP_LOGE(TAG, "No valid event field found in Server Sent Event.");
-    return;
-  }
-
-  size_t event_start_pos = event_pos + event_label.length();
-  size_t event_end_pos = response.find('\n', event_start_pos);
-  std::string sse_event =
-      response.substr(event_start_pos, event_end_pos - event_start_pos);
-
-  if (sse_event == "keep-alive") {
-    return;
-  }
-
-  size_t data_pos = response.find(data_label);
-  if (data_pos == std::string::npos) {
-    ESP_LOGE(TAG, "No valid data field found in Server Sent Event.");
-    return;
-  }
-
-  size_t data_start_pos = data_pos + data_label.length();
-  size_t data_end_pos = response.find('\n', data_start_pos);
-  std::string data =
-      response.substr(data_start_pos, data_end_pos - data_start_pos);
-
-  Device *self = static_cast<Device *>(device);
-
-  DeviceStateEvent event = deviceStateEventMap.count(sse_event)
-                               ? deviceStateEventMap[sse_event]
-                               : UNKNOWN_EVENT;
-
-  switch (event) {
-  case INITIAL_DEVICE:
-    self->parse_device_state(data);
-    break;
-  case DEVICE_UPDATE:
-    self->parse_device_state(data);
-    break;
-  case INITIAL_ALARMS:
-    self->alarms.parse_initial_alarms(data);
-    break;
-  case ALARM_INSERT:
-    self->alarms.parse_alarm_insert(data);
-    break;
-  case ALARM_UPDATE:
-    self->alarms.parse_alarm_update(data);
-    break;
-  case ALARM_DELETE:
-    self->alarms.parse_alarm_remove(data);
-    break;
-  default:
-    ESP_LOGE(TAG, "Unknown device state event: %s", data.c_str());
-    break;
-  }
-}
-
-void Device::subscribe() {
-  std::string query = "deviceId=" + id;
-  ApiRequest get_device_state =
-      ApiRequest(session, this, subscribe_on_data, HTTP_METHOD_GET, 300000,
-                 "/device/state", query);
-  get_device_state.send();
-  ESP_LOGI(TAG, "Subscription successful.");
-  xSemaphoreGive(is_subscribed);
-}
-
-void Device::subscribe_task(void *pvParameters) {
+void Device::handle_subscribe(void *const pvParameters) {
   Device *self = static_cast<Device *>(pvParameters);
-
-  ESP_LOGI(TAG, "Subscribing.");
 
   while (true) {
     self->subscribe();
@@ -198,8 +73,124 @@ void Device::subscribe_task(void *pvParameters) {
   vTaskDelete(NULL);
 }
 
-void Device::keep_subscribed() {
-  xSemaphoreTake(is_subscribed, 0);
-  xTaskCreate(Device::subscribe_task, "keep_subscribed", 2048, this, 5, NULL);
-  xSemaphoreTake(is_subscribed, portMAX_DELAY);
+esp_err_t Device::enroll() {
+  ESP_LOGI(TAG, "Enrolling.");
+  ApiRequest post_device_enroll = ApiRequest<Device>(
+      session, *this, HTTP_METHOD_POST, 60000, "/device/enroll", "");
+  esp_err_t err = post_device_enroll.send_request();
+  ESP_LOGI(TAG, "Enroll successful.");
+  return err;
+}
+
+void Device::subscribe() {
+  ESP_LOGI(TAG, "Subscribing.");
+  const std::string query = "deviceId=" + id;
+  ApiRequest get_device_state = ApiRequest<Device>(
+      session, *this, HTTP_METHOD_GET, 300000, "/device/state", query);
+  get_device_state.send_request();
+  ESP_LOGI(TAG, "Subscription successful.");
+  xSemaphoreGive(is_subscribed);
+}
+
+void Device::parse(const std::string &device_string) {
+  cJSON *const device_json = cJSON_Parse(device_string.c_str());
+  if (device_json == nullptr) {
+    ESP_LOGE(TAG, "Failed to parse JSON device.");
+    cJSON_Delete(device_json);
+    return;
+  }
+
+  const cJSON *const id_json = cJSON_GetObjectItem(device_json, "id");
+  if (!cJSON_IsString(id_json) || (id_json->valuestring == NULL)) {
+    ESP_LOGE(TAG, "Failed to extract `id` from JSON response.");
+  } else {
+    set_id(id_json->valuestring);
+  }
+
+  const cJSON *const time_zone_json =
+      cJSON_GetObjectItem(device_json, "time_zone");
+  if (!cJSON_IsString(time_zone_json) ||
+      (time_zone_json->valuestring == NULL)) {
+    ESP_LOGE(TAG, "Failed to extract `time_zone` from JSON response.");
+  } else {
+    current_time.set_time_zone(time_zone_json->valuestring);
+  }
+
+  const cJSON *const time_format_json =
+      cJSON_GetObjectItem(device_json, "time_format");
+  if (!cJSON_IsString(time_format_json) ||
+      (time_format_json->valuestring == NULL)) {
+    ESP_LOGE(TAG, "Failed to extract `time_format` from JSON response.");
+  } else {
+    current_time.set_format(time_format_json->valuestring);
+  }
+
+  const cJSON *const brightness_json =
+      cJSON_GetObjectItem(device_json, "brightness");
+  if (!cJSON_IsNumber(brightness_json)) {
+    ESP_LOGE(TAG, "Failed to extract `brightness` from JSON response.");
+  } else {
+    display.set_brightness(brightness_json->valueint);
+  }
+
+  cJSON_Delete(device_json);
+}
+
+void Device::extract_sse_field(const std::string &response,
+                               const std::string &field,
+                               std::string &out_value) {
+  const size_t pos = response.find(field);
+  if (pos == std::string::npos) {
+    ESP_LOGE(TAG, "Error finding response field %s", field.c_str());
+    return;
+  }
+
+  const size_t start_pos = pos + field.length();
+  const size_t end_pos = response.find('\n', start_pos);
+
+  out_value = response.substr(start_pos, end_pos - start_pos);
+}
+
+void Device::parse_sse(const std::string &response) {
+  /**Trim trailing newlines. */
+  const std::string trimmed_response =
+      response.substr(0, response.length() - 2);
+
+  std::string event;
+  extract_sse_field(trimmed_response, "event: ", event);
+  ESP_LOGI(TAG, "event: %s", event.c_str());
+
+  if (event == "keep-alive") {
+    return;
+  }
+
+  std::string data;
+  extract_sse_field(trimmed_response, "data: ", data);
+  ESP_LOGI(TAG, "data: %s", data.c_str());
+
+  DeviceEvent device_event = events.at(event);
+
+  switch (device_event) {
+  case INITIAL_DEVICE:
+    parse(data);
+    break;
+  case DEVICE_UPDATE:
+    parse(data);
+    break;
+  case INITIAL_ALARMS:
+    alarms.parse_initial(data);
+    break;
+  case ALARM_INSERT:
+    alarms.parse_insert(data);
+    break;
+  case ALARM_UPDATE:
+    alarms.parse_update(data);
+    break;
+  case ALARM_DELETE:
+    alarms.parse_remove(data);
+    break;
+  default:
+    ESP_LOGE(TAG, "Unknown device state event: %s", data.c_str());
+    break;
+  }
 }

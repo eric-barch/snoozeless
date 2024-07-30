@@ -1,6 +1,9 @@
 #include "Display.h"
 #include "CurrentTime.h"
-#include "NvsManager.h"
+#include "NonVolatileStorage.h"
+#include "driver/gpio.h"
+#include "hal/gpio_types.h"
+#include "soc/gpio_num.h"
 #include <cstring>
 #include <ctime>
 #include <esp_log.h>
@@ -10,15 +13,15 @@
 #include <regex>
 #include <string>
 
-static const char *TAG = "Display";
-
-Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
-    : nvs_manager(nvs_manager), current_time(current_time),
-      top_indicator(false), bottom_indicator(false), colon(false),
-      apostrophe(false) {
+Display::Display(NonVolatileStorage &non_volatile_storage,
+                 CurrentTime &current_time)
+    : non_volatile_storage(non_volatile_storage), current_time(current_time),
+      ht16k33(), ht16k33_ram(0), top_indicator(false), bottom_indicator(false),
+      colon(false), apostrophe(false), brightness(7), major_interval(),
+      minor_interval() {
   /**Initialize display structs. */
-  memset(&(this->ht16k33), 0, sizeof(i2c_dev_t));
-  memset(&(this->ht16k33_ram), 0, sizeof(ht16k33_ram));
+  memset(&ht16k33, 0, sizeof(i2c_dev_t));
+  memset(&ht16k33_ram, 0, sizeof(ht16k33_ram));
 
   /**I2C communication pin definitions. */
   gpio_num_t sda = static_cast<gpio_num_t>(CONFIG_I2C_MASTER_SDA);
@@ -32,34 +35,30 @@ Display::Display(NvsManager &nvs_manager, CurrentTime &current_time)
   io_conf.intr_type = GPIO_INTR_DISABLE;
   io_conf.mode = GPIO_MODE_OUTPUT;
   io_conf.pin_bit_mask = (1ULL << GPIO_NUM_2);
-  io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-  io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
   gpio_config(&io_conf);
   gpio_set_level(GPIO_NUM_2, 1);
 
   /**Initialize I2C and ht16k33 display drivers. */
   ESP_ERROR_CHECK(i2cdev_init());
-  ESP_ERROR_CHECK(ht16k33_init_desc(&(this->ht16k33), port, sda, scl,
-                                    HT16K33_DEFAULT_ADDR));
-  ESP_ERROR_CHECK(ht16k33_init(&(this->ht16k33)));
-  ESP_ERROR_CHECK(ht16k33_display_setup(&(this->ht16k33), 1, HTK16K33_F_0HZ));
+  ESP_ERROR_CHECK(
+      ht16k33_init_desc(&ht16k33, port, sda, scl, HT16K33_DEFAULT_ADDR));
+  ESP_ERROR_CHECK(ht16k33_init(&ht16k33));
+  ESP_ERROR_CHECK(ht16k33_display_setup(&ht16k33, 1, HTK16K33_F_0HZ));
 
-  int brightness;
-  esp_err_t err =
-      this->nvs_manager.read_int("display", "brightness", brightness);
+  esp_err_t err = non_volatile_storage.read(TAG, "brightness", brightness);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Brightness read from NVS: %d", brightness);
-    this->set_brightness(brightness);
+    set_brightness(brightness);
   } else {
     ESP_LOGW(TAG, "Error reading brightness from NVS: %s. Using default.",
              esp_err_to_name(err));
-    this->set_brightness(7);
   }
 }
 
 Display::~Display() {
-  memset(&(this->ht16k33), 0, sizeof(i2c_dev_t));
-  ht16k33_free_desc(&(this->ht16k33));
+  memset(&ht16k33, 0, sizeof(i2c_dev_t));
+  ht16k33_free_desc(&ht16k33);
+  ESP_LOGI(TAG, "Destroy.");
 }
 
 void Display::set_brightness(uint8_t brightness) {
@@ -68,17 +67,43 @@ void Display::set_brightness(uint8_t brightness) {
   }
 
   this->brightness = brightness;
-  this->nvs_manager.write_int("display", "brightness", brightness);
+  non_volatile_storage.write(TAG, "brightness", brightness);
 
   uint8_t cmd = 0xE0 | brightness;
-  esp_err_t err = i2c_master_write_to_device(
-      I2C_NUM_0, this->ht16k33.addr, &cmd, 1, 1000 / portTICK_PERIOD_MS);
+  esp_err_t err = i2c_master_write_to_device(I2C_NUM_0, ht16k33.addr, &cmd, 1,
+                                             1000 / portTICK_PERIOD_MS);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Set brightness: %d", brightness);
   } else {
-    ESP_LOGE(TAG, "Setting brightness failed: %s", esp_err_to_name(err));
+    ESP_LOGE(TAG, "Error setting brightness: %s", esp_err_to_name(err));
   }
 }
+
+void Display::print_current_time() {
+  xTaskCreate(Display::handle_print, "handle_print", 4096, this, 5, NULL);
+}
+
+/**https://www.rd.com/article/apple-company-facts/ */
+void Display::print_9_41() {
+  set_major_interval("9");
+  colon = true;
+  set_minor_interval("41");
+  bottom_indicator = false;
+  print();
+}
+
+const char *const Display::TAG = "display";
+
+const std::map<const char, const uint8_t> Display::alphabet = {
+    {'0', 0x3F}, {'1', 0x06}, {'2', 0x5B}, {'3', 0x4F}, {'4', 0x66},
+    {'5', 0x6D}, {'6', 0x7D}, {'7', 0x07}, {'8', 0x7F}, {'9', 0x6F},
+    {' ', 0x00}, {'A', 0x77}, {'B', 0x7C}, {'C', 0x39}, {'D', 0x5E},
+    {'E', 0x79}, {'F', 0x71}, {'G', 0x3D}, {'H', 0x76}, {'I', 0x30},
+    {'J', 0x1E}, {'K', 0x75}, {'L', 0x38}, {'M', 0x15}, {'N', 0x37},
+    {'O', 0x3F}, {'P', 0x73}, {'Q', 0x6B}, {'R', 0x33}, {'S', 0x6D},
+    {'T', 0x78}, {'U', 0x3E}, {'V', 0x3E}, {'W', 0x2A}, {'X', 0x76},
+    {'Y', 0x6E}, {'Z', 0x5B},
+};
 
 void Display::set_major_interval(const std::string &major_interval) {
   int length = major_interval.length();
@@ -87,72 +112,20 @@ void Display::set_major_interval(const std::string &major_interval) {
              "Did not set major interval. Must be one or two characters long.");
     return;
   }
-  strncpy(this->major_interval, major_interval.c_str(),
-          sizeof(this->major_interval));
-  this->major_interval[sizeof(this->major_interval) - 1] = '\0';
+  this->major_interval = major_interval;
 }
 
 void Display::set_minor_interval(const std::string &minor_interval) {
   int length = minor_interval.length();
   if (length < 1 || length > 2) {
-    ESP_LOGE(
-        TAG,
-        "Did not set minor interval. Must be one or two characters long..");
+    ESP_LOGE(TAG,
+             "Did not set minor interval. Must be one or two characters long.");
     return;
   }
-  strncpy(this->minor_interval, minor_interval.c_str(),
-          sizeof(this->minor_interval));
-  this->minor_interval[sizeof(this->minor_interval) - 1] = '\0';
+  this->minor_interval = minor_interval;
 }
 
-void Display::print() {
-  memset(this->ht16k33_ram, 0, sizeof(this->ht16k33_ram));
-
-  if (this->major_interval[1] == '\0') {
-    this->ht16k33_ram[0] = 0;
-    this->ht16k33_ram[2] = this->value_to_segments[major_interval[0] - '0'];
-  } else {
-    this->ht16k33_ram[0] = this->value_to_segments[major_interval[0] - '0'];
-    this->ht16k33_ram[2] = this->value_to_segments[major_interval[1] - '0'];
-  }
-
-  if (this->minor_interval[1] == '\0') {
-    this->ht16k33_ram[6] = 0;
-    this->ht16k33_ram[8] = this->value_to_segments[minor_interval[0] - '0'];
-  } else {
-    this->ht16k33_ram[6] = this->value_to_segments[minor_interval[0] - '0'];
-    this->ht16k33_ram[8] = this->value_to_segments[minor_interval[1] - '0'];
-  }
-
-  uint8_t indicators = 0b00000;
-
-  /**Indicators correspond to the following bits:
-   * 0b00000
-   *   ││││└─ no effect
-   *   │││└── colon
-   *   ││└─── top_indicator
-   *   │└──── bottom_indicator
-   *   └───── apostrophe */
-
-  if (this->apostrophe) {
-    indicators += 0b10000;
-  }
-  if (this->bottom_indicator) {
-    indicators += 0b01000;
-  }
-  if (this->top_indicator) {
-    indicators += 0b00100;
-  }
-  if (this->colon) {
-    indicators += 0b00010;
-  }
-
-  this->ht16k33_ram[4] = indicators;
-
-  ESP_ERROR_CHECK(ht16k33_ram_write(&(this->ht16k33), this->ht16k33_ram));
-}
-
-void Display::print_current_time_task(void *pvParameters) {
+void Display::handle_print(void *const pvParameters) {
   Display *self = static_cast<Display *>(pvParameters);
 
   std::tm time;
@@ -226,15 +199,53 @@ void Display::print_current_time_task(void *pvParameters) {
   vTaskDelete(NULL);
 }
 
-void Display::print_current_time() {
-  xTaskCreate(Display::print_current_time_task, "print_current_time", 4096,
-              this, 5, NULL);
-}
+void Display::print() {
+  memset(ht16k33_ram, 0, sizeof(ht16k33_ram));
 
-void Display::print_9_41() {
-  this->set_major_interval("9");
-  this->colon = true;
-  this->set_minor_interval("41");
-  this->bottom_indicator = false;
-  this->print();
+  if (major_interval.length() > 0) {
+    if (major_interval[1] == '\0') {
+      ht16k33_ram[0] = alphabet.at(' ');
+      ht16k33_ram[2] = alphabet.at(major_interval[0]);
+    } else {
+      ht16k33_ram[0] = alphabet.at(major_interval[0]);
+      ht16k33_ram[2] = alphabet.at(major_interval[1]);
+    }
+  }
+
+  if (minor_interval.length() > 0) {
+    if (minor_interval[1] == '\0') {
+      ht16k33_ram[6] = alphabet.at(' ');
+      ht16k33_ram[8] = alphabet.at(minor_interval[0]);
+    } else {
+      ht16k33_ram[6] = alphabet.at(minor_interval[0]);
+      ht16k33_ram[8] = alphabet.at(minor_interval[1]);
+    }
+  }
+
+  uint8_t indicators = 0b00000;
+
+  /**Indicators are set by these bits:
+   * 0b00000
+   *   ││││└─ no effect
+   *   │││└── colon
+   *   ││└─── top_indicator
+   *   │└──── bottom_indicator
+   *   └───── apostrophe */
+
+  if (apostrophe) {
+    indicators += 0b10000;
+  }
+  if (bottom_indicator) {
+    indicators += 0b01000;
+  }
+  if (top_indicator) {
+    indicators += 0b00100;
+  }
+  if (colon) {
+    indicators += 0b00010;
+  }
+
+  ht16k33_ram[4] = indicators;
+
+  ESP_ERROR_CHECK(ht16k33_ram_write(&ht16k33, ht16k33_ram));
 }

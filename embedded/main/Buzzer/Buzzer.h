@@ -6,17 +6,26 @@
 class Buzzer {
 public:
   Buzzer();
+
   ~Buzzer();
 
-  void start_buzzing();
-  void stop_buzzing();
+  void start_alarm();
+  void stop_alarm();
 
 private:
-  ledc_timer_config_t buzzer_timer;
-  ledc_channel_config_t buzzer_channel;
-  bool is_buzzing;
+  static const char *const TAG;
 
-  static void buzz_task(void *pvParameters);
+  const ledc_timer_t TIMER_NUM;
+  const ledc_channel_t CHANNEL;
+  const ledc_mode_t SPEED_MODE;
+  const int DUTY;
+  const uint32_t FREQ_HZ;
+  const int GPIO_NUM;
+  ledc_timer_config_t timer_config;
+  ledc_channel_config_t channel_config;
+  bool alarm_is_on;
+
+  static void handle_alarm(void *const pvParameters);
 };
 
-#endif
+#endif // BUZZER_H
