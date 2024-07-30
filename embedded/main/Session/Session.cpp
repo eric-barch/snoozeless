@@ -11,9 +11,7 @@
 
 Session::Session(NonVolatileStorage &non_volatile_storage)
     : non_volatile_storage(non_volatile_storage), access_token(),
-      refresh_token(), is_refreshed(xSemaphoreCreateBinary()) {
-  xSemaphoreGive(is_refreshed);
-
+      refresh_token() {
   esp_err_t err = non_volatile_storage.read(TAG, "access", access_token);
   if (err == ESP_OK) {
     ESP_LOGD(TAG, "Access token read from NVS.");
@@ -34,9 +32,7 @@ Session::Session(NonVolatileStorage &non_volatile_storage)
     set_refresh_token(CONFIG_REFRESH_TOKEN);
   }
 
-  xSemaphoreTake(is_refreshed, 0);
-  xTaskCreate(handle_refresh, "keep_refreshed", 2048, this, 5, NULL);
-  xSemaphoreTake(is_refreshed, portMAX_DELAY);
+  xTaskCreate(handle_refresh, "handle_refresh", 2048, this, 5, NULL);
 };
 
 Session::~Session() { ESP_LOGI(TAG, "Destroy."); }
@@ -95,13 +91,12 @@ void Session::handle_refresh(void *const pvParameters) {
     esp_err_t err = self->refresh();
 
     while (err != ESP_OK) {
-      ESP_LOGI(TAG, "Refresh failed. Will try again in one minute.");
-      vTaskDelay(pdMS_TO_TICKS(60000));
+      ESP_LOGI(TAG, "Refresh failed. Will try again in ten seconds.");
+      vTaskDelay(pdMS_TO_TICKS(10000));
       err = self->refresh();
     }
 
     ESP_LOGI(TAG, "Refresh successful.");
-    xSemaphoreGive(self->is_refreshed);
 
     /**Tokens are valid for 1 hour. Refresh every 55 minutes. */
     vTaskDelay(pdMS_TO_TICKS(3300000));

@@ -3,7 +3,6 @@
 
 #include "NonVolatileStorage.h"
 #include <esp_err.h>
-#include <freertos/idf_additions.h>
 
 class Session {
 public:
@@ -22,7 +21,6 @@ private:
   NonVolatileStorage &non_volatile_storage;
   std::string access_token;
   std::string refresh_token;
-  SemaphoreHandle_t is_refreshed;
 
   void set_access_token(const std::string &access_token);
   void set_refresh_token(const std::string &refresh_token);

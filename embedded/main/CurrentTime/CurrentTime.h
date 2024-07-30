@@ -5,7 +5,6 @@
 #include "Session.h"
 #include <ctime>
 #include <esp_err.h>
-#include <freertos/idf_additions.h>
 #include <string>
 
 class CurrentTime {
@@ -31,7 +30,6 @@ private:
   int ms_at_calibration;
   std::string time_zone;
   std::string format;
-  SemaphoreHandle_t is_calibrated;
 
   void set_unix_at_calibration(const int &unix_at_calibration);
   void set_ms_at_calibration(const int &ms_at_calibration);

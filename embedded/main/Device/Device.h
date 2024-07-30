@@ -8,7 +8,6 @@
 #include "NonVolatileStorage.h"
 #include "Session.h"
 #include <esp_err.h>
-#include <freertos/idf_additions.h>
 #include <map>
 
 enum DeviceEvent {
@@ -41,7 +40,6 @@ private:
   Display &display;
   Buzzer &buzzer;
   std::string id;
-  SemaphoreHandle_t is_subscribed;
 
   void set_id(const std::string &id);
 

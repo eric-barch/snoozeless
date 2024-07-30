@@ -13,10 +13,7 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
                          Session &session)
     : non_volatile_storage(non_volatile_storage), session(session),
       unix_at_calibration(0), ms_at_calibration(0),
-      time_zone("EST5EDT,M3.2.0/2,M11.1.0/2"), format("%H:%M"),
-      is_calibrated(xSemaphoreCreateBinary()) {
-  xSemaphoreGive(is_calibrated);
-
+      time_zone("EST5EDT,M3.2.0/2,M11.1.0/2"), format("%H:%M") {
   esp_err_t err =
       non_volatile_storage.read(TAG, "unix_at_cal", unix_at_calibration);
   if (err == ESP_OK) {
@@ -55,10 +52,8 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
     ESP_LOGW(TAG, "Error reading format from NVS: %s", esp_err_to_name(err));
   }
 
-  xSemaphoreTake(is_calibrated, 0);
   xTaskCreate(CurrentTime::handle_calibrate, "handle_calibrate", 4096, this, 5,
               NULL);
-  xSemaphoreTake(is_calibrated, portMAX_DELAY);
 }
 
 CurrentTime::~CurrentTime() { ESP_LOGI(TAG, "Destroy."); }
@@ -132,13 +127,12 @@ void CurrentTime::handle_calibrate(void *const pvParameters) {
     esp_err_t err = self->calibrate();
 
     while (err != ESP_OK) {
-      ESP_LOGI(TAG, "Calibration failed. Will try again in one minute.");
-      vTaskDelay(pdMS_TO_TICKS(60000));
+      ESP_LOGI(TAG, "Calibration failed. Will try again in ten seconds.");
+      vTaskDelay(pdMS_TO_TICKS(10000));
       err = self->calibrate();
     }
 
     ESP_LOGI(TAG, "Calibration successful.");
-    xSemaphoreGive(self->is_calibrated);
 
     /**Recalibrate every 24 hours. */
     /**FIXME: Pretty sure this is running way more often than every 24 hours. */

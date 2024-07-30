@@ -18,9 +18,7 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
                Buzzer &buzzer)
     : non_volatile_storage(non_volatile_storage), session(session),
       current_time(current_time), alarms(alarms), display(display),
-      buzzer(buzzer), id(), is_subscribed(xSemaphoreCreateBinary()) {
-  xSemaphoreGive(is_subscribed);
-
+      buzzer(buzzer), id() {
   esp_err_t err = non_volatile_storage.read(TAG, "id", id);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "ID read from NVS: %s", id.c_str());
@@ -30,9 +28,8 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
     enroll();
   }
 
-  xSemaphoreTake(is_subscribed, 0);
-  xTaskCreate(Device::handle_subscribe, "keep_subscribed", 8192, this, 5, NULL);
-  xSemaphoreTake(is_subscribed, portMAX_DELAY);
+  xTaskCreate(Device::handle_subscribe, "handle_subscribe", 8192, this, 5,
+              NULL);
 
   display.print_current_time();
 }
@@ -66,8 +63,8 @@ void Device::handle_subscribe(void *const pvParameters) {
 
   while (true) {
     self->subscribe();
-    ESP_LOGI(TAG, "Subscription failed. Will try to reconnect in one minute.");
-    vTaskDelay(pdMS_TO_TICKS(60000));
+    ESP_LOGI(TAG, "Subscription failed. Will try to reconnect in ten seconds.");
+    vTaskDelay(pdMS_TO_TICKS(10000));
   }
 
   vTaskDelete(NULL);
@@ -89,7 +86,6 @@ void Device::subscribe() {
       session, *this, HTTP_METHOD_GET, 300000, "/device/state", query);
   get_device_state.send_request();
   ESP_LOGI(TAG, "Subscription successful.");
-  xSemaphoreGive(is_subscribed);
 }
 
 void Device::parse(const std::string &device_string) {
