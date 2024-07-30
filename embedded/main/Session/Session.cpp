@@ -9,8 +9,6 @@
 #include <sdkconfig.h>
 #include <string>
 
-const char *const Session::TAG = "session";
-
 Session::Session(NonVolatileStorage &non_volatile_storage)
     : non_volatile_storage(non_volatile_storage), access_token(),
       refresh_token(), is_refreshed(xSemaphoreCreateBinary()) {
@@ -37,15 +35,15 @@ Session::Session(NonVolatileStorage &non_volatile_storage)
   }
 
   xSemaphoreTake(is_refreshed, 0);
-  xTaskCreate(keep_refreshed, "keep_refreshed", 2048, this, 5, NULL);
+  xTaskCreate(handle_refresh, "keep_refreshed", 2048, this, 5, NULL);
   xSemaphoreTake(is_refreshed, portMAX_DELAY);
 };
 
 Session::~Session() { ESP_LOGI(TAG, "Destroy."); }
 
-std::string Session::get_access_token() { return access_token; }
+std::string Session::get_access_token() const { return access_token; }
 
-std::string Session::get_refresh_token() { return refresh_token; }
+std::string Session::get_refresh_token() const { return refresh_token; }
 
 void Session::on_data(const std::string &response) {
   cJSON *const json_response = cJSON_Parse(response.c_str());
@@ -75,6 +73,8 @@ void Session::on_data(const std::string &response) {
   cJSON_Delete(json_response);
 }
 
+const char *const Session::TAG = "session";
+
 void Session::set_access_token(const std::string &access_token) {
   this->access_token = access_token;
   non_volatile_storage.write(TAG, "access", access_token);
@@ -87,14 +87,7 @@ void Session::set_refresh_token(const std::string &refresh_token) {
   ESP_LOGI(TAG, "Set Refresh Token: %s", refresh_token.c_str());
 }
 
-esp_err_t Session::refresh() {
-  ApiRequest post_auth_refresh = ApiRequest<Session>(
-      *this, *this, HTTP_METHOD_POST, 60000, "/auth/refresh", "");
-  esp_err_t err = post_auth_refresh.send();
-  return err;
-}
-
-void Session::keep_refreshed(void *pvParameters) {
+void Session::handle_refresh(void *const pvParameters) {
   Session *self = static_cast<Session *>(pvParameters);
 
   while (true) {
@@ -115,4 +108,11 @@ void Session::keep_refreshed(void *pvParameters) {
   }
 
   vTaskDelete(NULL);
+}
+
+esp_err_t Session::refresh() {
+  ApiRequest post_auth_refresh = ApiRequest<Session>(
+      *this, *this, HTTP_METHOD_POST, 60000, "/auth/refresh", "");
+  esp_err_t err = post_auth_refresh.send_request();
+  return err;
 }

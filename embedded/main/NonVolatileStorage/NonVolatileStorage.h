@@ -8,6 +8,7 @@
 class NonVolatileStorage {
 public:
   NonVolatileStorage();
+
   ~NonVolatileStorage();
 
   esp_err_t write(const std::string &space, const std::string &key,
@@ -22,6 +23,7 @@ public:
 
 private:
   static const char *const TAG;
+
   nvs_handle_t nvs_handle;
 
   esp_err_t open_namespace(const std::string &space);

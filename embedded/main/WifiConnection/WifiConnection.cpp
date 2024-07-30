@@ -10,14 +10,6 @@
 #include <sdkconfig.h>
 #include <string>
 
-const char *const WifiConnection::TAG = "wifi_conn";
-
-const int WifiConnection::WIFI_CONNECTED_BIT = BIT0;
-
-const int WifiConnection::WIFI_FAIL_BIT = BIT1;
-
-const int WifiConnection::MAX_RETRY = 5;
-
 WifiConnection::WifiConnection(NonVolatileStorage &non_volatile_storage)
     : non_volatile_storage(non_volatile_storage), ssid(), password(),
       wifi_event_group(xEventGroupCreate()), retry_count(0) {
@@ -52,20 +44,30 @@ WifiConnection::~WifiConnection() {
   ESP_LOGI(TAG, "Destroy.");
 }
 
-void WifiConnection::set_ssid(std::string ssid) {
+const char *const WifiConnection::TAG = "wifi_conn";
+
+const int WifiConnection::WIFI_CONNECTED_BIT = BIT0;
+
+const int WifiConnection::WIFI_FAIL_BIT = BIT1;
+
+const int WifiConnection::MAX_RETRY = 5;
+
+void WifiConnection::set_ssid(const std::string &ssid) {
   this->ssid = ssid;
   non_volatile_storage.write(TAG, "ssid", ssid);
   ESP_LOGI(TAG, "Set SSID: %s", ssid.c_str());
 }
 
-void WifiConnection::set_password(std::string password) {
+void WifiConnection::set_password(const std::string &password) {
   this->password = password;
   non_volatile_storage.write(TAG, "password", password);
   ESP_LOGI(TAG, "Set Password: %s", ssid.c_str());
 }
 
-void WifiConnection::handle_wifi_event(void *arg, esp_event_base_t event_base,
-                                       int32_t event_id, void *event_data) {
+void WifiConnection::handle_wifi_event(void *const arg,
+                                       esp_event_base_t event_base,
+                                       int32_t event_id,
+                                       void *const event_data) {
   WifiConnection *self = static_cast<WifiConnection *>(arg);
 
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {

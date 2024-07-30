@@ -1,6 +1,9 @@
 #include "Display.h"
 #include "CurrentTime.h"
 #include "NonVolatileStorage.h"
+#include "driver/gpio.h"
+#include "hal/gpio_types.h"
+#include "soc/gpio_num.h"
 #include <cstring>
 #include <ctime>
 #include <esp_log.h>
@@ -10,23 +13,12 @@
 #include <regex>
 #include <string>
 
-const char *const Display::TAG = "display";
-
-const std::map<char, uint8_t> Display::alphabet = {
-    {'0', 0x3F}, {'1', 0x06}, {'2', 0x5B}, {'3', 0x4F}, {'4', 0x66},
-    {'5', 0x6D}, {'6', 0x7D}, {'7', 0x07}, {'8', 0x7F}, {'9', 0x6F},
-    {' ', 0x00}, {'A', 0x77}, {'B', 0x7C}, {'C', 0x39}, {'D', 0x5E},
-    {'E', 0x79}, {'F', 0x71}, {'G', 0x3D}, {'H', 0x76}, {'I', 0x30},
-    {'J', 0x1E}, {'K', 0x75}, {'L', 0x38}, {'M', 0x15}, {'N', 0x37},
-    {'O', 0x3F}, {'P', 0x73}, {'Q', 0x6B}, {'R', 0x33}, {'S', 0x6D},
-    {'T', 0x78}, {'U', 0x3E}, {'V', 0x3E}, {'W', 0x2A}, {'X', 0x76},
-    {'Y', 0x6E}, {'Z', 0x5B}};
-
 Display::Display(NonVolatileStorage &non_volatile_storage,
                  CurrentTime &current_time)
     : non_volatile_storage(non_volatile_storage), current_time(current_time),
       ht16k33(), ht16k33_ram(0), top_indicator(false), bottom_indicator(false),
-      colon(false), apostrophe(false), brightness(7) {
+      colon(false), apostrophe(false), brightness(7), major_interval(),
+      minor_interval() {
   /**Initialize display structs. */
   memset(&ht16k33, 0, sizeof(i2c_dev_t));
   memset(&ht16k33_ram, 0, sizeof(ht16k33_ram));
@@ -88,8 +80,7 @@ void Display::set_brightness(uint8_t brightness) {
 }
 
 void Display::print_current_time() {
-  xTaskCreate(Display::print_current_time_task, "print_current_time", 4096,
-              this, 5, NULL);
+  xTaskCreate(Display::handle_print, "handle_print", 4096, this, 5, NULL);
 }
 
 /**https://www.rd.com/article/apple-company-facts/ */
@@ -100,6 +91,19 @@ void Display::print_9_41() {
   bottom_indicator = false;
   print();
 }
+
+const char *const Display::TAG = "display";
+
+const std::map<const char, const uint8_t> Display::alphabet = {
+    {'0', 0x3F}, {'1', 0x06}, {'2', 0x5B}, {'3', 0x4F}, {'4', 0x66},
+    {'5', 0x6D}, {'6', 0x7D}, {'7', 0x07}, {'8', 0x7F}, {'9', 0x6F},
+    {' ', 0x00}, {'A', 0x77}, {'B', 0x7C}, {'C', 0x39}, {'D', 0x5E},
+    {'E', 0x79}, {'F', 0x71}, {'G', 0x3D}, {'H', 0x76}, {'I', 0x30},
+    {'J', 0x1E}, {'K', 0x75}, {'L', 0x38}, {'M', 0x15}, {'N', 0x37},
+    {'O', 0x3F}, {'P', 0x73}, {'Q', 0x6B}, {'R', 0x33}, {'S', 0x6D},
+    {'T', 0x78}, {'U', 0x3E}, {'V', 0x3E}, {'W', 0x2A}, {'X', 0x76},
+    {'Y', 0x6E}, {'Z', 0x5B},
+};
 
 void Display::set_major_interval(const std::string &major_interval) {
   int length = major_interval.length();
@@ -121,58 +125,7 @@ void Display::set_minor_interval(const std::string &minor_interval) {
   this->minor_interval = minor_interval;
 }
 
-void Display::print() {
-  memset(ht16k33_ram, 0, sizeof(ht16k33_ram));
-
-  if (major_interval.length() > 0) {
-    if (major_interval[1] == '\0') {
-      ht16k33_ram[0] = alphabet.at(' ');
-      ht16k33_ram[2] = alphabet.at(major_interval[0]);
-    } else {
-      ht16k33_ram[0] = alphabet.at(major_interval[0]);
-      ht16k33_ram[2] = alphabet.at(major_interval[1]);
-    }
-  }
-
-  if (minor_interval.length() > 0) {
-    if (minor_interval[1] == '\0') {
-      ht16k33_ram[6] = alphabet.at(' ');
-      ht16k33_ram[8] = alphabet.at(minor_interval[0]);
-    } else {
-      ht16k33_ram[6] = alphabet.at(minor_interval[0]);
-      ht16k33_ram[8] = alphabet.at(minor_interval[1]);
-    }
-  }
-
-  uint8_t indicators = 0b00000;
-
-  /**Indicators are set by these bits:
-   * 0b00000
-   *   ││││└─ no effect
-   *   │││└── colon
-   *   ││└─── top_indicator
-   *   │└──── bottom_indicator
-   *   └───── apostrophe */
-
-  if (apostrophe) {
-    indicators += 0b10000;
-  }
-  if (bottom_indicator) {
-    indicators += 0b01000;
-  }
-  if (top_indicator) {
-    indicators += 0b00100;
-  }
-  if (colon) {
-    indicators += 0b00010;
-  }
-
-  ht16k33_ram[4] = indicators;
-
-  ESP_ERROR_CHECK(ht16k33_ram_write(&ht16k33, ht16k33_ram));
-}
-
-void Display::print_current_time_task(void *pvParameters) {
+void Display::handle_print(void *const pvParameters) {
   Display *self = static_cast<Display *>(pvParameters);
 
   std::tm time;
@@ -244,4 +197,55 @@ void Display::print_current_time_task(void *pvParameters) {
   }
 
   vTaskDelete(NULL);
+}
+
+void Display::print() {
+  memset(ht16k33_ram, 0, sizeof(ht16k33_ram));
+
+  if (major_interval.length() > 0) {
+    if (major_interval[1] == '\0') {
+      ht16k33_ram[0] = alphabet.at(' ');
+      ht16k33_ram[2] = alphabet.at(major_interval[0]);
+    } else {
+      ht16k33_ram[0] = alphabet.at(major_interval[0]);
+      ht16k33_ram[2] = alphabet.at(major_interval[1]);
+    }
+  }
+
+  if (minor_interval.length() > 0) {
+    if (minor_interval[1] == '\0') {
+      ht16k33_ram[6] = alphabet.at(' ');
+      ht16k33_ram[8] = alphabet.at(minor_interval[0]);
+    } else {
+      ht16k33_ram[6] = alphabet.at(minor_interval[0]);
+      ht16k33_ram[8] = alphabet.at(minor_interval[1]);
+    }
+  }
+
+  uint8_t indicators = 0b00000;
+
+  /**Indicators are set by these bits:
+   * 0b00000
+   *   ││││└─ no effect
+   *   │││└── colon
+   *   ││└─── top_indicator
+   *   │└──── bottom_indicator
+   *   └───── apostrophe */
+
+  if (apostrophe) {
+    indicators += 0b10000;
+  }
+  if (bottom_indicator) {
+    indicators += 0b01000;
+  }
+  if (top_indicator) {
+    indicators += 0b00100;
+  }
+  if (colon) {
+    indicators += 0b00010;
+  }
+
+  ht16k33_ram[4] = indicators;
+
+  ESP_ERROR_CHECK(ht16k33_ram_write(&ht16k33, ht16k33_ram));
 }

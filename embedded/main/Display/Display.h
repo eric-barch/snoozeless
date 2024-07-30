@@ -10,6 +10,7 @@
 class Display {
 public:
   Display(NonVolatileStorage &non_volatile_storage, CurrentTime &current_time);
+
   ~Display();
 
   void set_brightness(uint8_t brightness);
@@ -19,7 +20,8 @@ public:
 
 private:
   static const char *const TAG;
-  static const std::map<char, uint8_t> alphabet;
+  static const std::map<const char, const uint8_t> alphabet;
+
   NonVolatileStorage &non_volatile_storage;
   CurrentTime &current_time;
   i2c_dev_t ht16k33;
@@ -29,16 +31,15 @@ private:
   bool colon;
   bool apostrophe;
   int brightness;
-  /** Each interval (e.g. hours "place", minutes "place") is two characters
-   * plus a null terminator. */
   std::string major_interval;
   std::string minor_interval;
 
   void set_major_interval(const std::string &major_interval);
   void set_minor_interval(const std::string &minor_interval);
 
+  static void handle_print(void *const pvParameters);
+
   void print();
-  static void print_current_time_task(void *pvParameters);
 };
 
 #endif // DISPLAY_H

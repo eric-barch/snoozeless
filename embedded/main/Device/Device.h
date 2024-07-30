@@ -10,7 +10,6 @@
 #include <esp_err.h>
 #include <freertos/idf_additions.h>
 #include <map>
-#include <vector>
 
 enum DeviceEvent {
   INITIAL_DEVICE,
@@ -26,6 +25,7 @@ public:
   Device(NonVolatileStorage &non_volatile_storage, Session &session,
          CurrentTime &current_time, Alarms &alarms, Display &display,
          Buzzer &buzzer);
+
   ~Device();
 
   void on_data(const std::string &response);
@@ -33,6 +33,7 @@ public:
 private:
   static const char *const TAG;
   static const std::map<const std::string, const DeviceEvent> events;
+
   NonVolatileStorage &non_volatile_storage;
   Session &session;
   CurrentTime &current_time;
@@ -44,14 +45,14 @@ private:
 
   void set_id(const std::string &id);
 
-  void parse(const std::string &device_string);
-  void extract_response_field(const std::string &response,
-                              const std::string &field, std::string &out_value);
-  void parse_sse(const std::string &response);
+  static void handle_subscribe(void *const pvParameters);
 
   esp_err_t enroll();
   void subscribe();
-  static void keep_subscribed(void *pvParameters);
+  void parse(const std::string &device_string);
+  void extract_sse_field(const std::string &response, const std::string &field,
+                         std::string &out_value);
+  void parse_sse(const std::string &response);
 };
 
 #endif // DEVICE_H

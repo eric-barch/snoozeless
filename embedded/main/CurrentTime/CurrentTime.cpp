@@ -9,8 +9,6 @@
 #include <esp_log.h>
 #include <freertos/idf_additions.h>
 
-const char *const CurrentTime::TAG = "curr_time";
-
 CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
                          Session &session)
     : non_volatile_storage(non_volatile_storage), session(session),
@@ -22,7 +20,7 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
   esp_err_t err =
       non_volatile_storage.read(TAG, "unix_at_cal", unix_at_calibration);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Initial Unix at Calibration read from NVS: %d",
+    ESP_LOGD(TAG, "Initial Unix at Calibration read from NVS: %d",
              unix_at_calibration);
     set_unix_at_calibration(unix_at_calibration);
   } else {
@@ -32,7 +30,7 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
 
   err = non_volatile_storage.read(TAG, "ms_at_cal", ms_at_calibration);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Initial Milliseconds at Calibration read from NVS: %d",
+    ESP_LOGD(TAG, "Initial Milliseconds at Calibration read from NVS: %d",
              ms_at_calibration);
     set_ms_at_calibration(ms_at_calibration);
   } else {
@@ -43,7 +41,7 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
 
   err = non_volatile_storage.read(TAG, "time_zone", time_zone);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Time zone read from NVS: %s", time_zone.c_str());
+    ESP_LOGD(TAG, "Time zone read from NVS: %s", time_zone.c_str());
     set_time_zone(time_zone);
   } else {
     ESP_LOGW(TAG, "Error reading time zone from NVS: %s", esp_err_to_name(err));
@@ -51,14 +49,14 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
 
   err = non_volatile_storage.read(TAG, "format", format);
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Format read from NVS: %s", format.c_str());
+    ESP_LOGD(TAG, "Format read from NVS: %s", format.c_str());
     set_format(format);
   } else {
     ESP_LOGW(TAG, "Error reading format from NVS: %s", esp_err_to_name(err));
   }
 
   xSemaphoreTake(is_calibrated, 0);
-  xTaskCreate(CurrentTime::keep_calibrated, "keep_calibrated", 4096, this, 5,
+  xTaskCreate(CurrentTime::handle_calibrate, "handle_calibrate", 4096, this, 5,
               NULL);
   xSemaphoreTake(is_calibrated, portMAX_DELAY);
 }
@@ -112,26 +110,21 @@ void CurrentTime::on_data(const std::string &response) {
   cJSON_Delete(json_response);
 }
 
-void CurrentTime::set_unix_at_calibration(int unix_at_calibration) {
+const char *const CurrentTime::TAG = "curr_time";
+
+void CurrentTime::set_unix_at_calibration(const int &unix_at_calibration) {
   this->unix_at_calibration = unix_at_calibration;
   non_volatile_storage.write(TAG, "unix_at_cal", unix_at_calibration);
   ESP_LOGI(TAG, "Set Unix at Calibration: %d", unix_at_calibration);
 }
 
-void CurrentTime::set_ms_at_calibration(int ms_at_calibration) {
+void CurrentTime::set_ms_at_calibration(const int &ms_at_calibration) {
   this->ms_at_calibration = ms_at_calibration;
   non_volatile_storage.write(TAG, "ms_at_cal", ms_at_calibration);
   ESP_LOGI(TAG, "Set Milliseconds at Calibration: %d", ms_at_calibration);
 }
 
-esp_err_t CurrentTime::calibrate() {
-  ApiRequest get_unix_time = ApiRequest<CurrentTime>(
-      session, *this, HTTP_METHOD_GET, 60000, "/unix-time", "");
-  esp_err_t err = get_unix_time.send();
-  return err;
-}
-
-void CurrentTime::keep_calibrated(void *pvParameters) {
+void CurrentTime::handle_calibrate(void *const pvParameters) {
   CurrentTime *self = static_cast<CurrentTime *>(pvParameters);
 
   while (true) {
@@ -153,4 +146,11 @@ void CurrentTime::keep_calibrated(void *pvParameters) {
   }
 
   vTaskDelete(NULL);
+}
+
+esp_err_t CurrentTime::calibrate() {
+  ApiRequest get_unix_time = ApiRequest<CurrentTime>(
+      session, *this, HTTP_METHOD_GET, 60000, "/unix-time", "");
+  esp_err_t err = get_unix_time.send_request();
+  return err;
 }

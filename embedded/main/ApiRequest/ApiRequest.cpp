@@ -8,23 +8,12 @@
 #include <esp_http_client.h>
 #include <esp_log.h>
 #include <freertos/idf_additions.h>
-#include <freertos/projdefs.h>
-#include <freertos/task.h>
 #include <string>
 
 template <typename CallerType>
-const char *const ApiRequest<CallerType>::TAG = "api_req";
-
-template <typename CallerType>
-const int ApiRequest<CallerType>::MAX_HTTP_RX_BUFFER = 1024;
-
-template <typename CallerType>
-const int ApiRequest<CallerType>::MAX_HTTP_TX_BUFFER = 1024;
-
-template <typename CallerType>
 ApiRequest<CallerType>::ApiRequest(Session &session, CallerType &caller,
-                                   const esp_http_client_method_t method,
-                                   const int timeout_ms,
+                                   const esp_http_client_method_t &method,
+                                   const int &timeout_ms,
                                    const std::string &path,
                                    const std::string &query)
     : session(session), caller(caller), method(method), timeout_ms(timeout_ms),
@@ -40,9 +29,32 @@ template <typename CallerType> ApiRequest<CallerType>::~ApiRequest() {
   ESP_LOGI(TAG, "Destroy.");
 }
 
+template <typename ClientType>
+esp_err_t ApiRequest<ClientType>::send_request() {
+  xSemaphoreTake(received_response, 0);
+  xTaskCreate(&ApiRequest::handle_request, "request", 8192, this, 5, nullptr);
+  xSemaphoreTake(received_response, portMAX_DELAY);
+
+  int status_code = esp_http_client_get_status_code(this->client);
+  if (status_code < 200 || status_code >= 300) {
+    return ESP_FAIL;
+  } else {
+    return ESP_OK;
+  }
+}
+
+template <typename CallerType>
+const char *const ApiRequest<CallerType>::TAG = "api_req";
+
+template <typename CallerType>
+const int ApiRequest<CallerType>::MAX_HTTP_RX_BUFFER = 1024;
+
+template <typename CallerType>
+const int ApiRequest<CallerType>::MAX_HTTP_TX_BUFFER = 1024;
+
 template <typename CallerType>
 esp_err_t
-ApiRequest<CallerType>::handle_http_event(esp_http_client_event_t *event) {
+ApiRequest<CallerType>::handle_event(esp_http_client_event_t *const event) {
   ApiRequest *self = static_cast<ApiRequest *>(event->user_data);
   CallerType &caller = self->caller;
 
@@ -106,7 +118,7 @@ ApiRequest<CallerType>::handle_http_event(esp_http_client_event_t *event) {
 }
 
 template <typename ClientType>
-void ApiRequest<ClientType>::send_task(void *pvParameters) {
+void ApiRequest<ClientType>::handle_request(void *const pvParameters) {
   ApiRequest *self = static_cast<ApiRequest *>(pvParameters);
 
   esp_http_client_config_t config = {
@@ -116,7 +128,7 @@ void ApiRequest<ClientType>::send_task(void *pvParameters) {
       .query = self->query.c_str(),
       .method = self->method,
       .timeout_ms = self->timeout_ms,
-      .event_handler = &ApiRequest::handle_http_event,
+      .event_handler = handle_event,
       .transport_type = HTTP_TRANSPORT_OVER_SSL,
       .buffer_size = MAX_HTTP_RX_BUFFER,
       .buffer_size_tx = MAX_HTTP_TX_BUFFER,
@@ -149,20 +161,6 @@ void ApiRequest<ClientType>::send_task(void *pvParameters) {
 
   xSemaphoreGive(self->is_connected);
   vTaskDelete(NULL);
-}
-
-template <typename ClientType> esp_err_t ApiRequest<ClientType>::send() {
-  xSemaphoreTake(received_response, 0);
-  xTaskCreate(&ApiRequest::send_task, "send_request_task", 8192, this, 5,
-              nullptr);
-  xSemaphoreTake(received_response, portMAX_DELAY);
-
-  int status_code = esp_http_client_get_status_code(this->client);
-  if (status_code < 200 || status_code >= 300) {
-    return ESP_FAIL;
-  } else {
-    return ESP_OK;
-  }
 }
 
 #endif // API_REQUEST_CPP

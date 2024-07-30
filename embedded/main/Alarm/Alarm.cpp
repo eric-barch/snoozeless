@@ -5,8 +5,6 @@
 #include <esp_log.h>
 #include <string>
 
-const char *const Alarm::TAG = "Alarm";
-
 Alarm::Alarm(NonVolatileStorage &non_volatile_storage, const std::string &id)
     : non_volatile_storage(non_volatile_storage), id(id), name(), schedule(),
       time_to_abort() {
@@ -73,6 +71,8 @@ Alarm::Alarm(NonVolatileStorage &non_volatile_storage,
 
 Alarm::~Alarm() { ESP_LOGI(TAG, "Destroy."); }
 
+const char *const Alarm::TAG = "Alarm";
+
 void Alarm::set_id(const std::string &id) {
   this->id = id;
   ESP_LOGI(TAG, "Set id: %s", id.c_str());
@@ -90,7 +90,7 @@ void Alarm::set_schedule(const std::string &schedule) {
   ESP_LOGI(TAG, "Set schedule: %s", schedule.c_str());
 }
 
-void Alarm::set_time_to_abort(const int time_to_abort) {
+void Alarm::set_time_to_abort(const int &time_to_abort) {
   this->time_to_abort = time_to_abort;
   non_volatile_storage.write(id, "time_to_abort", time_to_abort);
   ESP_LOGI(TAG, "Set time to abort: %d", time_to_abort);

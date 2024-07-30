@@ -6,13 +6,10 @@
 #include <esp_log.h>
 #include <map>
 #include <memory>
-#include <sys/unistd.h>
-
-const char *const Alarms::TAG = "alarms";
 
 Alarms::Alarms(NonVolatileStorage &non_volatile_storage)
     : non_volatile_storage(non_volatile_storage),
-      alarms(std::map<std::string, std::unique_ptr<Alarm>>()) {
+      alarms(std::map<const std::string, const std::unique_ptr<Alarm>>()) {
   std::string ids_string;
   esp_err_t err = non_volatile_storage.read(TAG, "ids", ids_string);
   if (err == ESP_OK) {
@@ -49,7 +46,7 @@ void Alarms::parse_initial(const std::string &data) {
     return;
   }
 
-  std::map<std::string, std::unique_ptr<Alarm>> alarms;
+  std::map<const std::string, const std::unique_ptr<Alarm>> alarms;
 
   const cJSON *alarm_json = nullptr;
   cJSON_ArrayForEach(alarm_json, alarms_json) {
@@ -144,6 +141,8 @@ void Alarms::parse_remove(const std::string &data) {
 
   cJSON_Delete(alarm_json);
 };
+
+const char *const Alarms::TAG = "alarms";
 
 void Alarms::write_ids_to_nvs() {
   cJSON *const ids_json = cJSON_CreateArray();

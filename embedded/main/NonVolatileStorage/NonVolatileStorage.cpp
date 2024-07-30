@@ -5,8 +5,6 @@
 #include <nvs_flash.h>
 #include <string>
 
-const char *const NonVolatileStorage::TAG = "non_vol_stor";
-
 NonVolatileStorage::NonVolatileStorage() {
   esp_err_t err = nvs_flash_init();
   if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
@@ -23,6 +21,8 @@ NonVolatileStorage::~NonVolatileStorage() {
   }
   ESP_LOGI(TAG, "Destroy.");
 }
+
+const char *const NonVolatileStorage::TAG = "non_vol_stor";
 
 esp_err_t NonVolatileStorage::write(const std::string &space,
                                     const std::string &key,
