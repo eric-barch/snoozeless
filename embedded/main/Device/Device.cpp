@@ -1,16 +1,14 @@
 #include "Device.h"
-#include "Alarm.h"
+#include "Alarms.h"
 #include "ApiRequest.h"
 #include "Buzzer.h"
 #include "CurrentTime.h"
+#include "Display.h"
 #include "NonVolatileStorage.h"
 #include "Session.h"
 #include <cJSON.h>
 #include <esp_err.h>
-#include <esp_http_client.h>
 #include <esp_log.h>
-#include <freertos/idf_additions.h>
-#include <map>
 #include <string>
 
 Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
@@ -28,68 +26,17 @@ Device::Device(NonVolatileStorage &non_volatile_storage, Session &session,
     enroll();
   }
 
-  xTaskCreate(Device::handle_subscribe, "handle_subscribe", 8192, this, 5,
-              NULL);
-
   display.print_current_time();
 }
 
 Device::~Device() { ESP_LOGI(TAG, "Destroy."); }
 
-void Device::on_data(const std::string &response) {
-  if (response.find("event:") != std::string::npos) {
-    parse_sse(response);
-  } else {
-    parse(response);
-  }
-}
+std::string Device::get_id() { return id; }
 
-const char *const Device::TAG = "device";
+void Device::on_data(const std::string &response) { parse(response); }
 
-const std::map<const std::string, const DeviceEvent> Device::events = {
-    {"initial-device", INITIAL_DEVICE}, {"device-update", DEVICE_UPDATE},
-    {"initial-alarms", INITIAL_ALARMS}, {"alarm-insert", ALARM_INSERT},
-    {"alarm-update", ALARM_UPDATE},     {"alarm-delete", ALARM_DELETE},
-};
-
-void Device::set_id(const std::string &id) {
-  this->id = id;
-  non_volatile_storage.write(TAG, "id", id);
-  ESP_LOGI(TAG, "Set ID: %s", id.c_str());
-}
-
-void Device::handle_subscribe(void *const pvParameters) {
-  Device *self = static_cast<Device *>(pvParameters);
-
-  while (true) {
-    self->subscribe();
-    ESP_LOGI(TAG, "Subscription failed. Will try to reconnect in ten seconds.");
-    vTaskDelay(pdMS_TO_TICKS(10000));
-  }
-
-  vTaskDelete(NULL);
-}
-
-esp_err_t Device::enroll() {
-  ESP_LOGI(TAG, "Enrolling.");
-  ApiRequest post_device_enroll = ApiRequest<Device>(
-      session, *this, HTTP_METHOD_POST, 60000, "/device/enroll", "");
-  esp_err_t err = post_device_enroll.send_request();
-  ESP_LOGI(TAG, "Enroll successful.");
-  return err;
-}
-
-void Device::subscribe() {
-  ESP_LOGI(TAG, "Subscribing.");
-  const std::string query = "deviceId=" + id;
-  ApiRequest get_device_state = ApiRequest<Device>(
-      session, *this, HTTP_METHOD_GET, 300000, "/device/state", query);
-  get_device_state.send_request();
-  ESP_LOGI(TAG, "Subscription successful.");
-}
-
-void Device::parse(const std::string &device_string) {
-  cJSON *const device_json = cJSON_Parse(device_string.c_str());
+void Device::parse(const std::string &data) {
+  cJSON *const device_json = cJSON_Parse(data.c_str());
   if (device_json == nullptr) {
     ESP_LOGE(TAG, "Failed to parse JSON device.");
     cJSON_Delete(device_json);
@@ -132,61 +79,19 @@ void Device::parse(const std::string &device_string) {
   cJSON_Delete(device_json);
 }
 
-void Device::extract_sse_field(const std::string &response,
-                               const std::string &field,
-                               std::string &out_value) {
-  const size_t pos = response.find(field);
-  if (pos == std::string::npos) {
-    ESP_LOGE(TAG, "Error finding response field %s", field.c_str());
-    return;
-  }
+const char *const Device::TAG = "device";
 
-  const size_t start_pos = pos + field.length();
-  const size_t end_pos = response.find('\n', start_pos);
-
-  out_value = response.substr(start_pos, end_pos - start_pos);
+void Device::set_id(const std::string &id) {
+  this->id = id;
+  non_volatile_storage.write(TAG, "id", id);
+  ESP_LOGI(TAG, "Set ID: %s", id.c_str());
 }
 
-void Device::parse_sse(const std::string &response) {
-  /**Trim trailing newlines. */
-  const std::string trimmed_response =
-      response.substr(0, response.length() - 2);
-
-  std::string event;
-  extract_sse_field(trimmed_response, "event: ", event);
-  ESP_LOGI(TAG, "event: %s", event.c_str());
-
-  if (event == "keep-alive") {
-    return;
-  }
-
-  std::string data;
-  extract_sse_field(trimmed_response, "data: ", data);
-  ESP_LOGI(TAG, "data: %s", data.c_str());
-
-  DeviceEvent device_event = events.at(event);
-
-  switch (device_event) {
-  case INITIAL_DEVICE:
-    parse(data);
-    break;
-  case DEVICE_UPDATE:
-    parse(data);
-    break;
-  case INITIAL_ALARMS:
-    alarms.parse_initial(data);
-    break;
-  case ALARM_INSERT:
-    alarms.parse_insert(data);
-    break;
-  case ALARM_UPDATE:
-    alarms.parse_update(data);
-    break;
-  case ALARM_DELETE:
-    alarms.parse_remove(data);
-    break;
-  default:
-    ESP_LOGE(TAG, "Unknown device state event: %s", data.c_str());
-    break;
-  }
+esp_err_t Device::enroll() {
+  ESP_LOGI(TAG, "Enrolling.");
+  ApiRequest<Device> post_device_enroll = ApiRequest<Device>(
+      session, *this, HTTP_METHOD_POST, 60000, "/device/enroll", "");
+  esp_err_t err = post_device_enroll.send_request();
+  ESP_LOGI(TAG, "Enroll successful.");
+  return err;
 }

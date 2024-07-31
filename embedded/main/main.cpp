@@ -6,12 +6,9 @@
 #include "Display.h"
 #include "NonVolatileStorage.h"
 #include "Session.h"
+#include "StateStream.h"
 #include "WifiConnection.h"
 #include <freertos/idf_additions.h>
-
-/**TODO:
- * - I think I may want to break something like `StateStream` out into its own
- *   class instead of handling all that logic inside `Device`. */
 
 extern "C" void app_main(void) {
   /**Utilities. */
@@ -30,6 +27,9 @@ extern "C" void app_main(void) {
   /**Central coordinator. */
   Device device(non_volatile_storage, session, current_time, alarms, display,
                 buzzer);
+
+  /**Realtime updates from database. */
+  StateStream state_stream(session, device, alarms);
 
   vTaskDelay(portMAX_DELAY);
 }

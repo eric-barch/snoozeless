@@ -12,6 +12,7 @@ idf_component_register(
                  "Display"
                  "NonVolatileStorage"
                  "Session"
+                 "StateStream"
                  "WifiConnection"
     EMBED_TXTFILES server_cert.pem
 )
