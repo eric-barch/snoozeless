@@ -18,22 +18,24 @@ ApiRequest<CallerType>::ApiRequest(Session &session, CallerType &caller,
                                    const std::string &query)
     : session(session), caller(caller), method(method), timeout_ms(timeout_ms),
       path(path), query(query), client(),
-      is_connected(xSemaphoreCreateBinary()),
-      received_response(xSemaphoreCreateBinary()) {
+      is_connected(xSemaphoreCreateBinary()) {
   xSemaphoreGive(is_connected);
-  xSemaphoreGive(received_response);
 }
 
 template <typename CallerType> ApiRequest<CallerType>::~ApiRequest() {
-  xSemaphoreTake(is_connected, portMAX_DELAY);
   ESP_LOGI(TAG, "Destroy.");
 }
 
 template <typename ClientType>
 esp_err_t ApiRequest<ClientType>::send_request() {
-  xSemaphoreTake(received_response, 0);
+  TaskHandle_t currentTask = xTaskGetCurrentTaskHandle();
+  const char *taskName = pcTaskGetName(currentTask);
+
+  ESP_LOGE(TAG, "%s", taskName);
+
+  xSemaphoreTake(is_connected, 0);
   xTaskCreate(&ApiRequest::handle_request, "request", 8192, this, 5, nullptr);
-  xSemaphoreTake(received_response, portMAX_DELAY);
+  xSemaphoreTake(is_connected, portMAX_DELAY);
 
   int status_code = esp_http_client_get_status_code(this->client);
   if (status_code < 200 || status_code >= 300) {
@@ -64,12 +66,9 @@ ApiRequest<CallerType>::handle_event(esp_http_client_event_t *const event) {
   switch (event->event_id) {
   case HTTP_EVENT_ERROR:
     ESP_LOGI(TAG, "HTTP_EVENT_ERROR");
-    xSemaphoreTake(self->is_connected, 0);
-    xSemaphoreGive(self->received_response);
     break;
   case HTTP_EVENT_ON_CONNECTED:
     ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
-    xSemaphoreTake(self->is_connected, 0);
     break;
   case HTTP_EVENT_HEADER_SENT:
     ESP_LOGI(TAG, "HTTP_EVENT_HEADER_SENT");
@@ -82,7 +81,6 @@ ApiRequest<CallerType>::handle_event(esp_http_client_event_t *const event) {
 
     if (event->data_len <= 0) {
       ESP_LOGE(TAG, "No data. Exiting event handler.");
-      xSemaphoreGive(self->received_response);
       break;
     }
 
@@ -93,13 +91,10 @@ ApiRequest<CallerType>::handle_event(esp_http_client_event_t *const event) {
       ESP_LOGW(TAG, "output_buffer: %s", output_buffer.c_str());
       ESP_LOGE(TAG, "Error response code: %d. Exiting event handler.",
                status_code);
-      xSemaphoreGive(self->received_response);
       break;
     }
 
     caller.on_data(output_buffer);
-
-    xSemaphoreGive(self->received_response);
     break;
   case HTTP_EVENT_ON_FINISH:
     ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");

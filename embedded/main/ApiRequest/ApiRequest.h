@@ -29,7 +29,6 @@ private:
   std::string query;
   esp_http_client_handle_t client;
   SemaphoreHandle_t is_connected;
-  SemaphoreHandle_t received_response;
 
   static esp_err_t handle_event(esp_http_client_event_t *const event);
   static void handle_request(void *const pvParameters);
