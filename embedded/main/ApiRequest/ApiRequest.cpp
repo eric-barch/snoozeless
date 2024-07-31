@@ -17,10 +17,7 @@ ApiRequest<CallerType>::ApiRequest(Session &session, CallerType &caller,
                                    const std::string &path,
                                    const std::string &query)
     : session(session), caller(caller), method(method), timeout_ms(timeout_ms),
-      path(path), query(query), client(),
-      is_connected(xSemaphoreCreateBinary()) {
-  xSemaphoreGive(is_connected);
-}
+      path(path), query(query), client() {}
 
 template <typename CallerType> ApiRequest<CallerType>::~ApiRequest() {
   ESP_LOGI(TAG, "Destroy.");
@@ -33,9 +30,9 @@ esp_err_t ApiRequest<ClientType>::send_request() {
 
   ESP_LOGE(TAG, "%s", taskName);
 
-  xSemaphoreTake(is_connected, 0);
+  ulTaskNotifyTake(pdTRUE, 0);
   xTaskCreate(&ApiRequest::handle_request, "request", 8192, this, 5, nullptr);
-  xSemaphoreTake(is_connected, portMAX_DELAY);
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
   int status_code = esp_http_client_get_status_code(this->client);
   if (status_code < 200 || status_code >= 300) {
@@ -154,7 +151,7 @@ void ApiRequest<ClientType>::handle_request(void *const pvParameters) {
   esp_http_client_close(self->client);
   esp_http_client_cleanup(self->client);
 
-  xSemaphoreGive(self->is_connected);
+  xTaskNotifyGive(xTaskGetCurrentTaskHandle());
   vTaskDelete(NULL);
 }
 

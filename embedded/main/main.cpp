@@ -10,7 +10,6 @@
 #include <freertos/idf_additions.h>
 
 /**TODO:
- * - Refactor semaphores to direct-to-task notifications.
  * - I think I may want to break something like `StateStream` out into its own
  *   class instead of handling all that logic inside `Device`. */
 
