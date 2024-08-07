@@ -7,7 +7,7 @@
 
 StateStream::StateStream(Session &session, Device &device, Alarms &alarms)
     : session(session), device(device), alarms(alarms) {
-  xTaskCreate(StateStream::handle_subscribe, "handle_subscribe", 8192, this, 5,
+  xTaskCreate(StateStream::keep_subscribed, "keep_subscribed", 4096, this, 5,
               NULL);
 };
 
@@ -30,9 +30,9 @@ void StateStream::on_data(const std::string &response) {
   extract_field(trimmed_response, "data: ", data);
   ESP_LOGI(TAG, "data: %s", data.c_str());
 
-  StateEvent state_event = events.at(event);
+  StateStreamEvent state_stream_event = events.at(event);
 
-  switch (state_event) {
+  switch (state_stream_event) {
   case INITIAL_DEVICE:
     device.parse(data);
     break;
@@ -52,20 +52,21 @@ void StateStream::on_data(const std::string &response) {
     alarms.parse_remove(data);
     break;
   default:
-    ESP_LOGE(TAG, "Unknown state event: %s", data.c_str());
+    ESP_LOGE(TAG, "Unknown state stream event: %s", data.c_str());
     break;
   }
 }
 
 const char *const StateStream::TAG = "state_stream";
 
-const std::map<const std::string, const StateEvent> StateStream::events = {
-    {"initial-device", INITIAL_DEVICE}, {"device-update", DEVICE_UPDATE},
-    {"initial-alarms", INITIAL_ALARMS}, {"alarm-insert", ALARM_INSERT},
-    {"alarm-update", ALARM_UPDATE},     {"alarm-delete", ALARM_DELETE},
+const std::map<const std::string, const StateStreamEvent> StateStream::events =
+    {
+        {"initial-device", INITIAL_DEVICE}, {"device-update", DEVICE_UPDATE},
+        {"initial-alarms", INITIAL_ALARMS}, {"alarm-insert", ALARM_INSERT},
+        {"alarm-update", ALARM_UPDATE},     {"alarm-delete", ALARM_DELETE},
 };
 
-void StateStream::handle_subscribe(void *const pvParameters) {
+void StateStream::keep_subscribed(void *const pvParameters) {
   StateStream *self = static_cast<StateStream *>(pvParameters);
 
   while (true) {

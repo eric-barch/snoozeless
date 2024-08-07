@@ -25,7 +25,7 @@ private:
   ledc_channel_config_t channel_config;
   bool alarm_is_on;
 
-  static void handle_alarm(void *const pvParameters);
+  static void sound_alarm(void *const pvParameters);
 };
 
 #endif // BUZZER_H

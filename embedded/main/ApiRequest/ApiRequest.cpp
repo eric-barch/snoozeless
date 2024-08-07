@@ -25,13 +25,9 @@ template <typename CallerType> ApiRequest<CallerType>::~ApiRequest() {
 
 template <typename ClientType>
 esp_err_t ApiRequest<ClientType>::send_request() {
-  TaskHandle_t currentTask = xTaskGetCurrentTaskHandle();
-  const char *taskName = pcTaskGetName(currentTask);
-
-  ESP_LOGE(TAG, "%s", taskName);
-
   ulTaskNotifyTake(pdTRUE, 0);
-  xTaskCreate(&ApiRequest::handle_request, "request", 8192, this, 5, nullptr);
+  xTaskCreate(&ApiRequest::handle_request, "handle_request", 8192, this, 5,
+              nullptr);
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
   int status_code = esp_http_client_get_status_code(this->client);

@@ -1,9 +1,7 @@
 #include "Display.h"
 #include "CurrentTime.h"
+#include "Device.h"
 #include "NonVolatileStorage.h"
-#include "driver/gpio.h"
-#include "hal/gpio_types.h"
-#include "soc/gpio_num.h"
 #include <cstring>
 #include <ctime>
 #include <esp_log.h>
@@ -13,12 +11,10 @@
 #include <regex>
 #include <string>
 
-Display::Display(NonVolatileStorage &non_volatile_storage,
-                 CurrentTime &current_time)
-    : non_volatile_storage(non_volatile_storage), current_time(current_time),
-      ht16k33(), ht16k33_ram(0), top_indicator(false), bottom_indicator(false),
-      colon(false), apostrophe(false), brightness(7), major_interval(),
-      minor_interval() {
+Display::Display(Device &device, CurrentTime &current_time)
+    : device(device), current_time(current_time), ht16k33(), ht16k33_ram(0),
+      top_indicator(false), bottom_indicator(false), colon(false),
+      apostrophe(false), major_interval(), minor_interval() {
   /**Initialize display structs. */
   memset(&ht16k33, 0, sizeof(i2c_dev_t));
   memset(&ht16k33_ram, 0, sizeof(ht16k33_ram));
@@ -44,15 +40,6 @@ Display::Display(NonVolatileStorage &non_volatile_storage,
       ht16k33_init_desc(&ht16k33, port, sda, scl, HT16K33_DEFAULT_ADDR));
   ESP_ERROR_CHECK(ht16k33_init(&ht16k33));
   ESP_ERROR_CHECK(ht16k33_display_setup(&ht16k33, 1, HTK16K33_F_0HZ));
-
-  esp_err_t err = non_volatile_storage.read(TAG, "brightness", brightness);
-  if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Brightness read from NVS: %d", brightness);
-    set_brightness(brightness);
-  } else {
-    ESP_LOGW(TAG, "Error reading brightness from NVS: %s. Using default.",
-             esp_err_to_name(err));
-  }
 }
 
 Display::~Display() {
@@ -61,36 +48,78 @@ Display::~Display() {
   ESP_LOGI(TAG, "Destroy.");
 }
 
-void Display::set_brightness(uint8_t brightness) {
-  if (brightness > 15) {
-    brightness = 15;
-  }
-
-  this->brightness = brightness;
-  non_volatile_storage.write(TAG, "brightness", brightness);
-
-  uint8_t cmd = 0xE0 | brightness;
-  esp_err_t err = i2c_master_write_to_device(I2C_NUM_0, ht16k33.addr, &cmd, 1,
-                                             1000 / portTICK_PERIOD_MS);
-  if (err == ESP_OK) {
-    ESP_LOGI(TAG, "Set brightness: %d", brightness);
-  } else {
-    ESP_LOGE(TAG, "Error setting brightness: %s", esp_err_to_name(err));
-  }
-}
-
-void Display::print_current_time() {
-  xTaskCreate(Display::handle_print, "handle_print", 4096, this, 5, NULL);
-}
-
-/**https://www.rd.com/article/apple-company-facts/ */
 void Display::print_9_41() {
-  set_major_interval("9");
+  set_major_interval(std::string("9"));
   colon = true;
-  set_minor_interval("41");
+  set_minor_interval(std::string("41"));
   bottom_indicator = false;
   print();
 }
+
+void Display::print_current_time() {
+  std::string hour_format, minute_format, pm_format;
+  std::smatch match;
+
+  const std::regex specifier_regex("%[a-zA-Z]");
+  const std::regex colon_regex(":");
+  const std::regex pm_regex("%p");
+
+  std::string time_format = device.get_time_format();
+  std::tm time = current_time.get_time();
+
+  /**Find hour format specifier. */
+  if (std::regex_search(time_format, match, specifier_regex)) {
+    hour_format = match.str();
+    time_format = match.suffix();
+  }
+
+  /**Check for colon. */
+  if (std::regex_search(time_format, match, colon_regex)) {
+    colon = true;
+    time_format = match.suffix();
+  } else {
+    colon = false;
+  }
+
+  /**Find minute format specifier. */
+  if (std::regex_search(time_format, match, specifier_regex)) {
+    minute_format = match.str();
+    time_format = match.suffix();
+  }
+
+  /**Check for PM indicator. */
+  pm_format.clear();
+  if (std::regex_search(time_format, match, pm_regex)) {
+    pm_format = match.str();
+    time_format = match.suffix();
+  }
+
+  char buffer[10];
+
+  /**Set major interval. */
+  if (!hour_format.empty()) {
+    strftime(buffer, sizeof(buffer), hour_format.c_str(), &time);
+    set_major_interval(buffer);
+  }
+
+  /**Set minor interval. */
+  if (!minute_format.empty()) {
+    strftime(buffer, sizeof(buffer), minute_format.c_str(), &time);
+    set_minor_interval(buffer);
+  }
+
+  /**Set bottom_indicator. */
+  if (!pm_format.empty()) {
+    strftime(buffer, sizeof(buffer), pm_format.c_str(), &time);
+    bottom_indicator = (std::string(buffer) == "PM");
+  } else {
+    bottom_indicator = false;
+  }
+
+  print();
+}
+
+void Display::print_countdown(Countdown &countdown) {}
 
 const char *const Display::TAG = "display";
 
@@ -125,82 +154,19 @@ void Display::set_minor_interval(const std::string &minor_interval) {
   this->minor_interval = minor_interval;
 }
 
-void Display::handle_print(void *const pvParameters) {
-  Display *self = static_cast<Display *>(pvParameters);
-
-  std::tm time;
-  std::string format;
-  std::smatch match;
-
-  const std::regex specifier_regex("%[a-zA-Z]");
-  const std::regex colon_regex(":");
-  const std::regex pm_regex("%p");
-
-  std::string hour_format, minute_format, pm_format;
-
-  while (true) {
-    time = self->current_time.get_time();
-    format = self->current_time.get_format();
-
-    /**Find hour format specifier. */
-    if (std::regex_search(format, match, specifier_regex)) {
-      hour_format = match.str();
-      format = match.suffix();
-    }
-
-    /**Check for colon. */
-    if (std::regex_search(format, match, colon_regex)) {
-      self->colon = true;
-      format = match.suffix();
-    } else {
-      self->colon = false;
-    }
-
-    /**Find minute format specifier. */
-    if (std::regex_search(format, match, specifier_regex)) {
-      minute_format = match.str();
-      format = match.suffix();
-    }
-
-    /**Check for PM indicator. */
-    pm_format.clear();
-    if (std::regex_search(format, match, pm_regex)) {
-      pm_format = match.str();
-      format = match.suffix();
-    }
-
-    char buffer[10];
-
-    /**Set major interval. */
-    if (!hour_format.empty()) {
-      strftime(buffer, sizeof(buffer), hour_format.c_str(), &time);
-      self->set_major_interval(buffer);
-    }
-
-    /**Set minor interval. */
-    if (!minute_format.empty()) {
-      strftime(buffer, sizeof(buffer), minute_format.c_str(), &time);
-      self->set_minor_interval(buffer);
-    }
-
-    /**Set bottom_indicator. */
-    if (!pm_format.empty()) {
-      strftime(buffer, sizeof(buffer), pm_format.c_str(), &time);
-      self->bottom_indicator = (std::string(buffer) == "PM");
-    } else {
-      self->bottom_indicator = false;
-    }
-
-    self->print();
-
-    vTaskDelay(pdMS_TO_TICKS(100));
+void Display::set_brightness(uint8_t brightness) {
+  uint8_t cmd = 0xE0 | brightness;
+  esp_err_t err = i2c_master_write_to_device(I2C_NUM_0, ht16k33.addr, &cmd, 1,
+                                             1000 / portTICK_PERIOD_MS);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Error setting brightness: %s", esp_err_to_name(err));
   }
-
-  vTaskDelete(NULL);
 }
 
 void Display::print() {
   memset(ht16k33_ram, 0, sizeof(ht16k33_ram));
+
+  set_brightness(device.get_brightness());
 
   if (major_interval.length() > 0) {
     if (major_interval[1] == '\0') {

@@ -12,8 +12,7 @@
 CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
                          Session &session)
     : non_volatile_storage(non_volatile_storage), session(session),
-      unix_at_calibration(0), ms_at_calibration(0),
-      time_zone("EST5EDT,M3.2.0/2,M11.1.0/2"), format("%H:%M") {
+      unix_at_calibration(0), ms_at_calibration(0) {
   esp_err_t err =
       non_volatile_storage.read(TAG, "unix_at_cal", unix_at_calibration);
   if (err == ESP_OK) {
@@ -36,43 +35,11 @@ CurrentTime::CurrentTime(NonVolatileStorage &non_volatile_storage,
              esp_err_to_name(err));
   }
 
-  err = non_volatile_storage.read(TAG, "time_zone", time_zone);
-  if (err == ESP_OK) {
-    ESP_LOGD(TAG, "Time zone read from NVS: %s", time_zone.c_str());
-    set_time_zone(time_zone);
-  } else {
-    ESP_LOGW(TAG, "Error reading time zone from NVS: %s", esp_err_to_name(err));
-  }
-
-  err = non_volatile_storage.read(TAG, "format", format);
-  if (err == ESP_OK) {
-    ESP_LOGD(TAG, "Format read from NVS: %s", format.c_str());
-    set_format(format);
-  } else {
-    ESP_LOGW(TAG, "Error reading format from NVS: %s", esp_err_to_name(err));
-  }
-
-  xTaskCreate(CurrentTime::handle_calibrate, "handle_calibrate", 4096, this, 5,
+  xTaskCreate(CurrentTime::keep_calibrated, "keep_calibrated", 4096, this, 5,
               NULL);
 }
 
 CurrentTime::~CurrentTime() { ESP_LOGI(TAG, "Destroy."); }
-
-void CurrentTime::set_time_zone(const std::string &time_zone) {
-  this->time_zone = time_zone;
-  non_volatile_storage.write(TAG, "time_zone", time_zone);
-  setenv("TZ", time_zone.c_str(), 1);
-  tzset();
-  ESP_LOGI(TAG, "Set time zone: %s", time_zone.c_str());
-}
-
-void CurrentTime::set_format(const std::string &format) {
-  this->format = format;
-  non_volatile_storage.write(TAG, "format", format);
-  ESP_LOGI(TAG, "Set format: %s", format.c_str());
-}
-
-std::string CurrentTime::get_format() { return format; }
 
 std::tm CurrentTime::get_time() {
   int seconds_since_calibration =
@@ -119,7 +86,7 @@ void CurrentTime::set_ms_at_calibration(const int &ms_at_calibration) {
   ESP_LOGI(TAG, "Set Milliseconds at Calibration: %d", ms_at_calibration);
 }
 
-void CurrentTime::handle_calibrate(void *const pvParameters) {
+void CurrentTime::keep_calibrated(void *const pvParameters) {
   CurrentTime *self = static_cast<CurrentTime *>(pvParameters);
 
   while (true) {

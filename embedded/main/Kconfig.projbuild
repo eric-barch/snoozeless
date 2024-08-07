@@ -19,6 +19,21 @@ menu "Snoozeless Embedded Configuration"
         help
             Session refresh token.
 
+    config DEFAULT_BRIGHTNESS
+        int "Default Display Brightness"
+        help
+            Default display brightness.
+
+    config DEFAULT_TIME_ZONE
+        string "Default Time Zone"
+        help
+            Default time zone.
+
+    config DEFAULT_TIME_FORMAT
+        string "Default Time Format"
+        help
+            Default time format.
+
     config I2C_FREQUENCY_HZ
         int "I2C bus frequency"
         default 400000

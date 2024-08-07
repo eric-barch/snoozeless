@@ -32,7 +32,7 @@ Session::Session(NonVolatileStorage &non_volatile_storage)
     set_refresh_token(CONFIG_REFRESH_TOKEN);
   }
 
-  xTaskCreate(handle_refresh, "handle_refresh", 2048, this, 5, NULL);
+  xTaskCreate(keep_refreshed, "keep_refreshed", 2048, this, 5, NULL);
 };
 
 Session::~Session() { ESP_LOGI(TAG, "Destroy."); }
@@ -41,8 +41,46 @@ std::string Session::get_access_token() const { return access_token; }
 
 std::string Session::get_refresh_token() const { return refresh_token; }
 
-void Session::on_data(const std::string &response) {
-  cJSON *const json_response = cJSON_Parse(response.c_str());
+void Session::on_data(const std::string &response) { parse(response); }
+
+const char *const Session::TAG = "session";
+
+void Session::set_access_token(const std::string &access_token) {
+  this->access_token = access_token;
+  non_volatile_storage.write(TAG, "access", access_token);
+  ESP_LOGI(TAG, "Set Access Token: %s", access_token.c_str());
+}
+
+void Session::set_refresh_token(const std::string &refresh_token) {
+  this->refresh_token = refresh_token;
+  non_volatile_storage.write(TAG, "refresh", refresh_token);
+  ESP_LOGI(TAG, "Set Refresh Token: %s", refresh_token.c_str());
+}
+
+void Session::keep_refreshed(void *const pvParameters) {
+  Session *self = static_cast<Session *>(pvParameters);
+
+  while (true) {
+    ESP_LOGI(TAG, "Refreshing.");
+    esp_err_t err = self->refresh();
+
+    while (err != ESP_OK) {
+      ESP_LOGI(TAG, "Refresh failed. Will try again in ten seconds.");
+      vTaskDelay(pdMS_TO_TICKS(10000));
+      err = self->refresh();
+    }
+
+    ESP_LOGI(TAG, "Refresh successful.");
+
+    /**Tokens are valid for 1 hour. Refresh every 55 minutes. */
+    vTaskDelay(pdMS_TO_TICKS(3300000));
+  }
+
+  vTaskDelete(NULL);
+}
+
+void Session::parse(const std::string &data) {
+  cJSON *const json_response = cJSON_Parse(data.c_str());
   if (!json_response) {
     ESP_LOGE(TAG, "Failed to parse JSON response.");
     return;
@@ -67,42 +105,6 @@ void Session::on_data(const std::string &response) {
   }
 
   cJSON_Delete(json_response);
-}
-
-const char *const Session::TAG = "session";
-
-void Session::set_access_token(const std::string &access_token) {
-  this->access_token = access_token;
-  non_volatile_storage.write(TAG, "access", access_token);
-  ESP_LOGI(TAG, "Set Access Token: %s", access_token.c_str());
-}
-
-void Session::set_refresh_token(const std::string &refresh_token) {
-  this->refresh_token = refresh_token;
-  non_volatile_storage.write(TAG, "refresh", refresh_token);
-  ESP_LOGI(TAG, "Set Refresh Token: %s", refresh_token.c_str());
-}
-
-void Session::handle_refresh(void *const pvParameters) {
-  Session *self = static_cast<Session *>(pvParameters);
-
-  while (true) {
-    ESP_LOGI(TAG, "Refreshing.");
-    esp_err_t err = self->refresh();
-
-    while (err != ESP_OK) {
-      ESP_LOGI(TAG, "Refresh failed. Will try again in ten seconds.");
-      vTaskDelay(pdMS_TO_TICKS(10000));
-      err = self->refresh();
-    }
-
-    ESP_LOGI(TAG, "Refresh successful.");
-
-    /**Tokens are valid for 1 hour. Refresh every 55 minutes. */
-    vTaskDelay(pdMS_TO_TICKS(3300000));
-  }
-
-  vTaskDelete(NULL);
 }
 
 esp_err_t Session::refresh() {

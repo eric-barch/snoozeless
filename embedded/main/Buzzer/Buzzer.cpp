@@ -32,7 +32,7 @@ Buzzer::~Buzzer() { ESP_LOGI(TAG, "Destroy."); }
 
 void Buzzer::start_alarm() {
   alarm_is_on = true;
-  xTaskCreate(handle_alarm, "alarm", 2048, this, 5, NULL);
+  xTaskCreate(sound_alarm, "sound_alarm", 2048, this, 5, NULL);
   ESP_LOGI(TAG, "Started alarm.");
 }
 
@@ -43,7 +43,7 @@ void Buzzer::stop_alarm() {
 
 const char *const Buzzer::TAG = "buzzer";
 
-void Buzzer::handle_alarm(void *const pvParameters) {
+void Buzzer::sound_alarm(void *const pvParameters) {
   Buzzer *self = static_cast<Buzzer *>(pvParameters);
 
   while (self->alarm_is_on) {

@@ -25,8 +25,9 @@ private:
   void set_access_token(const std::string &access_token);
   void set_refresh_token(const std::string &refresh_token);
 
-  static void handle_refresh(void *const pvParameters);
+  static void keep_refreshed(void *const pvParameters);
 
+  void parse(const std::string &response);
   esp_err_t refresh();
 };
 
