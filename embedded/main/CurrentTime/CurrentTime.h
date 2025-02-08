@@ -14,6 +14,7 @@ public:
   ~CurrentTime();
 
   std::tm get_time();
+  int get_unix();
   void on_data(const std::string &response);
 
 private:

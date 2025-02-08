@@ -16,6 +16,7 @@ public:
   void parse_insert(const std::string &data);
   void parse_update(const std::string &data);
   void parse_remove(const std::string &data);
+  Alarm &get_next();
 
 private:
   static const char *const TAG;

@@ -20,9 +20,13 @@ void StateMachine::run(void *const pvParameters) {
   StateMachine *self = static_cast<StateMachine *>(pvParameters);
 
   while (true) {
+    int unix = self->current_time.get_unix();
     switch (self->state) {
     case DISPLAY_TIME:
       self->display.print_current_time();
+
+      // int current_unix = self->current_time.get_unix();
+
       vTaskDelay(pdMS_TO_TICKS(100));
       break;
     case WAKE_UP:
