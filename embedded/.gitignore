@@ -1,9 +1,0 @@
-# Build directories.
-build/
-.cache/
-
-# TLS certs.
-*.pem
-
-# ESP-IDF config files.
-sdkconfig*

@@ -1,7 +1,0 @@
-CompileFlags:
-  Add: [
-    -mlong-calls, 
-    -isysroot=$XDG_DATA_HOME/espressif/tools/esp-clang/16.0.1-fe4f10a809/esp-clang/xtensa-esp32-elf/,
-  ]
-  CompilationDatabase: build
-  Remove: [-fno-shrink-wrap, -fno-tree-switch-conversion, -mtext-section-literals, -mlongcalls, -fstrict-volatile-bitfields]
