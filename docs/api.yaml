@@ -11,6 +11,12 @@ servers:
   - url: https://localhost:3000/v1
     description: Local
 
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: Bearer
+      bearerFormat: JWT
 
 paths:
   /auth/user/register:
@@ -148,18 +154,8 @@ paths:
       operationId: logoutUser
       tags:
         - auth/user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [refreshToken]
-              properties:
-                refreshToken:
-                  type: string
-                  description: The refresh token to be invalidated
-                  example: "eyJhbGciOi..."
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Logout successful
