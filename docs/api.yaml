@@ -174,6 +174,99 @@ paths:
         '401':
           description: Unauthorized.
 
+  /auth/device/register:
+    post:
+      summary: Register device
+      description: Registers a new device under a user's account.
+      operationId: registerDevice
+      tags:
+        - auth/device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - claimToken
+              properties:
+                claimToken:
+                  type: string
+                  format: jwt
+                  description: One-time token from the user's account.
+                  example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJfZVhhaUZLSjdidFFiZXBfcEN6VmIiLCJpYXQiOjE3MDAwMDAwNjAsImV4cCI6MTcwMDAwMDY2MCwiYWN0aW9uIjoicmVnaXN0ZXJEZXZpY2UifQ."
+      responses:
+        '201':
+          description: Successfully registered device.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  # TODO: Review flow.
+                  deviceId:
+                    type: string
+                    format: nanoId
+                    description: Device's unique ID.
+                    example: "9BfZrMy3Ajb2kbTCaZ6fN"
+                  accessToken:
+                    type: string
+                    format: jwt
+                    description: Short-lived access token.
+                    example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiI5QmZack15M0FqYjJrYlRDYVo2Zk4iLCJpYXQiOjE3MDAwMDAwNjAsImV4cCI6MTcwMDAwMzY2MCwicm9sZSI6ImRldmljZSIsInNjb3BlIjoiYWNjZXNzIn0."
+                  refreshToken:
+                    type: string
+                    format: jwt
+                    description: Long-lived refresh token.
+                    example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiI5QmZack15M0FqYjJrYlRDYVo2Zk4iLCJpYXQiOjE3MDAwMDAwNjAsImV4cCI6MTcwMDA4NjQ2MCwicm9sZSI6ImRldmljZSIsInNjb3BlIjoicmVmcmVzaCJ9."
+        '400':
+          description: Invalid request.
+        '401':
+          description: Unauthorized.
+
+  /auth/device/refresh:
+    post:
+      summary: Refresh device
+      description: Refreshes the credentials of an authenticated device.
+      operationId: refreshDevice
+      tags:
+        - auth/device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  format: jwt
+                  description: Long-lived refresh token.
+                  example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiI5QmZack15M0FqYjJrYlRDYVo2Zk4iLCJpYXQiOjE3MDAwMDAwNjAsImV4cCI6MTcwMDA4NjQ2MCwicm9sZSI6ImRldmljZSIsInNjb3BlIjoicmVmcmVzaCJ9."
+      responses:
+        '200':
+          description: Successfully refreshed device.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    format: jwt
+                    description: Short-lived access token.
+                    example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiI5QmZack15M0FqYjJrYlRDYVo2Zk4iLCJpYXQiOjE3MDAwMDM2NTksImV4cCI6MTcwMDAwNzI1OSwicm9sZSI6ImRldmljZSIsInNjb3BlIjoiYWNjZXNzIn0."
+                  refreshToken:
+                    type: string
+                    format: jwt
+                    description: Long-lived refresh token.
+                    example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiI5QmZack15M0FqYjJrYlRDYVo2Zk4iLCJpYXQiOjE3MDAwMDM2NTksImV4cCI6MTcwMDA5MDA1OSwicm9sZSI6ImRldmljZSIsInNjb3BlIjoicmVmcmVzaCJ9."
+        '400':
+          description: Invalid request.
+        '401':
+          description: Unauthorized.
         - bearerAuth: []
       responses:
         '200':
