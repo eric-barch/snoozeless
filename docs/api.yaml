@@ -7,9 +7,9 @@ info:
 
 servers:
   - url: https://api.snoozeless.com/v1
-    description: Production
+    description: Production.
   - url: https://localhost:3000/v1
-    description: Local
+    description: Local.
 
 components:
   securitySchemes:
@@ -21,8 +21,8 @@ components:
 paths:
   /auth/user/register:
     post:
-      summary: Register new user
-      description: Registers a new user with first name, last name, email, and password.
+      summary: Register user
+      description: Registers a new user.
       operationId: registerUser
       tags:
         - auth/user
@@ -32,34 +32,42 @@ paths:
           application/json:
             schema:
               type: object
-              required: [firstName, lastName, email, password]
+              required:
+                - firstName
+                - lastName
+                - email
+                - password
               properties:
                 firstName:
                   type: string
                   format: name
+                  description: User's first name.
                   example: "John"
                 lastName:
                   type: string
                   format: name
+                  description: User's last name.
                   example: "Doe"
                 email:
                   type: string
                   format: email
+                  description: User's email address.
                   example: "john.doe@example.com"
                 password:
                   type: string
                   format: password
+                  description: User's password.
                   example: "password"
       responses:
         '201':
-          description: User registered successfully
+          description: Successfully registered user.
         '400':
-          description: Invalid request
+          description: Invalid request.
 
   /auth/user/login:
     post:
       summary: Log in user
-      description: Authenticates a user with email and password, returning an access token and refresh token.
+      description: Logs in an existing user.
       operationId: logInUser
       tags:
         - auth/user
@@ -69,19 +77,23 @@ paths:
           application/json:
             schema:
               type: object
-              required: [email, password]
+              required:
+                - email
+                - password
               properties:
                 email:
                   type: string
                   format: email
+                  description: User's email address.
                   example: "john.doe@example.com"
                 password:
                   type: string
                   format: password
+                  description: User's password.
                   example: "password"
       responses:
         '200':
-          description: Login successful
+          description: Successfully logged in user.
           content:
             application/json:
               schema:
@@ -89,26 +101,24 @@ paths:
                 properties:
                   accessToken:
                     type: string
-                    description: Short-lived access token
-                    example: "eyJhbGciOi..."
-                  expiresIn:
-                    type: integer
-                    description: Expiration time of access token in seconds
-                    example: 3600
+                    format: jwt
+                    description: Short-lived access token.
+                    example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJfZVhhaUZLSjdidFFiZXBfcEN6VmIiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMzYwMCwicm9sZSI6InVzZXIiLCJzY29wZSI6ImFjY2VzcyJ9."
                   refreshToken:
                     type: string
-                    description: Long-lived refresh token
-                    example: "eyJhbGciOi..."
+                    format: jwt
+                    description: Long-lived refresh token.
+                    example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJfZVhhaUZLSjdidFFiZXBfcEN6VmIiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDA4NjQwMCwicm9sZSI6InVzZXIiLCJzY29wZSI6InJlZnJlc2gifQ."
         '400':
-          description: Invalid request
+          description: Invalid request.
         '401':
-          description: Unauthorized
+          description: Unauthorized.
 
   /auth/user/refresh:
     post:
-      summary: Refresh user access token
-      description: Exchanges a valid refresh token for a new access token and refresh token.
-      operationId: refreshAccessToken
+      summary: Refresh user
+      description: Refreshes the credentials of an authenticated user.
+      operationId: refreshUser
       tags:
         - auth/user
       requestBody:
@@ -117,14 +127,17 @@ paths:
           application/json:
             schema:
               type: object
-              required: [refreshToken]
+              required:
+                - refreshToken
               properties:
                 refreshToken:
                   type: string
-                  description: The refresh token issued during login
+                  format: jwt
+                  description: Long-lived refresh token.
+                  example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJfZVhhaUZLSjdidFFiZXBfcEN6VmIiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDA4NjQwMCwicm9sZSI6InVzZXIiLCJzY29wZSI6InJlZnJlc2gifQ."
       responses:
         '200':
-          description: New access and refresh tokens issued
+          description: Successfully refreshed user.
           content:
             application/json:
               schema:
@@ -132,29 +145,35 @@ paths:
                 properties:
                   accessToken:
                     type: string
-                    description: Short-lived access token
-                    example: "eyJhbGciOi..."
-                  expiresIn:
-                    type: integer
-                    description: Expiration time of access token in seconds
-                    example: 3600
+                    format: jwt
+                    description: Short-lived access token.
+                    example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJfZVhhaUZLSjdidFFiZXBfcEN6VmIiLCJpYXQiOjE3MDAwMDM1OTksImV4cCI6MTcwMDAwNzE5OSwicm9sZSI6InVzZXIiLCJzY29wZSI6ImFjY2VzcyJ9."
                   refreshToken:
                     type: string
-                    description: Long-lived refresh token
-                    example: "eyJhbGciOi..."
+                    format: jwt
+                    description: Long-lived refresh token.
+                    example: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJfZVhhaUZLSjdidFFiZXBfcEN6VmIiLCJpYXQiOjE3MDAwMDM1OTksImV4cCI6MTcwMDA4OTk5OSwicm9sZSI6InVzZXIiLCJzY29wZSI6InJlZnJlc2gifQ."
         '400':
-          description: Invalid request
+          description: Invalid request.
         '401':
-          description: Unauthorized
+          description: Unauthorized.
 
   /auth/user/logout:
     post:
       summary: Log out user
       description: Logs out an authenticated user.
-      operationId: logoutUser
+      operationId: logOutUser
       tags:
         - auth/user
       security:
+        # TODO: Is it possible to add an example here?
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out user.
+        '401':
+          description: Unauthorized.
+
         - bearerAuth: []
       responses:
         '200':
