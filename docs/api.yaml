@@ -202,12 +202,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  # TODO: Review flow.
-                  deviceId:
-                    type: string
-                    format: nanoId
-                    description: Device's unique ID.
-                    example: "9BfZrMy3Ajb2kbTCaZ6fN"
                   accessToken:
                     type: string
                     format: jwt
