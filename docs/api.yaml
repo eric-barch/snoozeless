@@ -8,6 +8,9 @@ info:
 servers:
   - url: https://api.snoozeless.com/v1
     description: Production
+  - url: https://localhost:3000/v1
+    description: Local
+
 
 paths:
   /auth/user/register:
