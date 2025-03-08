@@ -166,7 +166,6 @@ paths:
       tags:
         - auth/user
       security:
-        # TODO: Is it possible to add an example here?
         - bearerAuth: []
       responses:
         '200':
@@ -267,9 +266,52 @@ paths:
           description: Invalid request.
         '401':
           description: Unauthorized.
+
+  /users/{userId}:
+    get:
+      summary: Get user
+      description: Get user profile information.
+      operationId: getUser
+      tags:
+        - user
+      security:
         - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User's unique ID.
+          schema:
+            type: string
+            format: nanoId
+            example: "_eXaiFKJ7btQbep_pCzVb"
       responses:
         '200':
-          description: Logout successful
+          description: Successfully retrieved user profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: nanoId
+                    description: User's unique ID.
+                    example: "_eXaiFKJ7btQbep_pCzVb"
+                  firstName:
+                    type: string
+                    format: name
+                    description: User's first name.
+                    example: "John"
+                  lastName:
+                    type: string
+                    format: name
+                    description: User's last name.
+                    example: "Doe"
+                  email:
+                    type: string
+                    format: email
+                    description: User's email address.
+                    example: "john.doe@example.com"
         '401':
-          description: Unauthorized
+          description: Unauthorized.
