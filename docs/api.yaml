@@ -1,0 +1,159 @@
+openapi: 3.0.3
+
+info:
+  title: Snoozeless
+  description: REST API for the Snoozeless IoT alarm clock.
+  version: 0.1.0
+
+servers:
+  - url: https://api.snoozeless.com/v1
+    description: Production
+
+paths:
+  /auth/user/register:
+    post:
+      summary: Register a new user
+      description: Registers a new user with first name, last name, email, and password.
+      operationId: registerUser
+      tags:
+        - auth/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, email, password]
+              properties:
+                firstName:
+                  type: string
+                  format: name
+                  example: "John"
+                lastName:
+                  type: string
+                  format: name
+                  example: "Doe"
+                email:
+                  type: string
+                  format: email
+                  example: "john.doe@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password"
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Invalid request
+
+  /auth/user/login:
+    post:
+      summary: Log in a user
+      description: Authenticates a user with email and password, returning an access token and refresh token.
+      operationId: logInUser
+      tags:
+        - auth/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: Short-lived access token
+                    example: "eyJhbGciOi..."
+                  expiresIn:
+                    type: integer
+                    description: Expiration time of access token in seconds
+                    example: 3600
+                  refreshToken:
+                    type: string
+                    description: Long-lived refresh token
+                    example: "eyJhbGciOi..."
+        '401':
+          description: Unauthorized
+
+  /auth/user/refresh:
+    post:
+      summary: Refresh access token
+      description: Exchanges a valid refresh token for a new access token and refresh token.
+      operationId: refreshAccessToken
+      tags:
+        - auth/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  description: The refresh token issued during login
+      responses:
+        '200':
+          description: New access and refresh tokens issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: Short-lived access token
+                    example: "eyJhbGciOi..."
+                  expiresIn:
+                    type: integer
+                    description: Expiration time of access token in seconds
+                    example: 3600
+                  refreshToken:
+                    type: string
+                    description: Long-lived refresh token
+                    example: "eyJhbGciOi..."
+        '401':
+          description: Unauthorized
+
+  /auth/user/logout:
+    post:
+      summary: Logout user
+      description: Logs out an authenticated user.
+      operationId: logoutUser
+      tags:
+        - auth/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  description: The refresh token to be invalidated
+                  example: "eyJhbGciOi..."
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          description: Unauthorized or invalid refresh token
+
