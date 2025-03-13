@@ -509,3 +509,142 @@ paths:
         '401':
           description: Unauthorized.
 
+  # devices/{deviceId}
+  /device/{deviceId}:
+    get:
+      summary: Get device
+      description: Get device information.
+      operationId: getDevice
+      tags:
+        - devices/{deviceId}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Device's unique ID.
+          schema:
+            type: string
+            format: nanoId
+            example: "9BfZrMy3Ajb2kbTCaZ6fN"
+      responses:
+        '200':
+          description: Successfully retrieved device.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: nanoId
+                    description: Device's unique ID.
+                    example: "9BfZrMy3Ajb2kbTCaZ6fN"
+                  ownerId:
+                    type: string
+                    format: nanoId
+                    description: Owning user's unique ID.
+                    example: "_eXaiFKJ7btQbep_pCzVb"
+                  name:
+                    type: string
+                    format: name
+                    description: Device's name.
+                    example: "Bedroom Alarm Clock"
+                  timezone:
+                    type: string
+                    format: timezone
+                    description: Device's timezone.
+                    example: "America/New_York"
+        '401':
+          description: Unauthorized.
+
+    patch:
+      summary: Update device
+      description: Update device information.
+      operationId: updateDevice
+      tags:
+        - devices/{deviceId}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Device's unique ID.
+          schema:
+            type: string
+            format: nanoId
+            example: "9BfZrMy3Ajb2kbTCaZ6fN"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                  name:
+                    type: string
+                    format: name
+                    description: Device's name.
+                    example: "Bedroom Alarm Clock"
+                  timezone:
+                    type: string
+                    format: timezone
+                    description: Device's timezone.
+                    example: "America/New_York"
+      responses:
+        '200':
+          description: Successfully updated device.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: nanoId
+                    description: Device's unique ID.
+                    example: "9BfZrMy3Ajb2kbTCaZ6fN"
+                  ownerId:
+                    type: string
+                    format: nanoId
+                    description: Owning user's unique ID.
+                    example: "_eXaiFKJ7btQbep_pCzVb"
+                  name:
+                    type: string
+                    format: name
+                    description: Device's name.
+                    example: "Bedroom Alarm Clock"
+                  timezone:
+                    type: string
+                    format: timezone
+                    description: Device's timezone.
+                    example: "America/New_York"
+        '400':
+          description: Invalid request.
+        '401':
+          description: Unauthorized.
+
+    delete:
+      summary: Delete device
+      description: Delete the device.
+      operationId: deleteDevice
+      tags:
+        - devices/{deviceId}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Device's unique ID.
+          schema:
+            type: string
+            format: nanoId
+            example: "9BfZrMy3Ajb2kbTCaZ6fN"
+      responses:
+        '204':
+          description: Successfully deleted user.
+        '401':
+          description: Unauthorized.
