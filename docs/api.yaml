@@ -312,3 +312,99 @@ paths:
                     example: "john.doe@example.com"
         '401':
           description: Unauthorized.
+
+    patch:
+      summary: Update user
+      description: Update user profile information.
+      operationId: updateUser
+      tags:
+        - users/{userId}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User's unique ID.
+          schema:
+            type: string
+            format: nanoId
+            example: "_eXaiFKJ7btQbep_pCzVb"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  format: name
+                  description: User's updated first name.
+                  example: "John"
+                lastName:
+                  type: string
+                  format: name
+                  description: User's updated last name.
+                  example: "Doe"
+                email:
+                  type: string
+                  format: email
+                  description: User's email address.
+                  example: "john.doe@example.com"
+      responses:
+        '200':
+          description: Successfully updated user profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: nanoId
+                    description: User's unique ID.
+                    example: "_eXaiFKJ7btQbep_pCzVb"
+                  firstName:
+                    type: string
+                    format: name
+                    description: User's updated first name.
+                    example: "John"
+                  lastName:
+                    type: string
+                    format: name
+                    description: User's updated last name.
+                    example: "Doe"
+                  email:
+                    type: string
+                    format: email
+                    description: User's email address.
+                    example: "john.doe@example.com"
+        '400':
+          description: Invalid request.
+        '401':
+          description: Unauthorized.
+
+    delete:
+      summary: Delete user
+      description: Delete the user.
+      operationId: deleteUser
+      tags:
+        - users/{userId}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User's unique ID.
+          schema:
+            type: string
+            format: nanoId
+            example: "_eXaiFKJ7btQbep_pCzVb"
+      responses:
+        '204':
+          description: Successfully deleted user.
+        '401':
+          description: Unauthorized.
+
