@@ -408,3 +408,104 @@ paths:
         '401':
           description: Unauthorized.
 
+  # devices
+  /devices:
+    get:
+      summary: Get devices
+      description: Retrieve all devices for the authenticated user.
+      operationId: getDevices
+      tags:
+        - devices
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved devices.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: nanoId
+                      description: Device's unique ID.
+                      example: "9BfZrMy3Ajb2kbTCaZ6fN"
+                    ownerId:
+                      type: string
+                      format: nanoId
+                      description: Owning user's unique ID.
+                      example: "_eXaiFKJ7btQbep_pCzVb"
+                    name:
+                      type: string
+                      format: name
+                      description: Device's name.
+                      example: "Bedroom Alarm Clock"
+                    timezone:
+                      type: string
+                      format: timezone
+                      description: Device's timezone.
+                      example: "America/New_York"
+        '401':
+          description: Unauthorized.
+
+    post:
+      summary: Post device
+      description: Create a new clock resource associated with the authenticated user.
+      operationId: postDevice
+      tags:
+        - devices
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  format: name
+                  description: Device's name.
+                  example: "Bedroom Alarm Clock"
+                timezone:
+                  type: string
+                  format: timezone
+                  description: Device's timezone.
+                  example: "America/New_York"
+      responses:
+        '200':
+          description: Successfully retrieved device.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: nanoId
+                    description: Device's unique ID.
+                    example: "9BfZrMy3Ajb2kbTCaZ6fN"
+                  ownerId:
+                    type: string
+                    format: nanoId
+                    description: Owning user's unique ID.
+                    example: "_eXaiFKJ7btQbep_pCzVb"
+                  name:
+                    type: string
+                    format: name
+                    description: Device's name.
+                    example: "Bedroom Alarm Clock"
+                  timezone:
+                    type: string
+                    format: timezone
+                    description: Device's timezone.
+                    example: "America/New_York"
+        '400':
+          description: Invalid request.
+        '401':
+          description: Unauthorized.
+
