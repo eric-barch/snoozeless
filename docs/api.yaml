@@ -7,9 +7,9 @@ info:
 
 servers:
   - url: https://api.snoozeless.com/v1
-    description: Production.
+    description: Production
   - url: https://localhost:3000/v1
-    description: Local.
+    description: Local
 
 components:
   securitySchemes:
@@ -19,10 +19,11 @@ components:
       bearerFormat: JWT
 
 paths:
+  # auth/user
   /auth/user/register:
     post:
       summary: Register user
-      description: Registers a new user.
+      description: Register a new user.
       operationId: registerUser
       tags:
         - auth/user
@@ -173,6 +174,7 @@ paths:
         '401':
           description: Unauthorized.
 
+  # auth/device
   /auth/device/register:
     post:
       summary: Register device
@@ -261,13 +263,14 @@ paths:
         '401':
           description: Unauthorized.
 
+  # users/{userId}
   /users/{userId}:
     get:
       summary: Get user
       description: Get user profile information.
       operationId: getUser
       tags:
-        - user
+        - users/{userId}
       security:
         - bearerAuth: []
       parameters:
